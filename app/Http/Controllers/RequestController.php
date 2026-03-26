@@ -8,6 +8,8 @@ use App\Models\RequestType;
 use App\Models\Request as GrantRequest;
 use App\Models\AuditLog;
 use App\Models\Comment;
+use App\Models\Notification;
+use App\Models\User;
 
 class RequestController extends Controller
 {
@@ -66,6 +68,13 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
+        $this->notifyRole(
+            'staff1',
+            'New request submitted',
+            'A new request (' . $grantRequest->ref_number . ') requires verification.',
+            route('requests.show', $grantRequest->id)
+        );
+
         return redirect()->route('dashboard')
                          ->with('success', 'Request submitted successfully!');
     }
@@ -81,6 +90,8 @@ class RequestController extends Controller
                                     ->whereIn('status_id', [3]) // only returned requests
                                     ->firstOrFail();
 
+        $this->authorize('revise', $grantRequest);
+
         $requestTypes = RequestType::all();
         return view('requests.edit', compact('grantRequest', 'requestTypes'));
     }
@@ -91,6 +102,8 @@ class RequestController extends Controller
                                     ->where('user_id', Auth::id())
                                     ->whereIn('status_id', [3])
                                     ->firstOrFail();
+
+        $this->authorize('revise', $grantRequest);
 
         $request->validate([
             'amount'      => 'nullable|numeric',
@@ -135,6 +148,13 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
+        $this->notifyRole(
+            'staff1',
+            'Request resubmitted',
+            'Request ' . $grantRequest->ref_number . ' has been resubmitted and needs re-verification.',
+            route('requests.show', $grantRequest->id)
+        );
+
         return redirect()->route('dashboard')
                          ->with('success', 'Request resubmitted successfully!');
     }
@@ -154,7 +174,22 @@ class RequestController extends Controller
             'auditLogs.actor',
         ])->findOrFail($id);
 
+        $this->authorize('view', $grantRequest);
+
         return view('requests.show', compact('grantRequest'));
+    }
+
+    // ==========================================
+    // Printable summary
+    // ==========================================
+
+    public function printSummary($id)
+    {
+        $grantRequest = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])->findOrFail($id);
+
+        $this->authorize('print', $grantRequest);
+
+        return view('requests.print', compact('grantRequest'));
     }
 
     // ==========================================
@@ -166,13 +201,20 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::findOrFail($id);
         $user = Auth::user();
 
+        $this->authorize('updateStatus', $grantRequest);
+
         $request->validate([
             'status_id' => 'required|integer|between:1,6',
             'notes'     => 'nullable|string',
             'rejection_reason' => 'nullable|string',
         ]);
 
-        $updateData = ['status_id' => $request->status_id];
+        $newStatus = (int) $request->status_id;
+        if (! $this->isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
+            return back()->with('error', 'Invalid status transition for your role.')->withInput();
+        }
+
+        $updateData = ['status_id' => $newStatus];
 
         // Staff 1 verifying
         if ($user->role === 'staff1') {
@@ -198,10 +240,12 @@ class RequestController extends Controller
             'request_id'  => $grantRequest->id,
             'actor_id'    => $user->id,
             'from_status' => $oldStatus,
-            'to_status'   => $request->status_id,
+            'to_status'   => $newStatus,
             'note'        => $request->notes ?? null,
             'created_at'  => now(),
         ]);
+
+        $this->dispatchStatusNotification($grantRequest, $newStatus);
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Status updated successfully.');
@@ -213,6 +257,9 @@ class RequestController extends Controller
 
     public function addComment(Request $request, $id)
     {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('addComment', $grantRequest);
+
         $request->validate([
             'body' => 'required|string|max:1000',
         ]);
@@ -227,5 +274,64 @@ class RequestController extends Controller
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Comment added.');
+    }
+
+    private function isValidTransition(string $role, int $currentStatus, int $targetStatus): bool
+    {
+        $transitionMap = [
+            'staff1' => [
+                1 => [2, 3, 6],
+                4 => [2, 3, 6],
+            ],
+            'staff2' => [
+                2 => [4, 5, 6],
+            ],
+        ];
+
+        return in_array($targetStatus, $transitionMap[$role][$currentStatus] ?? [], true);
+    }
+
+    private function dispatchStatusNotification(GrantRequest $request, int $statusId): void
+    {
+        if ($statusId === 2) {
+            $this->notifyRole('staff2', 'Request forwarded to Staff 2', 'Request ' . $request->ref_number . ' is ready for recommendation.', route('requests.show', $request->id));
+            return;
+        }
+
+        if ($statusId === 3) {
+            $this->notifyUser((int) $request->user_id, 'Request returned for revision', 'Request ' . $request->ref_number . ' has been returned to you with comments.', route('requests.show', $request->id));
+            return;
+        }
+
+        if ($statusId === 4) {
+            $this->notifyRole('staff1', 'Request returned to Staff 1', 'Request ' . $request->ref_number . ' has been returned for re-verification.', route('requests.show', $request->id));
+            return;
+        }
+
+        if (in_array($statusId, [5, 6], true)) {
+            $title = $statusId === 5 ? 'Request approved' : 'Request declined';
+            $this->notifyUser((int) $request->user_id, $title, 'Request ' . $request->ref_number . ' has been updated. Please review the final decision.', route('requests.show', $request->id));
+        }
+    }
+
+    private function notifyRole(string $role, string $title, string $message, ?string $link = null): void
+    {
+        $users = User::query()->where('role', $role)->get(['id']);
+
+        foreach ($users as $recipient) {
+            $this->notifyUser((int) $recipient->id, $title, $message, $link);
+        }
+    }
+
+    private function notifyUser(int $userId, string $title, string $message, ?string $link = null): void
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'link' => $link,
+            'is_read' => false,
+            'created_at' => now(),
+        ]);
     }
 }
