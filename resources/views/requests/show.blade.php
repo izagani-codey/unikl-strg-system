@@ -7,9 +7,15 @@
                     <span class="ml-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">⚠ PRIORITY</span>
                 @endif
             </h2>
-            <span class="px-3 py-1 text-xs font-bold rounded-full {{ $grantRequest->statusClass() }}">
-                {{ $grantRequest->statusLabel() }}
-            </span>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('requests.print', $grantRequest->id) }}" target="_blank"
+                   class="px-3 py-1 text-xs font-semibold rounded bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    Printable Summary
+                </a>
+                <span class="px-3 py-1 text-xs font-bold rounded-full {{ $grantRequest->statusClass() }}">
+                    {{ $grantRequest->statusLabel() }}
+                </span>
+            </div>
         </div>
     </x-slot>
 

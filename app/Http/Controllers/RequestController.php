@@ -8,6 +8,8 @@ use App\Models\RequestType;
 use App\Models\Request as GrantRequest;
 use App\Models\AuditLog;
 use App\Models\Comment;
+use App\Models\Notification;
+use App\Models\User;
 
 class RequestController extends Controller
 {
@@ -65,6 +67,13 @@ class RequestController extends Controller
             'note'        => 'Initial submission by applicant.',
             'created_at'  => now(),
         ]);
+
+        $this->notifyRole(
+            'staff1',
+            'New request submitted',
+            'A new request (' . $grantRequest->ref_number . ') requires verification.',
+            route('requests.show', $grantRequest->id)
+        );
 
         return redirect()->route('dashboard')
                          ->with('success', 'Request submitted successfully!');
@@ -158,6 +167,23 @@ class RequestController extends Controller
     }
 
     // ==========================================
+    // Printable summary
+    // ==========================================
+
+
+    public function printSummary($id)
+    {
+        $grantRequest = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])->findOrFail($id);
+
+        $user = Auth::user();
+        if ($user->role === 'admission' && (int) $grantRequest->user_id !== (int) $user->id) {
+            abort(403, 'Unauthorized access to this request summary.');
+        }
+
+        return view('requests.print', compact('grantRequest'));
+    }
+
+    // ==========================================
     // STAFF 1 + STAFF 2 — Update workflow status
     // ==========================================
 
@@ -203,6 +229,8 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
+        $this->dispatchStatusNotification($grantRequest, (int) $request->status_id);
+
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Status updated successfully.');
     }
@@ -227,5 +255,49 @@ class RequestController extends Controller
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Comment added.');
+    }
+
+    private function dispatchStatusNotification(GrantRequest $request, int $statusId): void
+    {
+        if ($statusId === 2) {
+            $this->notifyRole('staff2', 'Request forwarded to Staff 2', 'Request ' . $request->ref_number . ' is ready for recommendation.', route('requests.show', $request->id));
+            return;
+        }
+
+        if ($statusId === 3) {
+            $this->notifyUser((int) $request->user_id, 'Request returned for revision', 'Request ' . $request->ref_number . ' has been returned to you with comments.', route('requests.show', $request->id));
+            return;
+        }
+
+        if ($statusId === 4) {
+            $this->notifyRole('staff1', 'Request returned to Staff 1', 'Request ' . $request->ref_number . ' has been returned for re-verification.', route('requests.show', $request->id));
+            return;
+        }
+
+        if (in_array($statusId, [5, 6], true)) {
+            $title = $statusId === 5 ? 'Request approved' : 'Request declined';
+            $this->notifyUser((int) $request->user_id, $title, 'Request ' . $request->ref_number . ' has been updated. Please review the final decision.', route('requests.show', $request->id));
+        }
+    }
+
+    private function notifyRole(string $role, string $title, string $message, ?string $link = null): void
+    {
+        $users = User::query()->where('role', $role)->get(['id']);
+
+        foreach ($users as $recipient) {
+            $this->notifyUser((int) $recipient->id, $title, $message, $link);
+        }
+    }
+
+    private function notifyUser(int $userId, string $title, string $message, ?string $link = null): void
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'link' => $link,
+            'is_read' => false,
+            'created_at' => now(),
+        ]);
     }
 }
