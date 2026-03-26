@@ -8,6 +8,8 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Staff2AdminController;
+use App\Http\Controllers\FormTemplateController;
 
 // Welcome page
 Route::get('/', function () {

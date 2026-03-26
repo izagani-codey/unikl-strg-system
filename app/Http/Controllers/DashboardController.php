@@ -23,12 +23,21 @@ class DashboardController extends Controller
 
         $this->applyFilters($query, $request, $user->role);
 
-        $displayRequests = $query->get();
+        $displayRequests = $query->paginate(15);
 
         $statsBase = GrantRequest::query();
         if ($user->role === 'admission') {
             $statsBase->where('user_id', $user->id);
         }
+        $formTemplates = \App\Models\FormTemplate::with('uploader')->latest('created_at')->get();
+$urgentRequests = collect();
+if (in_array($user->role, ['staff1', 'staff2'])) {
+    $urgentRequests = GrantRequest::where('deadline', '<=', now()->addDays(3))
+        ->whereNotIn('status_id', [5, 6])
+        ->with('requestType', 'user')
+        ->get();
+}
+return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardStats', 'formTemplates', 'urgentRequests'));
 
         $statusCounts = (clone $statsBase)
             ->selectRaw('status_id, COUNT(*) as total')
