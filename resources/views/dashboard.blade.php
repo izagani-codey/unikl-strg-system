@@ -84,11 +84,10 @@
 
                 {{-- Status Summary --}}
                 @php
-                    $myRequests = $displayRequests;
-                    $pending  = $myRequests->whereIn('status_id', [1, 2])->count();
-                    $returned = $myRequests->where('status_id', 3)->count();
-                    $approved = $myRequests->where('status_id', 5)->count();
-                    $declined = $myRequests->where('status_id', 6)->count();
+                    $pending = ($dashboardStats['pending_verification'] ?? 0) + ($dashboardStats['with_staff_2'] ?? 0);
+                    $returned = $dashboardStats['returned_to_admission'] ?? 0;
+                    $approved = $dashboardStats['approved'] ?? 0;
+                    $declined = $dashboardStats['declined'] ?? 0;
                 @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
@@ -227,6 +226,8 @@
                     </div>
                 </div>
 
+                <div class="mt-4">{{ $displayRequests->links() }}</div>
+
             {{-- ================================ --}}
             {{-- STAFF 1 DASHBOARD --}}
             {{-- ================================ --}}
@@ -234,20 +235,20 @@
 
     {{-- Summary Stats --}}
     @php
-        $allReqs  = $displayRequests;
-        $myQueue  = $allReqs->whereIn('status_id', [1, 4]);
-        $approved = $allReqs->where('status_id', 5)->count();
-        $declined = $allReqs->where('status_id', 6)->count();
-        $total    = $allReqs->count();
+        $myQueueCount = ($dashboardStats['pending_verification'] ?? 0) + ($dashboardStats['returned_to_staff_1'] ?? 0);
+        $withStaff2Count = $dashboardStats['with_staff_2'] ?? 0;
+        $approved = $dashboardStats['approved'] ?? 0;
+        $declined = $dashboardStats['declined'] ?? 0;
+        $total = $dashboardStats['total'] ?? 0;
     @endphp
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
-            <p class="text-2xl font-bold text-orange-600">{{ $myQueue->count() }}</p>
+            <p class="text-2xl font-bold text-orange-600">{{ $myQueueCount }}</p>
             <p class="text-xs text-orange-500 mt-1">Needs My Action</p>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <p class="text-2xl font-bold text-blue-600">{{ $allReqs->where('status_id', 2)->count() }}</p>
+            <p class="text-2xl font-bold text-blue-600">{{ $withStaff2Count }}</p>
             <p class="text-xs text-blue-500 mt-1">With Staff 2</p>
         </div>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
@@ -297,7 +298,7 @@
             <button onclick="filterTable('action')"
                 id="tab-action"
                 class="pb-2 text-sm font-semibold text-gray-400 hover:text-gray-600">
-                Needs Action ({{ $myQueue->count() }})
+                Needs Action ({{ $myQueueCount }})
             </button>
             <button onclick="filterTable('staff2')"
                 id="tab-staff2"
@@ -364,6 +365,8 @@
             </table>
         </div>
     </div>
+
+    <div class="mt-4">{{ $displayRequests->links() }}</div>
 
     {{-- Tab filter JS --}}
     <script>
@@ -500,6 +503,8 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="mt-4">{{ $displayRequests->links() }}</div>
                 </div>
 
             @endif
