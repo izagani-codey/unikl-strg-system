@@ -8,8 +8,6 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\FormTemplateController;
-use App\Http\Controllers\Staff2AdminController;
 
 // Welcome page
 Route::get('/', function () {
@@ -80,6 +78,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
         Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
         Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
+    });
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+
+    Route::middleware('role:staff1,staff2')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     });
 
 });
