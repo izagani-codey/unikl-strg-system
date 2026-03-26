@@ -12,19 +12,25 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Dev Quick-Switch (remove before production)
-Route::post('/dev-login', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+// Dev Quick-Switch (local environment only)
+if (app()->environment('local')) {
+    Route::post('/dev-login', function (Request $request) {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
 
-    if (Auth::attempt(['email' => $request->email, 'password' => 'password'])) {
-        $request->session()->regenerate();
-        return redirect()->route('dashboard');
-    }
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    return back()->with('error', 'Switch failed. Check your seeder!');
-})->name('dev.login');
+        if (Auth::attempt(['email' => $request->email, 'password' => 'password'])) {
+            $request->session()->regenerate();
+            return redirect()->route('dashboard');
+        }
+
+        return back()->with('error', 'Switch failed. Check your seeder!');
+    })->name('dev.login');
+}
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])

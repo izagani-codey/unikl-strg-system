@@ -13,28 +13,30 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Dev Quick-Switch --}}
-            <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3 underline">Dev Quick-Switch</h4>
-                <div class="flex gap-4">
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="admission@unikl.edu.my">
-                        <button type="submit" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">Become: Admission</button>
-                    </form>
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="staff1@unikl.edu.my">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Become: Staff 1</button>
-                    </form>
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="staff2@unikl.edu.my">
-                        <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs">Become: Staff 2</button>
-                    </form>
+            {{-- Dev Quick-Switch (local only) --}}
+            @if(app()->environment('local') && Route::has('dev.login'))
+                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
+                    <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">Developer Quick Switch</h4>
+                    <div class="flex flex-wrap gap-3">
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="admission@unikl.edu.my">
+                            <button type="submit" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">Become: Admission</button>
+                        </form>
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="staff1@unikl.edu.my">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Become: Staff 1</button>
+                        </form>
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="staff2@unikl.edu.my">
+                            <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs">Become: Staff 2</button>
+                        </form>
+                    </div>
+                    <p class="text-gray-400 text-[10px] mt-2 italic">Local development helper only.</p>
                 </div>
-                <p class="text-gray-400 text-[10px] mt-2 italic">*Remove before production*</p>
-            </div>
+            @endif
 
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">

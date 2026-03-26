@@ -15,6 +15,16 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    @if(auth()->user()->role === 'admission')
+                        <x-nav-link :href="route('requests.create')" :active="request()->routeIs('requests.create')">
+                            {{ __('New Request') }}
+                        </x-nav-link>
+                    @endif
+
+                    <x-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
+                        {{ __('Profile') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -69,6 +79,16 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+
+            @if(auth()->user()->role === 'admission')
+                <x-responsive-nav-link :href="route('requests.create')" :active="request()->routeIs('requests.create')">
+                    {{ __('New Request') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
+                {{ __('Profile') }}
             </x-responsive-nav-link>
         </div>
 
