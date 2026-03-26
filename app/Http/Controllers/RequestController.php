@@ -174,7 +174,7 @@ class RequestController extends Controller
             'auditLogs.actor',
         ])->findOrFail($id);
 
-        $this->authorize('view', $grantRequest);
+        $this->authorizeRequestAccess($grantRequest, Auth::user());
 
         return view('requests.show', compact('grantRequest'));
     }
@@ -183,11 +183,15 @@ class RequestController extends Controller
     // Printable summary
     // ==========================================
 
+
     public function printSummary($id)
     {
         $grantRequest = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])->findOrFail($id);
 
-        $this->authorize('print', $grantRequest);
+        $user = Auth::user();
+        if ($user->role === 'admission' && (int) $grantRequest->user_id !== (int) $user->id) {
+            abort(403, 'Unauthorized access to this request summary.');
+        }
 
         return view('requests.print', compact('grantRequest'));
     }
@@ -245,7 +249,7 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
-        $this->dispatchStatusNotification($grantRequest, $newStatus);
+        $this->dispatchStatusNotification($grantRequest, (int) $request->status_id);
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Status updated successfully.');
@@ -274,21 +278,6 @@ class RequestController extends Controller
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Comment added.');
-    }
-
-    private function isValidTransition(string $role, int $currentStatus, int $targetStatus): bool
-    {
-        $transitionMap = [
-            'staff1' => [
-                1 => [2, 3, 6],
-                4 => [2, 3, 6],
-            ],
-            'staff2' => [
-                2 => [4, 5, 6],
-            ],
-        ];
-
-        return in_array($targetStatus, $transitionMap[$role][$currentStatus] ?? [], true);
     }
 
     private function dispatchStatusNotification(GrantRequest $request, int $statusId): void
