@@ -6,25 +6,33 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\NotificationController;
 
 // Welcome page
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Dev Quick-Switch (remove before production)
-Route::post('/dev-login', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+// Dev Quick-Switch (local environment only)
+if (app()->environment('local')) {
+    Route::post('/dev-login', function (Request $request) {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
 
-    if (Auth::attempt(['email' => $request->email, 'password' => 'password'])) {
-        $request->session()->regenerate();
-        return redirect()->route('dashboard');
-    }
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    return back()->with('error', 'Switch failed. Check your seeder!');
-})->name('dev.login');
+        if (Auth::attempt(['email' => $request->email, 'password' => 'password'])) {
+            $request->session()->regenerate();
+            return redirect()->route('dashboard');
+        }
+
+        return back()->with('error', 'Switch failed. Check your seeder!');
+    })->name('dev.login');
+}
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -54,6 +62,14 @@ Route::middleware('auth')->group(function () {
 
     // All roles — view requests
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+
+    Route::middleware('role:staff1,staff2')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    });
 
 });
 

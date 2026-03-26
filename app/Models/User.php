@@ -29,6 +29,7 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
     public function isPersonA()
     {
         return $this->role === 'personA';
@@ -43,10 +44,14 @@ class User extends Authenticatable
     {
         return $this->role === 'admissions';
     }
-   // app/Models/User.php
 
-public function requests()
-{
-    return $this->hasMany(Request::class);
-}
+    public function requests()
+    {
+        return $this->hasMany(Request::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->latest('created_at');
+    }
 }
