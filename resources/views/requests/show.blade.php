@@ -7,9 +7,15 @@
                     <span class="ml-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">⚠ PRIORITY</span>
                 @endif
             </h2>
-            <span class="px-3 py-1 text-xs font-bold rounded-full {{ $grantRequest->statusClass() }}">
-                {{ $grantRequest->statusLabel() }}
-            </span>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('requests.print', $grantRequest->id) }}" target="_blank"
+                   class="px-3 py-1 text-xs font-semibold rounded bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    Printable Summary
+                </a>
+                <span class="px-3 py-1 text-xs font-bold rounded-full {{ $grantRequest->statusClass() }}">
+                    {{ $grantRequest->statusLabel() }}
+                </span>
+            </div>
         </div>
     </x-slot>
 
@@ -20,6 +26,12 @@
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
                     {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {{ session('error') }}
                 </div>
             @endif
 
@@ -143,56 +155,30 @@
                     <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
                         @csrf
                         @method('PATCH')
-                        <textarea name="notes" rows="2" placeholder="Internal notes (optional)"
+                        <textarea name="notes" rows="2"
+                            placeholder="Internal notes (optional)"
                             class="w-full border rounded p-2 text-sm"></textarea>
-                        <div class="flex gap-3">
-                            <input type="hidden" name="status_id" value="2" id="status-input">
+                        <textarea name="rejection_reason" rows="2"
+                            placeholder="Reason for returning or rejecting (visible to admission)"
+                            class="w-full border rounded p-2 text-sm"></textarea>
+                        <input type="hidden" name="status_id" value="2" id="s1-status">
+                        <div class="flex gap-3 flex-wrap">
                             <button type="submit"
-                                onclick="document.getElementById('status-input').value='2'"
-                                class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">
+                                onclick="document.getElementById('s1-status').value='2'"
+                                class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
                                 ✓ Verify & Send to Staff 2
                             </button>
                             <button type="submit"
-                                onclick="document.getElementById('status-input').value='3'"
-                                class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
+                                onclick="document.getElementById('s1-status').value='3'"
+                                class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
                                 ↩ Return to Admission
                             </button>
+                            <button type="submit"
+                                onclick="document.getElementById('s1-status').value='6'"
+                                class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
+                                ✕ Reject
+                            </button>
                         </div>
-                        <div id="return-reason-box" class="hidden">
-                            <textarea name="rejection_reason" rows="2"
-                                placeholder="Reason for returning (visible to admission)"
-                                class="w-full border rounded p-2 text-sm mt-2"></textarea>
-                        </div>
-                        @if(auth()->user()->role === 'staff1' && in_array($grantRequest->status_id, [1, 4]))
-    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
-        @csrf
-        @method('PATCH')
-        <textarea name="notes" rows="2"
-            placeholder="Internal notes (optional)"
-            class="w-full border rounded p-2 text-sm"></textarea>
-        <textarea name="rejection_reason" rows="2"
-            placeholder="Reason for returning or rejecting (visible to admission)"
-            class="w-full border rounded p-2 text-sm"></textarea>
-        <input type="hidden" name="status_id" value="2" id="s1-status">
-        <div class="flex gap-3 flex-wrap">
-            <button type="submit"
-                onclick="document.getElementById('s1-status').value='2'"
-                class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
-                ✓ Verify & Send to Staff 2
-            </button>
-            <button type="submit"
-                onclick="document.getElementById('s1-status').value='3'"
-                class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
-                ↩ Return to Admission
-            </button>
-            <button type="submit"
-                onclick="document.getElementById('s1-status').value='6'"
-                class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
-                ✕ Reject
-            </button>
-        </div>
-    </form>
-@endif
                     </form>
                 @endif
 
