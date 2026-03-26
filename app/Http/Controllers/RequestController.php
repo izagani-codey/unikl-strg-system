@@ -167,6 +167,23 @@ class RequestController extends Controller
     }
 
     // ==========================================
+    // Printable summary
+    // ==========================================
+
+
+    public function printSummary($id)
+    {
+        $grantRequest = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])->findOrFail($id);
+
+        $user = Auth::user();
+        if ($user->role === 'admission' && (int) $grantRequest->user_id !== (int) $user->id) {
+            abort(403, 'Unauthorized access to this request summary.');
+        }
+
+        return view('requests.print', compact('grantRequest'));
+    }
+
+    // ==========================================
     // STAFF 1 + STAFF 2 — Update workflow status
     // ==========================================
 

@@ -62,6 +62,23 @@ Route::middleware('auth')->group(function () {
 
     // All roles — view requests
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+
+    Route::middleware('role:staff1,staff2')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    });
+
+
+    Route::middleware('role:staff2')->group(function () {
+        Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
+        Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
+        Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
+        Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
+    });
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');

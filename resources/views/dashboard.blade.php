@@ -63,25 +63,19 @@
 
                 {{-- Blank Forms Download --}}
                 <div class="bg-white shadow-sm rounded-lg p-6">
-                    <h3 class="font-bold text-lg mb-4 border-b pb-2">📄 Blank Forms & Templates</h3>
+                    <div class="flex items-center justify-between mb-4 border-b pb-2">
+                        <h3 class="font-bold text-lg">📄 Blank Forms & Templates</h3>
+                    </div>
                     <p class="text-sm text-gray-500 mb-4">Download, fill, and upload these forms with your request.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        @php
-                            $forms = [
-                                ['name' => 'STRG Application Form',     'file' => 'strg-application.pdf'],
-                                ['name' => 'Virement Form',             'file' => 'virement-form.pdf'],
-                                ['name' => 'Change Request Form',       'file' => 'change-request.pdf'],
-                                ['name' => 'Extension Request Form',    'file' => 'extension-form.pdf'],
-                                ['name' => 'Final Report Form',         'file' => 'final-report.pdf'],
-                                ['name' => 'RA Appointment Form',       'file' => 'ra-appointment.pdf'],
-                            ];
-                        @endphp
-                        @foreach($forms as $form)
-                        <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                            <span class="text-sm font-semibold text-gray-700">📎 {{ $form['name'] }}</span>
-                            <span class="text-xs text-gray-400 italic ml-2">Coming soon</span>
-                        </div>
-                        @endforeach
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @forelse($formTemplates as $template)
+                            <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                                <span class="text-sm font-semibold text-gray-700">📎 {{ $template->title }}</span>
+                                <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank" class="text-xs font-bold text-blue-600 hover:underline">Download</a>
+                            </div>
+                        @empty
+                            <div class="p-4 border border-dashed rounded text-sm text-gray-500">No templates uploaded yet. Ask Staff 2 to upload blank forms.</div>
+                        @endforelse
                     </div>
                 </div>
 
