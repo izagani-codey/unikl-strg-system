@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
-use App\Models\FormTemplate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -24,7 +23,7 @@ class DashboardController extends Controller
 
         $this->applyFilters($query, $request, $user->role);
 
-        $displayRequests = $query->paginate(15)->withQueryString();
+        $displayRequests = $query->get();
 
         $statsBase = GrantRequest::query();
         if ($user->role === 'admission') {
@@ -47,25 +46,8 @@ class DashboardController extends Controller
         ];
 
         $requestTypes = RequestType::all();
-        $formTemplates = FormTemplate::query()->latest('created_at')->get();
 
-
-        $urgentRequestsQuery = GrantRequest::query()
-            ->with('requestType', 'user')
-            ->whereNotIn('status_id', [5, 6])
-            ->whereNotNull('deadline')
-            ->whereDate('deadline', '<=', now()->addDays(3));
-
-        if ($user->role === 'admission') {
-            $urgentRequestsQuery->where('user_id', $user->id);
-        }
-
-        $urgentRequests = $urgentRequestsQuery
-            ->orderBy('deadline')
-            ->take(5)
-            ->get();
-
-        return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardStats', 'formTemplates', 'urgentRequests'));
+        return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardStats'));
     }
 
     private function applyFilters(Builder $query, Request $request, string $role): void

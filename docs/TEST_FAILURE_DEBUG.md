@@ -26,12 +26,6 @@ php artisan test --filter "ProfileTest|AuthenticationTest|ExampleTest"
 ./scripts/qa_check.sh
 ```
 
-PowerShell users:
-
-```powershell
-./scripts/qa_check.ps1
-```
-
 ## Common causes in this project
 
 - Missing dependencies (`vendor/autoload.php`) if `composer install` was not run.

@@ -35,40 +35,6 @@
                 </div>
             @endif
 
-            {{-- Workflow Timeline --}}
-            @php
-                $current = (int) $grantRequest->status_id;
-                $timeline = [
-                    ['id' => 1, 'label' => 'Submitted'],
-                    ['id' => 2, 'label' => 'Staff 1 Review'],
-                    ['id' => 3, 'label' => 'Staff 2 Review'],
-                    ['id' => 4, 'label' => 'Decision'],
-                ];
-
-                $stepState = fn (int $stepId) => match ($current) {
-                    1 => $stepId === 1 ? 'current' : 'pending',
-                    2 => in_array($stepId, [1, 2, 3], true) ? ($stepId === 3 ? 'current' : 'done') : 'pending',
-                    3 => $stepId === 1 ? 'done' : ($stepId === 2 ? 'current' : 'pending'),
-                    4 => in_array($stepId, [1, 2, 3], true) ? ($stepId === 2 ? 'current' : 'done') : 'pending',
-                    5, 6 => $stepId < 4 ? 'done' : 'current',
-                    default => 'pending',
-                };
-            @endphp
-            <div class="bg-white shadow-sm rounded-lg p-6">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Workflow Timeline</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    @foreach($timeline as $step)
-                        @php($state = $stepState($step['id']))
-                        <div class="p-3 rounded border {{ $state === 'done' ? 'bg-green-50 border-green-200' : ($state === 'current' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200') }}">
-                            <p class="text-xs font-bold {{ $state === 'done' ? 'text-green-700' : ($state === 'current' ? 'text-blue-700' : 'text-gray-500') }}">{{ $step['label'] }}</p>
-                            <p class="text-[11px] mt-1 {{ $state === 'done' ? 'text-green-600' : ($state === 'current' ? 'text-blue-600' : 'text-gray-400') }}">
-                                {{ $state === 'done' ? 'Completed' : ($state === 'current' ? 'In Progress' : 'Pending') }}
-                            </p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
             {{-- Request Details --}}
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Request Details</h3>
