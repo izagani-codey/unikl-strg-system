@@ -1,4 +1,7 @@
 <x-app-layout>
+    @php
+        $formTemplates = $formTemplates ?? collect();
+    @endphp
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -13,28 +16,30 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Dev Quick-Switch --}}
-            <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3 underline">Dev Quick-Switch</h4>
-                <div class="flex gap-4">
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="admission@unikl.edu.my">
-                        <button type="submit" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">Become: Admission</button>
-                    </form>
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="staff1@unikl.edu.my">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Become: Staff 1</button>
-                    </form>
-                    <form action="{{ route('dev.login') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="email" value="staff2@unikl.edu.my">
-                        <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs">Become: Staff 2</button>
-                    </form>
+            {{-- Dev Quick-Switch (local only) --}}
+            @if(app()->environment('local') && Route::has('dev.login'))
+                <div class="bg-gray-900 p-4 rounded-lg shadow-lg">
+                    <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-3">Developer Quick Switch</h4>
+                    <div class="flex flex-wrap gap-3">
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="admission@unikl.edu.my">
+                            <button type="submit" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">Become: Admission</button>
+                        </form>
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="staff1@unikl.edu.my">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Become: Staff 1</button>
+                        </form>
+                        <form action="{{ route('dev.login') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="email" value="staff2@unikl.edu.my">
+                            <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs">Become: Staff 2</button>
+                        </form>
+                    </div>
+                    <p class="text-gray-400 text-[10px] mt-2 italic">Local development helper only.</p>
                 </div>
-                <p class="text-gray-400 text-[10px] mt-2 italic">*Remove before production*</p>
-            </div>
+            @endif
 
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
@@ -61,35 +66,28 @@
 
                 {{-- Blank Forms Download --}}
                 <div class="bg-white shadow-sm rounded-lg p-6">
-                    <h3 class="font-bold text-lg mb-4 border-b pb-2">📄 Blank Forms & Templates</h3>
+                    <div class="flex items-center justify-between mb-4 border-b pb-2">
+                        <h3 class="font-bold text-lg">📄 Blank Forms & Templates</h3>
+                    </div>
                     <p class="text-sm text-gray-500 mb-4">Download, fill, and upload these forms with your request.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        @php
-                            $forms = [
-                                ['name' => 'STRG Application Form',     'file' => 'strg-application.pdf'],
-                                ['name' => 'Virement Form',             'file' => 'virement-form.pdf'],
-                                ['name' => 'Change Request Form',       'file' => 'change-request.pdf'],
-                                ['name' => 'Extension Request Form',    'file' => 'extension-form.pdf'],
-                                ['name' => 'Final Report Form',         'file' => 'final-report.pdf'],
-                                ['name' => 'RA Appointment Form',       'file' => 'ra-appointment.pdf'],
-                            ];
-                        @endphp
-                        @foreach($forms as $form)
-                        <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                            <span class="text-sm font-semibold text-gray-700">📎 {{ $form['name'] }}</span>
-                            <span class="text-xs text-gray-400 italic ml-2">Coming soon</span>
-                        </div>
-                        @endforeach
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @forelse($formTemplates as $template)
+                            <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                                <span class="text-sm font-semibold text-gray-700">📎 {{ $template->title }}</span>
+                                <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank" class="text-xs font-bold text-blue-600 hover:underline">Download</a>
+                            </div>
+                        @empty
+                            <div class="p-4 border border-dashed rounded text-sm text-gray-500">No templates uploaded yet. Ask Staff 2 to upload blank forms.</div>
+                        @endforelse
                     </div>
                 </div>
 
                 {{-- Status Summary --}}
                 @php
-                    $myRequests = $displayRequests;
-                    $pending  = $myRequests->whereIn('status_id', [1, 2])->count();
-                    $returned = $myRequests->where('status_id', 3)->count();
-                    $approved = $myRequests->where('status_id', 5)->count();
-                    $declined = $myRequests->where('status_id', 6)->count();
+                    $pending = ($dashboardStats['pending_verification'] ?? 0) + ($dashboardStats['with_staff_2'] ?? 0);
+                    $returned = $dashboardStats['returned_to_admission'] ?? 0;
+                    $approved = $dashboardStats['approved'] ?? 0;
+                    $declined = $dashboardStats['declined'] ?? 0;
                 @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
@@ -228,6 +226,8 @@
                     </div>
                 </div>
 
+                <div class="mt-4">{{ $displayRequests->links() }}</div>
+
             {{-- ================================ --}}
             {{-- STAFF 1 DASHBOARD --}}
             {{-- ================================ --}}
@@ -235,20 +235,20 @@
 
     {{-- Summary Stats --}}
     @php
-        $allReqs  = $displayRequests;
-        $myQueue  = $allReqs->whereIn('status_id', [1, 4]);
-        $approved = $allReqs->where('status_id', 5)->count();
-        $declined = $allReqs->where('status_id', 6)->count();
-        $total    = $allReqs->count();
+        $myQueueCount = ($dashboardStats['pending_verification'] ?? 0) + ($dashboardStats['returned_to_staff_1'] ?? 0);
+        $withStaff2Count = $dashboardStats['with_staff_2'] ?? 0;
+        $approved = $dashboardStats['approved'] ?? 0;
+        $declined = $dashboardStats['declined'] ?? 0;
+        $total = $dashboardStats['total'] ?? 0;
     @endphp
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
-            <p class="text-2xl font-bold text-orange-600">{{ $myQueue->count() }}</p>
+            <p class="text-2xl font-bold text-orange-600">{{ $myQueueCount }}</p>
             <p class="text-xs text-orange-500 mt-1">Needs My Action</p>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <p class="text-2xl font-bold text-blue-600">{{ $allReqs->where('status_id', 2)->count() }}</p>
+            <p class="text-2xl font-bold text-blue-600">{{ $withStaff2Count }}</p>
             <p class="text-xs text-blue-500 mt-1">With Staff 2</p>
         </div>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
@@ -261,6 +261,33 @@
         </div>
     </div>
 
+    <form method="GET" action="{{ route('dashboard') }}" class="bg-white shadow-sm rounded-lg p-4">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ref / name / email" class="border rounded px-3 py-2 text-sm col-span-2 md:col-span-2">
+            <select name="status" class="border rounded px-3 py-2 text-sm">
+                <option value="">All Statuses</option>
+                <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>Pending Verification</option>
+                <option value="2" {{ request('status') == 2 ? 'selected' : '' }}>With Staff 2</option>
+                <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Returned to Admission</option>
+                <option value="4" {{ request('status') == 4 ? 'selected' : '' }}>Returned to Staff 1</option>
+                <option value="5" {{ request('status') == 5 ? 'selected' : '' }}>Approved</option>
+                <option value="6" {{ request('status') == 6 ? 'selected' : '' }}>Declined</option>
+            </select>
+            <select name="type" class="border rounded px-3 py-2 text-sm">
+                <option value="">All Types</option>
+                @foreach($requestTypes as $type)
+                    <option value="{{ $type->id }}" {{ request('type') == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
+            <div class="flex gap-2">
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm flex-1">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700">Filter</button>
+                <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-semibold">✕</a>
+            </div>
+        </div>
+    </form>
+
     <div class="bg-white shadow-sm rounded-lg p-6">
         <div class="flex gap-4 mb-4 border-b">
             <button onclick="filterTable('all')"
@@ -271,7 +298,7 @@
             <button onclick="filterTable('action')"
                 id="tab-action"
                 class="pb-2 text-sm font-semibold text-gray-400 hover:text-gray-600">
-                Needs Action ({{ $myQueue->count() }})
+                Needs Action ({{ $myQueueCount }})
             </button>
             <button onclick="filterTable('staff2')"
                 id="tab-staff2"
@@ -339,6 +366,8 @@
         </div>
     </div>
 
+    <div class="mt-4">{{ $displayRequests->links() }}</div>
+
     {{-- Tab filter JS --}}
     <script>
         function filterTable(filter) {
@@ -374,11 +403,10 @@
 
                 {{-- Summary Stats --}}
                 @php
-                    $allRequests = \App\Models\Request::all();
-                    $withStaff2  = $allRequests->where('status_id', 2)->count();
-                    $approved    = $allRequests->where('status_id', 5)->count();
-                    $declined    = $allRequests->where('status_id', 6)->count();
-                    $total       = $allRequests->count();
+                    $withStaff2  = $dashboardStats['with_staff_2'] ?? 0;
+                    $approved    = $dashboardStats['approved'] ?? 0;
+                    $declined    = $dashboardStats['declined'] ?? 0;
+                    $total       = $dashboardStats['total'] ?? 0;
                 @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
@@ -403,11 +431,14 @@
                     <h3 class="font-bold text-lg mb-4">⚖️ Evaluation Queue</h3>
                     <div class="overflow-x-auto">
                         <form method="GET" action="{{ route('dashboard') }}" class="mb-4">
-    <div class="flex gap-3">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ref / name / email" class="border rounded px-3 py-2 text-sm col-span-2 md:col-span-2">
         <select name="status" class="border rounded px-3 py-2 text-sm">
             <option value="">All Statuses</option>
-            <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>In Review</option>
-            <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Needs Revision</option>
+            <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>Pending Verification</option>
+            <option value="2" {{ request('status') == 2 ? 'selected' : '' }}>With Staff 2</option>
+            <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Returned to Admission</option>
+            <option value="4" {{ request('status') == 4 ? 'selected' : '' }}>Returned to Staff 1</option>
             <option value="5" {{ request('status') == 5 ? 'selected' : '' }}>Approved</option>
             <option value="6" {{ request('status') == 6 ? 'selected' : '' }}>Declined</option>
         </select>
@@ -419,12 +450,12 @@
                 </option>
             @endforeach
         </select>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">
-            Filter
-        </button>
-        <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm font-bold hover:bg-gray-300">
-            ✕
-        </a>
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
+        <div class="flex gap-2">
+            <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm flex-1">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">Filter</button>
+            <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm font-bold hover:bg-gray-300">✕</a>
+        </div>
     </div>
 </form>
                         <table class="min-w-full text-sm">
@@ -472,6 +503,8 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="mt-4">{{ $displayRequests->links() }}</div>
                 </div>
 
             @endif

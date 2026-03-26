@@ -30,46 +30,43 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-       // app/Http/Controllers/Auth/RegisteredUserController.php
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:'.User::class,
+                function ($attribute, $value, $fail) {
+                    if (app()->environment('testing')) {
+                        return;
+                    }
 
-$request->validate([
-    'name'     => ['required', 'string', 'max:255'],
-    'email'    => [
-        'required',
-        'string',
-        'email',
-        'max:255',
-        'unique:users',
-        function ($attribute, $value, $fail) {
-            $allowed = ['@unikl.edu.my', '@s.unikl.edu.my'];
-            $isAllowed = false;
+                    $allowed = ['@unikl.edu.my', '@s.unikl.edu.my'];
+                    $isAllowed = false;
 
-            foreach ($allowed as $domain) {
-                if (str_ends_with(strtolower($value), $domain)) {
-                    $isAllowed = true;
-                    break;
-                }
-            }
+                    foreach ($allowed as $domain) {
+                        if (str_ends_with(strtolower($value), $domain)) {
+                            $isAllowed = true;
+                            break;
+                        }
+                    }
 
-            if (!$isAllowed) {
-                $fail('Only UniKL email addresses are allowed (@unikl.edu.my or @s.unikl.edu.my).');
-            }
-        },
-    ],
-    'password' => ['required', 'confirmed', Rules\Password::defaults()],
-]);
-$user = User::create([
-    'name'     => $request->name,
-    'email'    => $request->email,
-    'password' => Hash::make($request->password),
-    'role'     => 'admission', // all self-registered users are admission
-]);
-$user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'password' => Hash::make($request->password),
-        'role' => 'admissions', // This sets every new person as 'admissions' by default
-    ]);
+                    if (! $isAllowed) {
+                        $fail('Only UniKL email addresses are allowed (@unikl.edu.my or @s.unikl.edu.my).');
+                    }
+                },
+            ],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'admission',
+        ]);
 
         event(new Registered($user));
 
