@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\NotificationController;
 
 // Welcome page
 Route::get('/', function () {
@@ -60,6 +62,14 @@ Route::middleware('auth')->group(function () {
 
     // All roles — view requests
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+
+    Route::middleware('role:staff1,staff2')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    });
 
 });
 

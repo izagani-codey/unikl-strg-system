@@ -263,6 +263,33 @@
         </div>
     </div>
 
+    <form method="GET" action="{{ route('dashboard') }}" class="bg-white shadow-sm rounded-lg p-4">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ref / name / email" class="border rounded px-3 py-2 text-sm col-span-2 md:col-span-2">
+            <select name="status" class="border rounded px-3 py-2 text-sm">
+                <option value="">All Statuses</option>
+                <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>Pending Verification</option>
+                <option value="2" {{ request('status') == 2 ? 'selected' : '' }}>With Staff 2</option>
+                <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Returned to Admission</option>
+                <option value="4" {{ request('status') == 4 ? 'selected' : '' }}>Returned to Staff 1</option>
+                <option value="5" {{ request('status') == 5 ? 'selected' : '' }}>Approved</option>
+                <option value="6" {{ request('status') == 6 ? 'selected' : '' }}>Declined</option>
+            </select>
+            <select name="type" class="border rounded px-3 py-2 text-sm">
+                <option value="">All Types</option>
+                @foreach($requestTypes as $type)
+                    <option value="{{ $type->id }}" {{ request('type') == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
+            <div class="flex gap-2">
+                <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm flex-1">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700">Filter</button>
+                <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-semibold">✕</a>
+            </div>
+        </div>
+    </form>
+
     <div class="bg-white shadow-sm rounded-lg p-6">
         <div class="flex gap-4 mb-4 border-b">
             <button onclick="filterTable('all')"
@@ -376,11 +403,10 @@
 
                 {{-- Summary Stats --}}
                 @php
-                    $allRequests = \App\Models\Request::all();
-                    $withStaff2  = $allRequests->where('status_id', 2)->count();
-                    $approved    = $allRequests->where('status_id', 5)->count();
-                    $declined    = $allRequests->where('status_id', 6)->count();
-                    $total       = $allRequests->count();
+                    $withStaff2  = $dashboardStats['with_staff_2'] ?? 0;
+                    $approved    = $dashboardStats['approved'] ?? 0;
+                    $declined    = $dashboardStats['declined'] ?? 0;
+                    $total       = $dashboardStats['total'] ?? 0;
                 @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
@@ -405,11 +431,14 @@
                     <h3 class="font-bold text-lg mb-4">⚖️ Evaluation Queue</h3>
                     <div class="overflow-x-auto">
                         <form method="GET" action="{{ route('dashboard') }}" class="mb-4">
-    <div class="flex gap-3">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search ref / name / email" class="border rounded px-3 py-2 text-sm col-span-2 md:col-span-2">
         <select name="status" class="border rounded px-3 py-2 text-sm">
             <option value="">All Statuses</option>
-            <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>In Review</option>
-            <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Needs Revision</option>
+            <option value="1" {{ request('status') == 1 ? 'selected' : '' }}>Pending Verification</option>
+            <option value="2" {{ request('status') == 2 ? 'selected' : '' }}>With Staff 2</option>
+            <option value="3" {{ request('status') == 3 ? 'selected' : '' }}>Returned to Admission</option>
+            <option value="4" {{ request('status') == 4 ? 'selected' : '' }}>Returned to Staff 1</option>
             <option value="5" {{ request('status') == 5 ? 'selected' : '' }}>Approved</option>
             <option value="6" {{ request('status') == 6 ? 'selected' : '' }}>Declined</option>
         </select>
@@ -421,12 +450,12 @@
                 </option>
             @endforeach
         </select>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">
-            Filter
-        </button>
-        <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm font-bold hover:bg-gray-300">
-            ✕
-        </a>
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
+        <div class="flex gap-2">
+            <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm flex-1">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">Filter</button>
+            <a href="{{ route('dashboard') }}" class="bg-gray-200 text-gray-600 px-3 py-2 rounded text-sm font-bold hover:bg-gray-300">✕</a>
+        </div>
     </div>
 </form>
                         <table class="min-w-full text-sm">
