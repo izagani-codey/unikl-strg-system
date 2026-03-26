@@ -1,4 +1,7 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+    @php
+        $unreadNotifications = auth()->user()->notifications()->where('is_read', false)->count();
+    @endphp
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -15,6 +18,35 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    @if(auth()->user()->role === 'admission')
+                        <x-nav-link :href="route('requests.create')" :active="request()->routeIs('requests.create')">
+                            {{ __('New Request') }}
+                        </x-nav-link>
+                    @endif
+
+                    <x-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
+                        {{ __('Profile') }}
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                        {{ __('Notifications') }}
+                        @if($unreadNotifications > 0)
+                            <span class="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-blue-600 text-white text-[10px]">{{ $unreadNotifications }}</span>
+                        @endif
+                    </x-nav-link>
+
+                    @if(in_array(auth()->user()->role, ['staff1', 'staff2']))
+                        <x-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
+                            {{ __('Audit Logs') }}
+                        </x-nav-link>
+                    @endif
+
+                    @if(auth()->user()->role === 'staff2')
+                        <x-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.*')">
+                            {{ __('Admin Panel') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +102,32 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            @if(auth()->user()->role === 'admission')
+                <x-responsive-nav-link :href="route('requests.create')" :active="request()->routeIs('requests.create')">
+                    {{ __('New Request') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
+                {{ __('Profile') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                {{ __('Notifications') }}{{ $unreadNotifications > 0 ? ' (' . $unreadNotifications . ')' : '' }}
+            </x-responsive-nav-link>
+
+            @if(in_array(auth()->user()->role, ['staff1', 'staff2']))
+                <x-responsive-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
+                    {{ __('Audit Logs') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(auth()->user()->role === 'staff2')
+                <x-responsive-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.*')">
+                    {{ __('Admin Panel') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->
