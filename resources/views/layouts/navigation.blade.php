@@ -28,19 +28,6 @@
                     <x-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
                         {{ __('Profile') }}
                     </x-nav-link>
-
-                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
-                        {{ __('Notifications') }}
-                        @if($unreadNotifications > 0)
-                            <span class="ms-1 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-blue-600 text-white text-[10px]">{{ $unreadNotifications }}</span>
-                        @endif
-                    </x-nav-link>
-
-                    @if(in_array(auth()->user()->role, ['staff1', 'staff2']))
-                        <x-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
-                            {{ __('Audit Logs') }}
-                        </x-nav-link>
-                    @endif
                 </div>
             </div>
 
@@ -106,16 +93,6 @@
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
                 {{ __('Profile') }}
             </x-responsive-nav-link>
-
-            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
-                {{ __('Notifications') }}{{ $unreadNotifications > 0 ? ' (' . $unreadNotifications . ')' : '' }}
-            </x-responsive-nav-link>
-
-            @if(in_array(auth()->user()->role, ['staff1', 'staff2']))
-                <x-responsive-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
-                    {{ __('Audit Logs') }}
-                </x-responsive-nav-link>
-            @endif
         </div>
 
         <!-- Responsive Settings Options -->
