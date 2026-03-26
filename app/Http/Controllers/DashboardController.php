@@ -17,27 +17,20 @@ class DashboardController extends Controller
             ->with('requestType', 'user', 'verifiedBy', 'recommendedBy')
             ->latest();
 
+        // Admission users should only see their own submissions.
         if ($user->role === 'admission') {
             $query->where('user_id', $user->id);
         }
 
         $this->applyFilters($query, $request, $user->role);
 
-        $displayRequests = $query->paginate(15);
+        $displayRequests = $query->paginate(15)->withQueryString();
 
+        // Dashboard summary counts (not affected by current filters).
         $statsBase = GrantRequest::query();
         if ($user->role === 'admission') {
             $statsBase->where('user_id', $user->id);
         }
-        $formTemplates = \App\Models\FormTemplate::with('uploader')->latest('created_at')->get();
-$urgentRequests = collect();
-if (in_array($user->role, ['staff1', 'staff2'])) {
-    $urgentRequests = GrantRequest::where('deadline', '<=', now()->addDays(3))
-        ->whereNotIn('status_id', [5, 6])
-        ->with('requestType', 'user')
-        ->get();
-}
-return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardStats', 'formTemplates', 'urgentRequests'));
 
         $statusCounts = (clone $statsBase)
             ->selectRaw('status_id, COUNT(*) as total')
@@ -56,7 +49,25 @@ return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardSt
 
         $requestTypes = RequestType::all();
 
-        return view('dashboard', compact('displayRequests', 'requestTypes', 'dashboardStats'));
+        $formTemplates = \App\Models\FormTemplate::with('uploader')->latest('created_at')->get();
+
+        $urgentRequests = collect();
+        if (in_array($user->role, ['staff1', 'staff2'])) {
+            $urgentRequests = GrantRequest::where('deadline', '<=', now()->addDays(3))
+                ->whereNotIn('status_id', [5, 6])
+                ->with('requestType', 'user')
+                ->orderBy('deadline', 'asc')
+                ->limit(10)
+                ->get();
+        }
+
+        return view('dashboard', compact(
+            'displayRequests',
+            'requestTypes',
+            'dashboardStats',
+            'formTemplates',
+            'urgentRequests'
+        ));
     }
 
     private function applyFilters(Builder $query, Request $request, string $role): void

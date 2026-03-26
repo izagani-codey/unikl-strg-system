@@ -415,6 +415,18 @@
             {{-- ================================ --}}
             @elseif(auth()->user()->role === 'staff2')
 
+                <div class="flex items-center justify-between mb-4 gap-3">
+                    <h3 class="font-bold text-lg">Staff 2 Tools</h3>
+                    <div class="flex gap-2">
+                        <a href="{{ route('staff2.admin') }}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-blue-700">
+                            Staff 2 Admin
+                        </a>
+                        <a href="{{ route('form-templates.index') }}" class="bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-50">
+                            Manage Blank Forms
+                        </a>
+                    </div>
+                </div>
+
                 {{-- Summary Stats --}}
                 @php
                     $withStaff2  = $dashboardStats['with_staff_2'] ?? 0;
@@ -472,6 +484,13 @@
         </div>
     </div>
 </form>
+
+                        <div class="mt-3 flex justify-end">
+                            <a href="{{ route('requests.exportCsv') . '?' . http_build_query(request()->query()) }}"
+                               class="text-sm px-3 py-2 rounded-md bg-slate-800 text-white hover:bg-slate-700">
+                                Export CSV
+                            </a>
+                        </div>
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="bg-gray-50 border-b">

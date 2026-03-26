@@ -15,6 +15,10 @@ class FormTemplate extends Model
         'created_at',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
     public function uploader()
     {
         return $this->belongsTo(User::class, 'uploaded_by');

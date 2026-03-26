@@ -75,9 +75,14 @@ Route::middleware('auth')->group(function () {
     });
 
 
+    Route::middleware('role:staff1,staff2')->group(function () {
+        // Both staff roles can review/download blank templates.
+        Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
+    });
+
     Route::middleware('role:staff2')->group(function () {
         Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
-        Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
+        Route::get('/staff2/requests/export', [RequestController::class, 'exportCsv'])->name('requests.exportCsv');
         Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
         Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
     });

@@ -25,6 +25,34 @@
                         </x-nav-link>
                     @endif
 
+                    <x-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                        <div class="flex items-center gap-2">
+                            <span aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2Zm6-6V11c0-3.1-1.6-5.7-4.5-6.3V4c0-.8-.7-1.5-1.5-1.5S10.5 3.2 10.5 4v.7C7.6 5.3 6 7.9 6 11v5l-2 2v1h16v-1l-2-2Z"/>
+                                </svg>
+                            </span>
+                            <span>{{ __('Notifications') }}</span>
+                            @if(($unreadNotifications ?? 0) > 0)
+                                <span class="ml-1 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                                    {{ $unreadNotifications }}
+                                </span>
+                            @endif
+                        </div>
+                    </x-nav-link>
+
+                    @if(auth()->user()->role === 'staff2')
+                        <x-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
+                            {{ __('Staff 2 Admin') }}
+                        </x-nav-link>
+                    @endif
+
+                    @if(in_array(auth()->user()->role, ['staff1', 'staff2'], true))
+                        <x-nav-link :href="route('form-templates.index')" :active="request()->routeIs('form-templates.*')">
+                            {{ __('Blank Forms') }}
+                        </x-nav-link>
+                    @endif
+
                     <x-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.*')">
                         {{ __('Profile') }}
                     </x-nav-link>
@@ -87,6 +115,29 @@
             @if(auth()->user()->role === 'admission')
                 <x-responsive-nav-link :href="route('requests.create')" :active="request()->routeIs('requests.create')">
                     {{ __('New Request') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                <div class="flex items-center justify-between w-full">
+                    <span>{{ __('Notifications') }}</span>
+                    @if(($unreadNotifications ?? 0) > 0)
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                            {{ $unreadNotifications }}
+                        </span>
+                    @endif
+                </div>
+            </x-responsive-nav-link>
+
+            @if(auth()->user()->role === 'staff2')
+                <x-responsive-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
+                    {{ __('Staff 2 Admin') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(in_array(auth()->user()->role, ['staff1', 'staff2'], true))
+                <x-responsive-nav-link :href="route('form-templates.index')" :active="request()->routeIs('form-templates.*')">
+                    {{ __('Blank Forms') }}
                 </x-responsive-nav-link>
             @endif
 

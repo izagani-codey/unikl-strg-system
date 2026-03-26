@@ -121,6 +121,37 @@
             </div>
             @endif
 
+            {{-- Staff Notes History (from audit logs) --}}
+            @if(in_array(auth()->user()->role, ['staff1', 'staff2']))
+                @php
+                    $staffNoteLogs = ($grantRequest->auditLogs ?? collect())
+                        ->filter(fn ($log) => (int) $log->from_status !== 0 && !empty($log->note))
+                        ->values();
+                @endphp
+
+                @if($staffNoteLogs->count() > 0)
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h3 class="font-bold text-yellow-700 mb-3">Staff Notes History</h3>
+                        <div class="space-y-3">
+                            @foreach($staffNoteLogs as $log)
+                                <div class="text-sm">
+                                    <div class="text-xs text-yellow-800">
+                                        {{ \Carbon\Carbon::parse($log->created_at)->format('d M Y, h:i A') }}
+                                        , {{ $log->actor?->name ?? 'Unknown' }}
+                                    </div>
+                                    <div class="mt-1 text-yellow-900">
+                                        <span class="font-semibold">Status:</span> {{ $log->from_status }} -> {{ $log->to_status }}
+                                    </div>
+                                    <div class="mt-1 text-yellow-800">
+                                        {{ $log->note }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endif
+
             {{-- Verified / Recommended By (staff only) --}}
             @if(auth()->user()->role !== 'admission')
             <div class="bg-white shadow-sm rounded-lg p-6">
@@ -138,6 +169,91 @@
             </div>
             @endif
 
+            {{-- Workflow Timeline (Audit events + internal comments) --}}
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Workflow Timeline</h3>
+
+                @php
+                    $isStaff = auth()->user()->role !== 'admission';
+                    $statusLabels = [
+                        1 => 'Pending Verification',
+                        2 => 'With Staff 2',
+                        3 => 'Returned to Admission',
+                        4 => 'Returned to Staff 1',
+                        5 => 'Approved',
+                        6 => 'Declined',
+                    ];
+
+                    $events = collect();
+
+                    foreach (($grantRequest->auditLogs ?? collect()) as $log) {
+                        $events->push([
+                            'type' => 'status',
+                            'at' => $log->created_at,
+                            'actor' => $log->actor?->name ?? 'Unknown',
+                            'from' => $log->from_status,
+                            'to' => $log->to_status,
+                            // Keep staff notes internal; admissions should only see status transitions.
+                            'note' => $isStaff ? $log->note : null,
+                        ]);
+                    }
+
+                    if ($isStaff) {
+                        foreach (($grantRequest->comments ?? collect()) as $comment) {
+                            // Comments are internal and staff-facing; show them in the timeline as "comment" events.
+                            $events->push([
+                                'type' => 'comment',
+                                'at' => $comment->created_at,
+                                'actor' => $comment->user?->name ?? 'Unknown',
+                                'note' => $comment->body,
+                            ]);
+                        }
+                    }
+
+                    $events = $events->sortBy('at');
+                @endphp
+
+                @if($events->count() === 0)
+                    <p class="text-gray-400 italic text-sm">No timeline events yet.</p>
+                @else
+                    <div class="space-y-4">
+                        @foreach($events as $event)
+                            <div class="flex gap-3">
+                                <div class="mt-1">
+                                    <div class="w-3 h-3 rounded-full {{ $event['type'] === 'status' ? 'bg-blue-600' : 'bg-gray-500' }}"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                        <span>
+                                            {{ \Carbon\Carbon::parse($event['at'])->format('d M Y, h:i A') }}
+                                        </span>
+                                        <span class="font-semibold">{{ $event['actor'] }}</span>
+                                    </div>
+
+                                    @if($event['type'] === 'status')
+                                        <div class="mt-1 text-sm text-gray-800">
+                                            <span class="font-semibold">Status:</span>
+                                            {{ $statusLabels[$event['from']] ?? $event['from'] }}
+                                            ->
+                                            {{ $statusLabels[$event['to']] ?? $event['to'] }}
+                                        </div>
+                                        @if(!empty($event['note']))
+                                            <div class="mt-1 text-sm text-gray-700">
+                                                <span class="font-semibold">Note:</span> {{ $event['note'] }}
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="mt-1 text-sm text-gray-800">
+                                            <span class="font-semibold">Comment:</span> {{ \Illuminate\Support\Str::limit($event['note'] ?? '', 180) }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
             {{-- WORKFLOW ACTION BUTTONS --}}
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Actions</h3>
@@ -152,7 +268,7 @@
 
                 {{-- STAFF 1: Verify or Return to Admission --}}
                 @if(auth()->user()->role === 'staff1' && in_array($grantRequest->status_id, [1, 4]))
-                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
+                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
                         @csrf
                         @method('PATCH')
                         <textarea name="notes" rows="2"
@@ -184,7 +300,7 @@
 
                 {{-- STAFF 2: Approve, Return to Staff 1, or Decline --}}
                 @if(auth()->user()->role === 'staff2' && $grantRequest->status_id == 2)
-                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
+                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
                         @csrf
                         @method('PATCH')
                         <textarea name="notes" rows="2" placeholder="Recommendation notes (optional)"
@@ -246,7 +362,7 @@
                 @endforelse
 
                 @if(auth()->user()->role === 'staff2')
-                <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4">
+                <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
                     @csrf
                     <textarea name="body" rows="2" placeholder="Leave a comment for Staff 1..."
                         class="w-full border rounded p-2 text-sm"></textarea>
@@ -270,7 +386,7 @@
                         </span>
                         <span class="font-semibold w-32 shrink-0">{{ $log->actor->name }}</span>
                         <span class="text-gray-600">
-                            Status {{ $log->from_status }} → {{ $log->to_status }}
+                            Status {{ $log->from_status }} -> {{ $log->to_status }}
                             @if($log->note) · {{ $log->note }} @endif
                         </span>
                     </div>
@@ -282,11 +398,29 @@
 
             {{-- Back button --}}
             <div class="pb-6">
-                <a href="{{ route('dashboard') }}" class="text-gray-500 hover:text-gray-700 text-sm">
-                    ← Back to Dashboard
-                </a>
+                <a href="{{ route('dashboard') }}" class="text-gray-500 hover:text-gray-700 text-sm">&lt;- Back to Dashboard</a>
             </div>
 
         </div>
     </div>
+
+    <script>
+        function handleFormSubmit(form, message) {
+            const submitButtons = form.querySelectorAll('button[type="submit"]');
+            submitButtons.forEach((btn) => {
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-not-allowed');
+            });
+
+            const active = document.activeElement;
+            if (active && active.tagName && active.tagName.toLowerCase() === 'button' && active.form === form) {
+                if (!active.dataset.originalText) {
+                    active.dataset.originalText = active.textContent.trim();
+                }
+                active.textContent = message;
+            }
+
+            return true;
+        }
+    </script>
 </x-app-layout>

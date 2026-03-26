@@ -13,6 +13,66 @@ use App\Models\User;
 
 class RequestController extends Controller
 {
+    private function authorizeRequestAccess(GrantRequest $grantRequest, $user): void
+    {
+        if (! $user) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($user->role === 'admission') {
+            if ((int) $grantRequest->user_id !== (int) $user->id) {
+                abort(403, 'Unauthorized access to this request.');
+            }
+            return;
+        }
+
+        // Staff can view requests in order to perform evaluations and review audit trails.
+        // (Workflow constraints for who can update status are enforced by updateStatus authorization.)
+        if (in_array($user->role, ['staff1', 'staff2'], true)) {
+            return;
+        }
+
+        abort(403, 'Unauthorized access to this request.');
+    }
+
+    /**
+     * Enforce allowed status transitions by role.
+     *
+     * Status codes:
+     * 1=Pending Verification
+     * 2=With Staff 2
+     * 3=Returned to Admission
+     * 4=Returned to Staff 1
+     * 5=Approved
+     * 6=Declined
+     */
+    private function isValidTransition(string $role, int $currentStatus, int $newStatus): bool
+    {
+        if ($role === 'staff1') {
+            // Staff1 can act only on active queue items.
+            if (!in_array($currentStatus, [1, 4], true)) {
+                return false;
+            }
+
+            // Staff1 actions:
+            // 1 or 4 -> 2 (send to staff2), 3 (return to admission), 6 (decline)
+            return in_array($newStatus, [2, 3, 6], true);
+        }
+
+        if ($role === 'staff2') {
+            // Staff2 can act only when the request is with Staff 2.
+            if ($currentStatus !== 2) {
+                return false;
+            }
+
+            // Staff2 actions:
+            // 2 -> 5 (approve), 4 (return to staff1), 6 (decline)
+            return in_array($newStatus, [4, 5, 6], true);
+        }
+
+        return false;
+    }
+
     // ==========================================
     // ADMISSION — Submit new request
     // ==========================================
@@ -186,7 +246,13 @@ class RequestController extends Controller
 
     public function printSummary($id)
     {
-        $grantRequest = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])->findOrFail($id);
+        $grantRequest = GrantRequest::with([
+            'user',
+            'requestType',
+            'verifiedBy',
+            'recommendedBy',
+            'auditLogs' => fn ($q) => $q->with('actor')->orderBy('created_at'),
+        ])->findOrFail($id);
 
         $user = Auth::user();
         if ($user->role === 'admission' && (int) $grantRequest->user_id !== (int) $user->id) {
@@ -194,6 +260,92 @@ class RequestController extends Controller
         }
 
         return view('requests.print', compact('grantRequest'));
+    }
+
+    // ==========================================
+    // STAFF 2 — Export filtered request list
+    // ==========================================
+    public function exportCsv(Request $request)
+    {
+        $query = GrantRequest::query()->with([
+            'requestType',
+            'user',
+            'verifiedBy',
+            'recommendedBy',
+        ])->latest('created_at');
+
+        if ($request->filled('status')) {
+            $query->where('status_id', $request->integer('status'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('request_type_id', $request->integer('type'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('ref_number', 'like', "%{$search}%")
+                    ->orWhere('payload', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $filename = 'staff2-requests-' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Ref Number',
+            'Request Type',
+            'Applicant Name',
+            'Applicant Email',
+            'Amount',
+            'Submitted At',
+            'Deadline',
+            'Status',
+            'Staff 1 (Verified By)',
+            'Staff 2 (Recommended By)',
+            'Staff Notes (latest)',
+            'Rejection Reason',
+        ];
+
+        return response()->streamDownload(function () use ($query, $headers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+
+            $query->chunk(200, function ($chunk) use ($handle) {
+                foreach ($chunk as $req) {
+                    fputcsv($handle, [
+                        $req->ref_number,
+                        $req->requestType?->name ?? '',
+                        $req->user?->name ?? '',
+                        $req->user?->email ?? '',
+                        $req->payload['amount'] ?? '',
+                        $req->created_at?->format('Y-m-d H:i') ?? '',
+                        $req->deadline?->format('Y-m-d') ?? '',
+                        $req->statusLabel(),
+                        $req->verifiedBy?->name ?? '',
+                        $req->recommendedBy?->name ?? '',
+                        $req->staff_notes ?? '',
+                        $req->rejection_reason ?? '',
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
     }
 
     // ==========================================

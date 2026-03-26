@@ -5,21 +5,23 @@
 
     <div class="py-8">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            <div class="bg-white rounded-lg shadow-sm p-6">
-                <h3 class="font-bold mb-4">Upload New Template</h3>
-                <form action="{{ route('form-templates.store') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                    @csrf
-                    <div class="md:col-span-2">
-                        <label class="text-sm text-gray-600">Template Title</label>
-                        <input type="text" name="title" required class="w-full mt-1 border rounded px-3 py-2 text-sm" placeholder="e.g., STRG Application Form">
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-600">File</label>
-                        <input type="file" name="file" required class="w-full mt-1 border rounded px-3 py-2 text-sm">
-                    </div>
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700">Upload</button>
-                </form>
-            </div>
+            @if(auth()->user()->role === 'staff2')
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="font-bold mb-4">Upload New Template</h3>
+                    <form action="{{ route('form-templates.store') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        @csrf
+                        <div class="md:col-span-2">
+                            <label class="text-sm text-gray-600">Template Title</label>
+                            <input type="text" name="title" required class="w-full mt-1 border rounded px-3 py-2 text-sm" placeholder="e.g., STRG Application Form">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600">File</label>
+                            <input type="file" name="file" required class="w-full mt-1 border rounded px-3 py-2 text-sm">
+                        </div>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-blue-700">Upload</button>
+                    </form>
+                </div>
+            @endif
 
             <div class="bg-white rounded-lg shadow-sm overflow-hidden">
                 <table class="min-w-full text-sm">
@@ -40,11 +42,13 @@
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
                                         <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank" class="text-blue-600 hover:underline">View</a>
-                                        <form action="{{ route('form-templates.destroy', $template->id) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="text-red-600 hover:underline">Delete</button>
-                                        </form>
+                                        @if(auth()->user()->role === 'staff2')
+                                            <form action="{{ route('form-templates.destroy', $template->id) }}" method="POST">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="text-red-600 hover:underline">Delete</button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
