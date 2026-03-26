@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Request extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'request_type_id',
+        'ref_number',
+        'status_id',
+        'file_path',
+        'payload',
+        'staff_notes',
+        'rejection_reason',
+        'verified_by',
+        'recommended_by',
+        'revision_count',
+        'deadline',
+        'is_priority',
+    ];
+
+    protected $casts = [
+        'payload'     => 'array',
+        'is_priority' => 'boolean',
+        'deadline'    => 'date',
+    ];
+
+    // Relationships
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function requestType()
+    {
+        return $this->belongsTo(RequestType::class);
+    }
+
+    public function verifiedBy()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function recommendedBy()
+    {
+        return $this->belongsTo(User::class, 'recommended_by');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    // Helper — human readable status
+    public function statusLabel(): string
+    {
+        return match($this->status_id) {
+            1 => 'Pending Verification',
+            2 => 'Pending Recommendation',
+            3 => 'Returned to Admission',
+            4 => 'Returned to Staff 1',
+            5 => 'Approved',
+            6 => 'Declined',
+            default => 'Unknown',
+        };
+    }
+
+    // Helper — status color for badges
+    public function statusClass(): string
+    {
+        return match($this->status_id) {
+            1 => 'bg-orange-100 text-orange-700',
+            2 => 'bg-blue-100 text-blue-700',
+            3 => 'bg-yellow-100 text-yellow-700',
+            4 => 'bg-purple-100 text-purple-700',
+            5 => 'bg-green-100 text-green-700',
+            6 => 'bg-red-100 text-red-700',
+            default => 'bg-gray-100 text-gray-700',
+        };
+    }
+}
