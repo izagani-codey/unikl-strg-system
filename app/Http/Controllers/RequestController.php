@@ -144,6 +144,13 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
+        $this->notifyRole(
+            'staff1',
+            'Request resubmitted',
+            'Request ' . $grantRequest->ref_number . ' has been resubmitted and needs re-verification.',
+            route('requests.show', $grantRequest->id)
+        );
+
         return redirect()->route('dashboard')
                          ->with('success', 'Request resubmitted successfully!');
     }
@@ -162,6 +169,8 @@ class RequestController extends Controller
             'comments.user',
             'auditLogs.actor',
         ])->findOrFail($id);
+
+        $this->authorizeRequestAccess($grantRequest, Auth::user());
 
         return view('requests.show', compact('grantRequest'));
     }
@@ -198,7 +207,12 @@ class RequestController extends Controller
             'rejection_reason' => 'nullable|string',
         ]);
 
-        $updateData = ['status_id' => $request->status_id];
+        $newStatus = (int) $request->status_id;
+        if (! $this->isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
+            return back()->with('error', 'Invalid status transition for your role.')->withInput();
+        }
+
+        $updateData = ['status_id' => $newStatus];
 
         // Staff 1 verifying
         if ($user->role === 'staff1') {
@@ -224,7 +238,7 @@ class RequestController extends Controller
             'request_id'  => $grantRequest->id,
             'actor_id'    => $user->id,
             'from_status' => $oldStatus,
-            'to_status'   => $request->status_id,
+            'to_status'   => $newStatus,
             'note'        => $request->notes ?? null,
             'created_at'  => now(),
         ]);
