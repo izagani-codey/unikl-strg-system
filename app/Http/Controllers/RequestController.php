@@ -90,6 +90,8 @@ class RequestController extends Controller
                                     ->whereIn('status_id', [3]) // only returned requests
                                     ->firstOrFail();
 
+        $this->authorize('revise', $grantRequest);
+
         $requestTypes = RequestType::all();
         return view('requests.edit', compact('grantRequest', 'requestTypes'));
     }
@@ -100,6 +102,8 @@ class RequestController extends Controller
                                     ->where('user_id', Auth::id())
                                     ->whereIn('status_id', [3])
                                     ->firstOrFail();
+
+        $this->authorize('revise', $grantRequest);
 
         $request->validate([
             'amount'      => 'nullable|numeric',
@@ -201,6 +205,8 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::findOrFail($id);
         $user = Auth::user();
 
+        $this->authorize('updateStatus', $grantRequest);
+
         $request->validate([
             'status_id' => 'required|integer|between:1,6',
             'notes'     => 'nullable|string',
@@ -255,6 +261,9 @@ class RequestController extends Controller
 
     public function addComment(Request $request, $id)
     {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('addComment', $grantRequest);
+
         $request->validate([
             'body' => 'required|string|max:1000',
         ]);
