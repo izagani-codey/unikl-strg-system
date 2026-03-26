@@ -47,6 +47,20 @@
                 </div>
             @endif
 
+            @if(($urgentRequests ?? collect())->count() > 0)
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 class="font-bold text-red-700 mb-2">⏰ Deadline Reminder (next 3 days)</h3>
+                    <div class="space-y-2">
+                        @foreach($urgentRequests as $urgent)
+                            <a href="{{ route('requests.show', $urgent->id) }}" class="flex items-center justify-between p-2 bg-white border rounded hover:bg-red-50">
+                                <span class="text-sm font-semibold text-gray-700">{{ $urgent->ref_number }} · {{ $urgent->requestType->name ?? 'N/A' }}</span>
+                                <span class="text-xs font-bold text-red-600">Due {{ optional($urgent->deadline)->format('d M Y') }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             {{-- ================================ --}}
             {{-- ADMISSION DASHBOARD --}}
             {{-- ================================ --}}
