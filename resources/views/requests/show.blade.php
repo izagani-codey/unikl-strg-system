@@ -259,86 +259,88 @@
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Actions</h3>
 
                 {{-- ADMISSION: Edit if returned --}}
-                @if(auth()->user()->role === 'admission' && $grantRequest->status_id == 3)
+                @can('revise', $grantRequest)
                     <a href="{{ route('requests.edit', $grantRequest->id) }}"
                        class="inline-block bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
                         ✏ Edit & Resubmit
                     </a>
-                @endif
+                @endcan
 
                 {{-- STAFF 1: Verify or Return to Admission --}}
-                @if(auth()->user()->role === 'staff1' && in_array($grantRequest->status_id, [1, 4]))
-                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
-                        @csrf
-                        @method('PATCH')
-                        <textarea name="notes" rows="2"
-                            placeholder="Internal notes (optional)"
-                            class="w-full border rounded p-2 text-sm"></textarea>
-                        <textarea name="rejection_reason" rows="2"
-                            placeholder="Reason for returning or rejecting (visible to admission)"
-                            class="w-full border rounded p-2 text-sm"></textarea>
-                        <input type="hidden" name="status_id" value="2" id="s1-status">
-                        <div class="flex gap-3 flex-wrap">
-                            <button type="submit"
-                                onclick="document.getElementById('s1-status').value='2'"
-                                class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
-                                ✓ Verify & Send to Staff 2
-                            </button>
-                            <button type="submit"
-                                onclick="document.getElementById('s1-status').value='3'"
-                                class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
-                                ↩ Return to Admission
-                            </button>
-                            <button type="submit"
-                                onclick="document.getElementById('s1-status').value='6'"
-                                class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
-                                ✕ Reject
-                            </button>
-                        </div>
-                    </form>
-                @endif
+                @can('updateStatus', $grantRequest)
+                    @if(auth()->user()->role === 'staff1')
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
+                            @csrf
+                            @method('PATCH')
+                            <textarea name="notes" rows="2"
+                                placeholder="Internal notes (optional)"
+                                class="w-full border rounded p-2 text-sm"></textarea>
+                            <textarea name="rejection_reason" rows="2"
+                                placeholder="Reason for returning or rejecting (visible to admission)"
+                                class="w-full border rounded p-2 text-sm"></textarea>
+                            <input type="hidden" name="status_id" value="2" id="s1-status">
+                            <div class="flex gap-3 flex-wrap">
+                                <button type="submit"
+                                    onclick="document.getElementById('s1-status').value='2'"
+                                    class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
+                                    ✓ Verify & Send to Staff 2
+                                </button>
+                                <button type="submit"
+                                    onclick="document.getElementById('s1-status').value='3'"
+                                    class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
+                                    ↩ Return to Admission
+                                </button>
+                                <button type="submit"
+                                    onclick="document.getElementById('s1-status').value='6'"
+                                    class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
+                                    ✕ Reject
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+                @endcan
 
                 {{-- STAFF 2: Approve, Return to Staff 1, or Decline --}}
-                @if(auth()->user()->role === 'staff2' && $grantRequest->status_id == 2)
-                    <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
-                        @csrf
-                        @method('PATCH')
-                        <textarea name="notes" rows="2" placeholder="Recommendation notes (optional)"
-                            class="w-full border rounded p-2 text-sm"></textarea>
-                        <textarea name="rejection_reason" rows="2"
-                            placeholder="Reason (required for Return or Decline)"
-                            class="w-full border rounded p-2 text-sm"></textarea>
-                        <input type="hidden" name="status_id" value="5" id="status2-input">
-                        <div class="flex gap-3">
-                            <button type="submit"
-                                onclick="document.getElementById('status2-input').value='5'"
-                                class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
-                                ✓ Approve & Finalise
-                            </button>
-                            <button type="submit"
-                                onclick="document.getElementById('status2-input').value='4'"
-                                class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
-                                ↩ Return to Staff 1
-                            </button>
-                            <button type="submit"
-                                onclick="document.getElementById('status2-input').value='6'"
-                                class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
-                                ✕ Decline
-                            </button>
-                        </div>
-                    </form>
-                @endif
-
-                {{-- STAFF 2 OVERRIDE: can action any non-finalised request --}}
-                @if(auth()->user()->role === 'staff2' && !in_array($grantRequest->status_id, [5, 6]))
-                    <p class="text-xs text-gray-400 mt-3 italic">Staff 2 override available for all active requests.</p>
-                @endif
+                @can('updateStatus', $grantRequest)
+                    @if(auth()->user()->role === 'staff2')
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
+                            @csrf
+                            @method('PATCH')
+                            <textarea name="notes" rows="2" placeholder="Recommendation notes (optional)"
+                                class="w-full border rounded p-2 text-sm"></textarea>
+                            <textarea name="rejection_reason" rows="2"
+                                placeholder="Reason (required for Decline or Return)"
+                                class="w-full border rounded p-2 text-sm"></textarea>
+                            <input type="hidden" name="status_id" value="5" id="status2-input">
+                            <div class="flex gap-3 flex-wrap">
+                                <button type="submit"
+                                    onclick="document.getElementById('status2-input').value='5'"
+                                    class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
+                                    ✓ Approve & Finalise
+                                </button>
+                                @if($grantRequest->status_id === 2)
+                                    <button type="submit"
+                                        onclick="document.getElementById('status2-input').value='4'"
+                                        class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
+                                        ↩ Return to Staff 1
+                                    </button>
+                                @endif
+                                <button type="submit"
+                                    onclick="document.getElementById('status2-input').value='6'"
+                                    class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
+                                    ✕ Decline
+                                </button>
+                            </div>
+                        </form>
+                        <p class="text-xs text-gray-400 mt-3 italic">Staff 2 override is active on all active requests and finalises the review.</p>
+                    @endif
+                @endcan
 
                 {{-- No actions available --}}
                 @if(
                     (auth()->user()->role === 'admission' && $grantRequest->status_id != 3) ||
                     (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [1, 4])) ||
-                    (auth()->user()->role === 'staff2' && $grantRequest->status_id == 5)
+                    (auth()->user()->role === 'staff2' && in_array($grantRequest->status_id, [3, 5, 6], true))
                 )
                     <p class="text-gray-400 italic text-sm">No actions available at this stage.</p>
                 @endif
@@ -361,17 +363,17 @@
                     <p class="text-gray-400 italic text-sm">No comments yet.</p>
                 @endforelse
 
-                @if(auth()->user()->role === 'staff2')
-                <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
-                    @csrf
-                    <textarea name="body" rows="2" placeholder="Leave a comment for Staff 1..."
-                        class="w-full border rounded p-2 text-sm"></textarea>
-                    <button type="submit"
-                        class="mt-2 bg-gray-700 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800">
-                        Post Comment
-                    </button>
-                </form>
-                @endif
+                @can('addComment', $grantRequest)
+                    <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
+                        @csrf
+                        <textarea name="body" rows="2" placeholder="Leave an internal comment for the review team..."
+                            class="w-full border rounded p-2 text-sm"></textarea>
+                        <button type="submit"
+                            class="mt-2 bg-gray-700 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800">
+                            Post Comment
+                        </button>
+                    </form>
+                @endcan
             </div>
             @endif
 

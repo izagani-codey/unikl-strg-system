@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\StoreRequestRequest;
+use App\Http\Requests\UpdateRequestRequest;
+use App\Http\Requests\UpdateStatusRequest;
+use App\Http\Requests\StoreCommentRequest;
 use App\Models\RequestType;
 use App\Models\Request as GrantRequest;
 use App\Models\AuditLog;
@@ -13,28 +17,6 @@ use App\Models\User;
 
 class RequestController extends Controller
 {
-    private function authorizeRequestAccess(GrantRequest $grantRequest, $user): void
-    {
-        if (! $user) {
-            abort(403, 'Unauthorized.');
-        }
-
-        if ($user->role === 'admission') {
-            if ((int) $grantRequest->user_id !== (int) $user->id) {
-                abort(403, 'Unauthorized access to this request.');
-            }
-            return;
-        }
-
-        // Staff can view requests in order to perform evaluations and review audit trails.
-        // (Workflow constraints for who can update status are enforced by updateStatus authorization.)
-        if (in_array($user->role, ['staff1', 'staff2'], true)) {
-            return;
-        }
-
-        abort(403, 'Unauthorized access to this request.');
-    }
-
     /**
      * Enforce allowed status transitions by role.
      *
@@ -60,17 +42,28 @@ class RequestController extends Controller
         }
 
         if ($role === 'staff2') {
-            // Staff2 can act only when the request is with Staff 2.
-            if ($currentStatus !== 2) {
-                return false;
+            // Staff2 actions:
+            // 2 -> 4 (return to staff1), 5 (approve), 6 (decline)
+            // 5 -> 6 (override approved request to declined)
+            // 6 -> 5 (override declined request to approved)
+            if ($currentStatus === 2) {
+                return in_array($newStatus, [4, 5, 6], true);
             }
 
-            // Staff2 actions:
-            // 2 -> 5 (approve), 4 (return to staff1), 6 (decline)
-            return in_array($newStatus, [4, 5, 6], true);
+            if ($currentStatus === 5) {
+                return $newStatus === 6;
+            }
+
+            if ($currentStatus === 6) {
+                return $newStatus === 5;
+            }
+
+            return false;
         }
 
         return false;
+
+    
     }
 
     // ==========================================
@@ -83,16 +76,8 @@ class RequestController extends Controller
         return view('requests.create', compact('requestTypes'));
     }
 
-    public function store(Request $request)
+    public function store(StoreRequestRequest $request)
     {
-        $request->validate([
-            'request_type_id' => 'required|exists:request_types,id',
-            'amount'          => 'nullable|numeric',
-            'description'     => 'required|string',
-            'document'        => 'required|mimes:pdf,jpg,png|max:5120',
-            'deadline'        => 'nullable|date',
-        ]);
-
         $path = null;
         if ($request->hasFile('document')) {
             $path = $request->file('document')->store('documents', 'public');
@@ -156,7 +141,7 @@ class RequestController extends Controller
         return view('requests.edit', compact('grantRequest', 'requestTypes'));
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateRequestRequest $request, $id)
     {
         $grantRequest = GrantRequest::where('id', $id)
                                     ->where('user_id', Auth::id())
@@ -164,13 +149,6 @@ class RequestController extends Controller
                                     ->firstOrFail();
 
         $this->authorize('revise', $grantRequest);
-
-        $request->validate([
-            'amount'      => 'nullable|numeric',
-            'description' => 'required|string',
-            'document'    => 'nullable|mimes:pdf,jpg,png|max:5120',
-            'deadline'    => 'nullable|date',
-        ]);
 
         // New file uploaded
         $path = $grantRequest->file_path;
@@ -234,9 +212,26 @@ class RequestController extends Controller
             'auditLogs.actor',
         ])->findOrFail($id);
 
-        $this->authorizeRequestAccess($grantRequest, Auth::user());
+        $this->authorize('view', $grantRequest);
+        $this->recordRequestView($grantRequest);
 
         return view('requests.show', compact('grantRequest'));
+    }
+
+    private function recordRequestView(GrantRequest $grantRequest): void
+    {
+        if (! Auth::check()) {
+            return;
+        }
+
+        AuditLog::create([
+            'request_id'  => $grantRequest->id,
+            'actor_id'    => Auth::id(),
+            'from_status' => $grantRequest->status_id,
+            'to_status'   => $grantRequest->status_id,
+            'note'        => 'Viewed request details.',
+            'created_at'  => now(),
+        ]);
     }
 
     // ==========================================
@@ -254,10 +249,7 @@ class RequestController extends Controller
             'auditLogs' => fn ($q) => $q->with('actor')->orderBy('created_at'),
         ])->findOrFail($id);
 
-        $user = Auth::user();
-        if ($user->role === 'admission' && (int) $grantRequest->user_id !== (int) $user->id) {
-            abort(403, 'Unauthorized access to this request summary.');
-        }
+        $this->authorize('print', $grantRequest);
 
         return view('requests.print', compact('grantRequest'));
     }
@@ -352,25 +344,28 @@ class RequestController extends Controller
     // STAFF 1 + STAFF 2 — Update workflow status
     // ==========================================
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(UpdateStatusRequest $request, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
         $user = Auth::user();
 
-        $this->authorize('updateStatus', $grantRequest);
-
-        $request->validate([
-            'status_id' => 'required|integer|between:1,6',
-            'notes'     => 'nullable|string',
-            'rejection_reason' => 'nullable|string',
-        ]);
-
-        $newStatus = (int) $request->status_id;
+        $newStatus = (int) $request->validated()['status_id'];
         if (! $this->isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
             return back()->with('error', 'Invalid status transition for your role.')->withInput();
         }
 
         $updateData = ['status_id' => $newStatus];
+        $isOverride = false;
+
+        if ($user->role === 'staff2' && $grantRequest->canBeOverridden()) {
+            $isOverride = true;
+            $updateData['is_overridden'] = true;
+            $updateData['overridden_by'] = $user->id;
+
+            if ($request->filled('override_reason')) {
+                $updateData['override_reason'] = $request->override_reason;
+            }
+        }
 
         // Staff 1 verifying
         if ($user->role === 'staff1') {
@@ -392,12 +387,17 @@ class RequestController extends Controller
         $oldStatus = $grantRequest->status_id;
         $grantRequest->update($updateData);
 
+        $logNote = $request->notes ?? null;
+        if ($isOverride) {
+            $logNote = 'OVERRIDE: ' . trim($request->override_reason ?? $request->notes ?? '');
+        }
+
         AuditLog::create([
             'request_id'  => $grantRequest->id,
             'actor_id'    => $user->id,
             'from_status' => $oldStatus,
             'to_status'   => $newStatus,
-            'note'        => $request->notes ?? null,
+            'note'        => $logNote,
             'created_at'  => now(),
         ]);
 
@@ -411,14 +411,9 @@ class RequestController extends Controller
     // STAFF 2 — Add comment for Staff 1
     // ==========================================
 
-    public function addComment(Request $request, $id)
+    public function addComment(StoreCommentRequest $request, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('addComment', $grantRequest);
-
-        $request->validate([
-            'body' => 'required|string|max:1000',
-        ]);
 
         Comment::create([
             'request_id'  => $id,

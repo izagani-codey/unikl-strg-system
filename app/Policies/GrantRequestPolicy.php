@@ -7,6 +7,16 @@ use App\Models\User;
 
 class GrantRequestPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return in_array($user->role, ['admission', 'staff1', 'staff2'], true);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->role === 'admission';
+    }
+
     public function view(User $user, GrantRequest $request): bool
     {
         if ($user->role === 'admission') {
@@ -35,7 +45,7 @@ class GrantRequestPolicy
         }
 
         if ($user->role === 'staff2') {
-            return (int) $request->status_id === 2;
+            return in_array((int) $request->status_id, [2, 5, 6], true);
         }
 
         return false;
@@ -43,6 +53,7 @@ class GrantRequestPolicy
 
     public function addComment(User $user, GrantRequest $request): bool
     {
-        return $user->role === 'staff2' && (int) $request->status_id === 2;
+        return in_array($user->role, ['staff1', 'staff2'], true)
+            && in_array((int) $request->status_id, [1, 2, 4], true);
     }
 }

@@ -112,6 +112,10 @@
                         <p class="text-2xl font-bold text-yellow-600">{{ $returned }}</p>
                         <p class="text-xs text-yellow-500 mt-1">Needs Revision</p>
                     </div>
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                        <p class="text-2xl font-bold text-orange-600">{{ $dashboardStats['high_priority'] ?? 0 }}</p>
+                        <p class="text-xs text-orange-500 mt-1">High Priority</p>
+                    </div>
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                         <p class="text-2xl font-bold text-green-600">{{ $approved }}</p>
                         <p class="text-xs text-green-500 mt-1">Approved</p>
@@ -153,6 +157,13 @@
             @endforeach
         </select>
 
+        {{-- Priority --}}
+        <select name="priority" class="border rounded px-3 py-2 text-sm">
+            <option value="">All Priority</option>
+            <option value="1" {{ request('priority') === '1' ? 'selected' : '' }}>High Priority</option>
+            <option value="0" {{ request('priority') === '0' ? 'selected' : '' }}>Normal</option>
+        </select>
+
         {{-- Date From --}}
         <input type="date"
                name="date_from"
@@ -186,6 +197,7 @@
                                 <tr class="bg-gray-50 border-b">
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Ref Number</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Type</th>
+                                    <th class="px-4 py-2 text-left font-semibold text-gray-600">Priority</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Amount</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Submitted</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
@@ -197,6 +209,11 @@
                                 <tr class="border-b hover:bg-gray-50 {{ $req->status_id == 3 ? 'bg-yellow-50' : '' }}">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $req->ref_number }}</td>
                                     <td class="px-4 py-3">{{ $req->requestType->name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-bold {{ $req->priorityBadgeClass() }}">
+                                            {{ $req->priorityLabel() }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3 font-bold">RM {{ number_format($req->payload['amount'] ?? 0, 2) }}</td>
                                     <td class="px-4 py-3 text-gray-500">{{ $req->created_at->format('d M Y') }}</td>
                                     <td class="px-4 py-3">
@@ -332,6 +349,7 @@
                     <tr class="bg-gray-50 border-b">
                         <th class="px-4 py-2 text-left font-semibold text-gray-600">Ref Number</th>
                         <th class="px-4 py-2 text-left font-semibold text-gray-600">Type</th>
+                        <th class="px-4 py-2 text-left font-semibold text-gray-600">Priority</th>
                         <th class="px-4 py-2 text-left font-semibold text-gray-600">Submitted By</th>
                         <th class="px-4 py-2 text-left font-semibold text-gray-600">Amount</th>
                         <th class="px-4 py-2 text-left font-semibold text-gray-600">Date</th>
@@ -350,6 +368,11 @@
                             @endif
                         </td>
                         <td class="px-4 py-3">{{ $req->requestType->name ?? 'N/A' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-bold {{ $req->priorityBadgeClass() }}">
+                                {{ $req->priorityLabel() }}
+                            </span>
+                        </td>
                         <td class="px-4 py-3">
                             <p class="font-semibold">{{ $req->user->name }}</p>
                             <p class="text-xs text-gray-400">{{ $req->user->email }}</p>
@@ -476,6 +499,11 @@
                 </option>
             @endforeach
         </select>
+        <select name="priority" class="border rounded px-3 py-2 text-sm">
+            <option value="">All Priority</option>
+            <option value="1" {{ request('priority') === '1' ? 'selected' : '' }}>High Priority</option>
+            <option value="0" {{ request('priority') === '0' ? 'selected' : '' }}>Normal</option>
+        </select>
         <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
         <div class="flex gap-2">
             <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm flex-1">
@@ -496,6 +524,7 @@
                                 <tr class="bg-gray-50 border-b">
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Ref Number</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Type</th>
+                                    <th class="px-4 py-2 text-left font-semibold text-gray-600">Priority</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Submitted By</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Amount</th>
                                     <th class="px-4 py-2 text-left font-semibold text-gray-600">Verified By</th>
@@ -508,6 +537,11 @@
                                 <tr class="border-b hover:bg-gray-50">
                                     <td class="px-4 py-3 font-mono text-xs">{{ $req->ref_number }}</td>
                                     <td class="px-4 py-3">{{ $req->requestType->name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-bold {{ $req->priorityBadgeClass() }}">
+                                            {{ $req->priorityLabel() }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3">
                                         <p class="font-semibold">{{ $req->user->name }}</p>
                                         <p class="text-xs text-gray-400">{{ $req->user->email }}</p>

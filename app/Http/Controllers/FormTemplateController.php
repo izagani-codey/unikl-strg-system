@@ -20,7 +20,13 @@ class FormTemplateController extends Controller
     {
         $request->validate([
             'title' => ['required', 'string', 'max:120'],
-            'file' => ['required', 'mimes:pdf,doc,docx,xlsx,xls,png,jpg,jpeg', 'max:5120'],
+            'file' => [
+                'required',
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
         ]);
 
         $path = $request->file('file')->store('blank-forms', 'public');

@@ -45,6 +45,7 @@ class DashboardController extends Controller
             'returned_to_staff_1' => (int) ($statusCounts[4] ?? 0),
             'approved' => (int) ($statusCounts[5] ?? 0),
             'declined' => (int) ($statusCounts[6] ?? 0),
+            'high_priority' => (clone $statsBase)->where('is_priority', true)->count(),
         ];
 
         $requestTypes = RequestType::all();
@@ -67,11 +68,16 @@ class DashboardController extends Controller
             'dashboardStats',
             'formTemplates',
             'urgentRequests'
+            
         ));
     }
 
     private function applyFilters(Builder $query, Request $request, string $role): void
     {
+        if ($request->filled('priority')) {
+            $query->where('is_priority', (bool) $request->input('priority'));
+        }
+
         if ($request->filled('status')) {
             $query->where('status_id', $request->integer('status'));
         }
