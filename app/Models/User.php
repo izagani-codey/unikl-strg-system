@@ -40,9 +40,24 @@ class User extends Authenticatable
         return $this->role === 'personB';
     }
 
+    public function isAdmission()
+    {
+        return $this->role === 'admission';
+    }
+
+    public function isStaff1()
+    {
+        return $this->role === 'staff1';
+    }
+
+    public function isStaff2()
+    {
+        return $this->role === 'staff2';
+    }
+
     public function isAdmissions()
     {
-        return $this->role === 'admissions';
+        return $this->role === 'admission';
     }
 
     public function requests()
