@@ -13,8 +13,15 @@ return new class extends Migration
     {
         Schema::table('request_types', function (Blueprint $table) {
             $table->text('description')->nullable()->after('slug');
-            $table->timestamps();
+            $table->timestamp('created_at')->nullable()->after('description');
+            $table->timestamp('updated_at')->nullable()->after('created_at');
         });
+        
+        // Update existing records to have current timestamps
+        \DB::table('request_types')->whereNull('created_at')->update([
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**
