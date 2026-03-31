@@ -18,52 +18,36 @@ use App\Models\User;
 class RequestController extends Controller
 {
     /**
-     * Enforce allowed status transitions by role.
+     * Centralised transition map. Single source of truth — reused by
+     * GrantRequestPolicy::updateStatus() via the static helper below.
      *
      * Status codes:
-     * 1=Pending Verification
-     * 2=With Staff 2
-     * 3=Returned to Admission
-     * 4=Returned to Staff 1
-     * 5=Approved
-     * 6=Declined
+     *   1 = Pending Verification
+     *   2 = With Staff 2
+     *   3 = Returned to Admission
+     *   4 = Returned to Staff 1
+     *   5 = Approved
+     *   6 = Declined
      */
-    private function isValidTransition(string $role, int $currentStatus, int $newStatus): bool
+    public static function allowedTransitions(): array
     {
-        if ($role === 'staff1') {
-            // Staff1 can act only on active queue items.
-            if (!in_array($currentStatus, [1, 4], true)) {
-                return false;
-            }
+        return [
+            'staff1' => [
+                1 => [2, 3, 6],
+                4 => [2, 3, 6],
+            ],
+            'staff2' => [
+                2 => [4, 5, 6],
+                5 => [6],       // override: approved → declined
+                6 => [5],       // override: declined → approved
+            ],
+        ];
+    }
 
-            // Staff1 actions:
-            // 1 or 4 -> 2 (send to staff2), 3 (return to admission), 6 (decline)
-            return in_array($newStatus, [2, 3, 6], true);
-        }
-
-        if ($role === 'staff2') {
-            // Staff2 actions:
-            // 2 -> 4 (return to staff1), 5 (approve), 6 (decline)
-            // 5 -> 6 (override approved request to declined)
-            // 6 -> 5 (override declined request to approved)
-            if ($currentStatus === 2) {
-                return in_array($newStatus, [4, 5, 6], true);
-            }
-
-            if ($currentStatus === 5) {
-                return $newStatus === 6;
-            }
-
-            if ($currentStatus === 6) {
-                return $newStatus === 5;
-            }
-
-            return false;
-        }
-
-        return false;
-
-    
+    public static function isValidTransition(string $role, int $currentStatus, int $newStatus): bool
+    {
+        $map = self::allowedTransitions();
+        return in_array($newStatus, $map[$role][$currentStatus] ?? [], true);
     }
 
     // ==========================================
@@ -83,7 +67,6 @@ class RequestController extends Controller
             $path = $request->file('document')->store('documents', 'public');
         }
 
-        // Auto priority if deadline within 2 weeks
         $isPriority = false;
         if ($request->deadline) {
             $isPriority = now()->diffInDays($request->deadline) <= 14;
@@ -132,7 +115,7 @@ class RequestController extends Controller
     {
         $grantRequest = GrantRequest::where('id', $id)
                                     ->where('user_id', Auth::id())
-                                    ->whereIn('status_id', [3]) // only returned requests
+                                    ->where('status_id', 3)
                                     ->firstOrFail();
 
         $this->authorize('revise', $grantRequest);
@@ -145,12 +128,11 @@ class RequestController extends Controller
     {
         $grantRequest = GrantRequest::where('id', $id)
                                     ->where('user_id', Auth::id())
-                                    ->whereIn('status_id', [3])
+                                    ->where('status_id', 3)
                                     ->firstOrFail();
 
         $this->authorize('revise', $grantRequest);
 
-        // New file uploaded
         $path = $grantRequest->file_path;
         if ($request->hasFile('document')) {
             $path = $request->file('document')->store('documents', 'public');
@@ -164,13 +146,13 @@ class RequestController extends Controller
         $oldStatus = $grantRequest->status_id;
 
         $grantRequest->update([
-            'status_id'    => 1, // reset back to start
-            'file_path'    => $path,
-            'deadline'     => $request->deadline,
-            'is_priority'  => $isPriority,
-            'rejection_reason' => null, // clear old rejection reason
+            'status_id'        => 1,
+            'file_path'        => $path,
+            'deadline'         => $request->deadline,
+            'is_priority'      => $isPriority,
+            'rejection_reason' => null,
             'revision_count'   => $grantRequest->revision_count + 1,
-            'payload'      => [
+            'payload'          => [
                 'amount'      => $request->amount,
                 'description' => $request->description,
                 'email'       => Auth::user()->email,
@@ -213,31 +195,16 @@ class RequestController extends Controller
         ])->findOrFail($id);
 
         $this->authorize('view', $grantRequest);
-        $this->recordRequestView($grantRequest);
+
+        // NOTE: recordRequestView() removed — it was polluting the audit log
+        // with from_status == to_status noise on every page load.
 
         return view('requests.show', compact('grantRequest'));
-    }
-
-    private function recordRequestView(GrantRequest $grantRequest): void
-    {
-        if (! Auth::check()) {
-            return;
-        }
-
-        AuditLog::create([
-            'request_id'  => $grantRequest->id,
-            'actor_id'    => Auth::id(),
-            'from_status' => $grantRequest->status_id,
-            'to_status'   => $grantRequest->status_id,
-            'note'        => 'Viewed request details.',
-            'created_at'  => now(),
-        ]);
     }
 
     // ==========================================
     // Printable summary
     // ==========================================
-
 
     public function printSummary($id)
     {
@@ -257,6 +224,7 @@ class RequestController extends Controller
     // ==========================================
     // STAFF 2 — Export filtered request list
     // ==========================================
+
     public function exportCsv(Request $request)
     {
         $query = GrantRequest::query()->with([
@@ -269,19 +237,15 @@ class RequestController extends Controller
         if ($request->filled('status')) {
             $query->where('status_id', $request->integer('status'));
         }
-
         if ($request->filled('type')) {
             $query->where('request_type_id', $request->integer('type'));
         }
-
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->input('date_from'));
         }
-
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->input('date_to'));
         }
-
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
             $query->where(function ($q) use ($search) {
@@ -295,26 +259,16 @@ class RequestController extends Controller
         }
 
         $filename = 'staff2-requests-' . now()->format('Y-m-d') . '.csv';
-
-        $headers = [
-            'Ref Number',
-            'Request Type',
-            'Applicant Name',
-            'Applicant Email',
-            'Amount',
-            'Submitted At',
-            'Deadline',
-            'Status',
-            'Staff 1 (Verified By)',
-            'Staff 2 (Recommended By)',
-            'Staff Notes (latest)',
-            'Rejection Reason',
+        $headers  = [
+            'Ref Number', 'Request Type', 'Applicant Name', 'Applicant Email',
+            'Amount', 'Submitted At', 'Deadline', 'Status',
+            'Staff 1 (Verified By)', 'Staff 2 (Recommended By)',
+            'Staff Notes (latest)', 'Rejection Reason',
         ];
 
         return response()->streamDownload(function () use ($query, $headers) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $headers);
-
             $query->chunk(200, function ($chunk) use ($handle) {
                 foreach ($chunk as $req) {
                     fputcsv($handle, [
@@ -333,11 +287,8 @@ class RequestController extends Controller
                     ]);
                 }
             });
-
             fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=utf-8',
-        ]);
+        }, $filename, ['Content-Type' => 'text/csv; charset=utf-8']);
     }
 
     // ==========================================
@@ -347,39 +298,36 @@ class RequestController extends Controller
     public function updateStatus(UpdateStatusRequest $request, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $user = Auth::user();
+        $user         = Auth::user();
+        $newStatus    = (int) $request->validated()['status_id'];
 
-        $newStatus = (int) $request->validated()['status_id'];
-        if (! $this->isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
-            return back()->with('error', 'Invalid status transition for your role.')->withInput();
+        // isValidTransition is already checked inside UpdateStatusRequest::authorize()
+        // via the policy, but we double-check here to catch any direct calls.
+        if (! self::isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
+            return back()
+                ->with('error', 'That status change is not allowed from the current state.')
+                ->withInput();
         }
 
         $updateData = ['status_id' => $newStatus];
-        $isOverride = false;
+        $isOverride = $grantRequest->canBeOverridden() && $user->role === 'staff2';
 
-        if ($user->role === 'staff2' && $grantRequest->canBeOverridden()) {
-            $isOverride = true;
-            $updateData['is_overridden'] = true;
-            $updateData['overridden_by'] = $user->id;
-
-            if ($request->filled('override_reason')) {
-                $updateData['override_reason'] = $request->override_reason;
-            }
+        if ($isOverride) {
+            $updateData['is_overridden']  = true;
+            $updateData['overridden_by']  = $user->id;
+            $updateData['override_reason'] = $request->override_reason ?? $request->notes;
         }
 
-        // Staff 1 verifying
         if ($user->role === 'staff1') {
-            $updateData['verified_by']  = $user->id;
-            $updateData['staff_notes']  = $request->notes;
+            $updateData['verified_by'] = $user->id;
+            $updateData['staff_notes'] = $request->notes;
         }
 
-        // Staff 2 recommending
         if ($user->role === 'staff2') {
             $updateData['recommended_by'] = $user->id;
             $updateData['staff_notes']    = $request->notes;
         }
 
-        // Rejection reason (visible to admission)
         if ($request->filled('rejection_reason')) {
             $updateData['rejection_reason'] = $request->rejection_reason;
         }
@@ -401,14 +349,14 @@ class RequestController extends Controller
             'created_at'  => now(),
         ]);
 
-        $this->dispatchStatusNotification($grantRequest, (int) $request->status_id);
+        $this->dispatchStatusNotification($grantRequest, $newStatus);
 
         return redirect()->route('requests.show', $id)
                          ->with('success', 'Status updated successfully.');
     }
 
     // ==========================================
-    // STAFF 2 — Add comment for Staff 1
+    // STAFF — Add internal comment
     // ==========================================
 
     public function addComment(StoreCommentRequest $request, $id)
@@ -427,46 +375,52 @@ class RequestController extends Controller
                          ->with('success', 'Comment added.');
     }
 
+    // ==========================================
+    // Private helpers
+    // ==========================================
+
     private function dispatchStatusNotification(GrantRequest $request, int $statusId): void
     {
-        if ($statusId === 2) {
-            $this->notifyRole('staff2', 'Request forwarded to Staff 2', 'Request ' . $request->ref_number . ' is ready for recommendation.', route('requests.show', $request->id));
-            return;
-        }
+        match ($statusId) {
+            2 => $this->notifyRole('staff2',
+                    'Request forwarded to Staff 2',
+                    'Request ' . $request->ref_number . ' is ready for recommendation.',
+                    route('requests.show', $request->id)),
 
-        if ($statusId === 3) {
-            $this->notifyUser((int) $request->user_id, 'Request returned for revision', 'Request ' . $request->ref_number . ' has been returned to you with comments.', route('requests.show', $request->id));
-            return;
-        }
+            3 => $this->notifyUser((int) $request->user_id,
+                    'Request returned for revision',
+                    'Request ' . $request->ref_number . ' has been returned to you with comments.',
+                    route('requests.show', $request->id)),
 
-        if ($statusId === 4) {
-            $this->notifyRole('staff1', 'Request returned to Staff 1', 'Request ' . $request->ref_number . ' has been returned for re-verification.', route('requests.show', $request->id));
-            return;
-        }
+            4 => $this->notifyRole('staff1',
+                    'Request returned to Staff 1',
+                    'Request ' . $request->ref_number . ' has been returned for re-verification.',
+                    route('requests.show', $request->id)),
 
-        if (in_array($statusId, [5, 6], true)) {
-            $title = $statusId === 5 ? 'Request approved' : 'Request declined';
-            $this->notifyUser((int) $request->user_id, $title, 'Request ' . $request->ref_number . ' has been updated. Please review the final decision.', route('requests.show', $request->id));
-        }
+            5, 6 => $this->notifyUser((int) $request->user_id,
+                    $statusId === 5 ? 'Request approved' : 'Request declined',
+                    'Request ' . $request->ref_number . ' has been updated. Please review the final decision.',
+                    route('requests.show', $request->id)),
+
+            default => null,
+        };
     }
 
     private function notifyRole(string $role, string $title, string $message, ?string $link = null): void
     {
-        $users = User::query()->where('role', $role)->get(['id']);
-
-        foreach ($users as $recipient) {
+        User::where('role', $role)->each(function ($recipient) use ($title, $message, $link) {
             $this->notifyUser((int) $recipient->id, $title, $message, $link);
-        }
+        });
     }
 
     private function notifyUser(int $userId, string $title, string $message, ?string $link = null): void
     {
         Notification::create([
-            'user_id' => $userId,
-            'title' => $title,
-            'message' => $message,
-            'link' => $link,
-            'is_read' => false,
+            'user_id'    => $userId,
+            'title'      => $title,
+            'message'    => $message,
+            'link'       => $link,
+            'is_read'    => false,
             'created_at' => now(),
         ]);
     }

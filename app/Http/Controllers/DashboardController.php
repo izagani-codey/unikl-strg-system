@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FormTemplate;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +18,6 @@ class DashboardController extends Controller
             ->with('requestType', 'user', 'verifiedBy', 'recommendedBy')
             ->latest();
 
-        // Admission users should only see their own submissions.
         if ($user->role === 'admission') {
             $query->where('user_id', $user->id);
         }
@@ -25,51 +25,56 @@ class DashboardController extends Controller
         $this->applyFilters($query, $request, $user->role);
 
         $displayRequests = $query->paginate(15)->withQueryString();
-
-        // Dashboard summary counts (not affected by current filters).
-        $statsBase = GrantRequest::query();
-        if ($user->role === 'admission') {
-            $statsBase->where('user_id', $user->id);
-        }
-
-        $statusCounts = (clone $statsBase)
-            ->selectRaw('status_id, COUNT(*) as total')
-            ->groupBy('status_id')
-            ->pluck('total', 'status_id');
-
-        $dashboardStats = [
-            'total' => (clone $statsBase)->count(),
-            'pending_verification' => (int) ($statusCounts[1] ?? 0),
-            'with_staff_2' => (int) ($statusCounts[2] ?? 0),
-            'returned_to_admission' => (int) ($statusCounts[3] ?? 0),
-            'returned_to_staff_1' => (int) ($statusCounts[4] ?? 0),
-            'approved' => (int) ($statusCounts[5] ?? 0),
-            'declined' => (int) ($statusCounts[6] ?? 0),
-            'high_priority' => (clone $statsBase)->where('is_priority', true)->count(),
-        ];
-
-        $requestTypes = RequestType::all();
-
-        $formTemplates = \App\Models\FormTemplate::with('uploader')->latest('created_at')->get();
+        $dashboardStats  = $this->buildStats($user);
+        $requestTypes    = RequestType::all();
+        $formTemplates   = FormTemplate::with('uploader')->latest('created_at')->get();
 
         $urgentRequests = collect();
         if (in_array($user->role, ['staff1', 'staff2'])) {
             $urgentRequests = GrantRequest::where('deadline', '<=', now()->addDays(3))
                 ->whereNotIn('status_id', [5, 6])
                 ->with('requestType', 'user')
-                ->orderBy('deadline', 'asc')
+                ->orderBy('deadline')
                 ->limit(10)
                 ->get();
         }
 
-        return view('dashboard', compact(
+        // Route to the correct dashboard view for this role.
+        return view('dashboard.' . $user->role, compact(
             'displayRequests',
             'requestTypes',
             'dashboardStats',
             'formTemplates',
-            'urgentRequests'
-            
+            'urgentRequests',
         ));
+    }
+
+    // ==========================================
+    // Private helpers
+    // ==========================================
+
+    private function buildStats(mixed $user): array
+    {
+        $base = GrantRequest::query();
+        if ($user->role === 'admission') {
+            $base->where('user_id', $user->id);
+        }
+
+        $counts = (clone $base)
+            ->selectRaw('status_id, COUNT(*) as total')
+            ->groupBy('status_id')
+            ->pluck('total', 'status_id');
+
+        return [
+            'total'                 => (clone $base)->count(),
+            'pending_verification'  => (int) ($counts[1] ?? 0),
+            'with_staff_2'          => (int) ($counts[2] ?? 0),
+            'returned_to_admission' => (int) ($counts[3] ?? 0),
+            'returned_to_staff_1'   => (int) ($counts[4] ?? 0),
+            'approved'              => (int) ($counts[5] ?? 0),
+            'declined'              => (int) ($counts[6] ?? 0),
+            'high_priority'         => (clone $base)->where('is_priority', true)->count(),
+        ];
     }
 
     private function applyFilters(Builder $query, Request $request, string $role): void
@@ -77,34 +82,28 @@ class DashboardController extends Controller
         if ($request->filled('priority')) {
             $query->where('is_priority', (bool) $request->input('priority'));
         }
-
         if ($request->filled('status')) {
             $query->where('status_id', $request->integer('status'));
         }
-
         if ($request->filled('type')) {
             $query->where('request_type_id', $request->integer('type'));
         }
-
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->input('date_from'));
         }
-
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->input('date_to'));
         }
-
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-
             $query->where(function (Builder $q) use ($search, $role) {
                 $q->where('ref_number', 'like', "%{$search}%")
-                    ->orWhere('payload', 'like', "%{$search}%");
+                  ->orWhere('payload', 'like', "%{$search}%");
 
                 if ($role !== 'admission') {
                     $q->orWhereHas('user', function (Builder $uq) use ($search) {
                         $uq->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
+                           ->orWhere('email', 'like', "%{$search}%");
                     });
                 }
             });

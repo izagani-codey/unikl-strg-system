@@ -41,6 +41,9 @@
                         <input type="file" name="document" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700" required>
                         <p class="text-xs text-gray-500 mt-2 italic">Accepted formats: PDF, JPG, PNG (Max 5MB)</p>
                     </div>
+                    @error('document')
+    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+@enderror
 
                     <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow-md">
                         Submit for Verification

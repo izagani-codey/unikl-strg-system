@@ -8,6 +8,13 @@
 
     <div class="py-8">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if($errors->any())
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        @foreach($errors->all() as $error)
+            <p>{{ $error }}</p>
+        @endforeach
+    </div>
+@endif
             @if(session('success'))
                 <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
                     {{ session('success') }}

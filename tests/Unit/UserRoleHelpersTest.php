@@ -7,22 +7,40 @@ use PHPUnit\Framework\TestCase;
 
 class UserRoleHelpersTest extends TestCase
 {
-    public function test_user_role_helpers_match_expected_roles(): void
+    public function test_admission_role_helpers(): void
     {
-        $admission = new User(['role' => 'admission']);
-        $this->assertTrue($admission->isAdmission());
-        $this->assertTrue($admission->isAdmissions());
-        $this->assertFalse($admission->isStaff1());
-        $this->assertFalse($admission->isStaff2());
+        $user = new User(['role' => 'admission']);
 
-        $staff1 = new User(['role' => 'staff1']);
-        $this->assertTrue($staff1->isStaff1());
-        $this->assertFalse($staff1->isAdmission());
-        $this->assertFalse($staff1->isStaff2());
+        $this->assertTrue($user->isAdmission());
+        $this->assertTrue($user->isAdmissions()); // alias
+        $this->assertFalse($user->isStaff1());
+        $this->assertFalse($user->isStaff2());
+    }
 
-        $staff2 = new User(['role' => 'staff2']);
-        $this->assertTrue($staff2->isStaff2());
-        $this->assertFalse($staff2->isStaff1());
-        $this->assertFalse($staff2->isAdmission());
+    public function test_staff1_role_helpers(): void
+    {
+        $user = new User(['role' => 'staff1']);
+
+        $this->assertTrue($user->isStaff1());
+        $this->assertFalse($user->isAdmission());
+        $this->assertFalse($user->isStaff2());
+    }
+
+    public function test_staff2_role_helpers(): void
+    {
+        $user = new User(['role' => 'staff2']);
+
+        $this->assertTrue($user->isStaff2());
+        $this->assertFalse($user->isStaff1());
+        $this->assertFalse($user->isAdmission());
+    }
+
+    public function test_unknown_role_returns_false_for_all_helpers(): void
+    {
+        $user = new User(['role' => 'admin']);
+
+        $this->assertFalse($user->isAdmission());
+        $this->assertFalse($user->isStaff1());
+        $this->assertFalse($user->isStaff2());
     }
 }

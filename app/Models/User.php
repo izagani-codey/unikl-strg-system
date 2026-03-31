@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,51 +12,45 @@ use Illuminate\Notifications\Notifiable;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
-    public function isPersonA()
-    {
-        return $this->role === 'personA';
-    }
+    // ==========================================
+    // Role helpers — match the actual role strings
+    // ==========================================
 
-    public function isPersonB()
-    {
-        return $this->role === 'personB';
-    }
-
-    public function isAdmission()
+    public function isAdmission(): bool
     {
         return $this->role === 'admission';
     }
 
-    public function isStaff1()
+    public function isStaff1(): bool
     {
         return $this->role === 'staff1';
     }
 
-    public function isStaff2()
+    public function isStaff2(): bool
     {
         return $this->role === 'staff2';
     }
 
-    public function isAdmissions()
+    /** Alias kept for any Blade templates still using this name. */
+    public function isAdmissions(): bool
     {
-        return $this->role === 'admission';
+        return $this->isAdmission();
     }
+
+    // ==========================================
+    // Relationships
+    // ==========================================
 
     public function requests()
     {
