@@ -81,6 +81,9 @@
                 </div>
             </div>
 
+            {{-- Request Timeline --}}
+            <x-request-timeline :request="$grantRequest" />
+
             {{-- Uploaded Document --}}
             @if($grantRequest->file_path)
             <div class="bg-white shadow-sm rounded-lg p-6">

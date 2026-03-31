@@ -21,7 +21,7 @@ class UpdateRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount'      => 'nullable|numeric',
+            'amount'      => 'required|numeric|min:0',
             'description' => 'required|string',
             'document'    => [
                 'nullable',

@@ -115,60 +115,60 @@ class WorkflowTransitionService
      */
     private static function dispatchNotifications(Request $request, RequestStatus $from, RequestStatus $to): void
     {
-        match($to) {
-            RequestStatus::PENDING_RECOMMENDATION => self::notifyStaff2($request),
-            RequestStatus::RETURNED_TO_ADMISSION => self::notifyAdmission($request, 'Request returned for revision'),
-            RequestStatus::RETURNED_TO_STAFF_1 => self::notifyStaff1($request),
-            RequestStatus::APPROVED, RequestStatus::DECLINED => self::notifyAdmission($request, 
+        if ($to === RequestStatus::PENDING_RECOMMENDATION) {
+            self::notifyStaff2($request);
+        } elseif ($to === RequestStatus::RETURNED_TO_ADMISSION) {
+            self::notifyAdmission($request, 'Request returned for revision');
+        } elseif ($to === RequestStatus::RETURNED_TO_STAFF_1) {
+            self::notifyStaff1($request);
+        } elseif ($to === RequestStatus::APPROVED || $to === RequestStatus::DECLINED) {
+            self::notifyAdmission($request, 
                 $to === RequestStatus::APPROVED ? 'Request approved' : 'Request declined'
-            ),
-            default => null,
-        };
+            );
+        }
     }
 
     private static function notifyStaff2(Request $request): void
     {
-        self::createNotification(
-            'staff2',
-            'Request ready for recommendation',
-            "Request {$request->ref_number} is ready for your review.",
-            route('requests.show', $request->id)
-        );
+        $staff2Users = \App\Models\User::where('role', 'staff2')->get();
+        
+        foreach ($staff2Users as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_ready_for_recommendation',
+                'Request Ready for Recommendation',
+                "Request {$request->ref_number} is ready for your review.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id]
+            );
+        }
     }
 
     private static function notifyStaff1(Request $request): void
     {
-        self::createNotification(
-            'staff1',
-            'Request returned for re-verification',
-            "Request {$request->ref_number} has been returned for additional verification.",
-            route('requests.show', $request->id)
-        );
+        $staff1Users = \App\Models\User::where('role', 'staff1')->get();
+        
+        foreach ($staff1Users as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_returned_for_verification',
+                'Request Returned for Verification',
+                "Request {$request->ref_number} has been returned for additional verification.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id]
+            );
+        }
     }
 
     private static function notifyAdmission(Request $request, string $title): void
     {
-        \App\Models\Notification::create([
-            'user_id' => $request->user_id,
-            'title' => $title,
-            'message' => "Request {$request->ref_number} has been updated. Please review the changes.",
-            'link' => route('requests.show', $request->id),
-            'is_read' => false,
-            'created_at' => now(),
-        ]);
-    }
-
-    private static function createNotification(string $role, string $title, string $message, string $link): void
-    {
-        \App\Models\User::where('role', $role)->each(function ($user) use ($title, $message, $link) {
-            \App\Models\Notification::create([
-                'user_id' => $user->id,
-                'title' => $title,
-                'message' => $message,
-                'link' => $link,
-                'is_read' => false,
-                'created_at' => now(),
-            ]);
-        });
+        \App\Models\Notification::createForUser(
+            $request->user_id,
+            'request_updated',
+            $title,
+            "Request {$request->ref_number} has been updated. Please review the changes.",
+            route('requests.show', $request->id),
+            ['request_id' => $request->id]
+        );
     }
 }

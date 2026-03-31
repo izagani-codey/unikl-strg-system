@@ -15,7 +15,7 @@ class StoreRequestRequest extends FormRequest
     {
         return [
             'request_type_id' => 'required|exists:request_types,id',
-            'amount'          => 'nullable|numeric',
+            'amount'          => 'required|numeric|min:0',
             'description'     => 'required|string',
             'document'        => [
                 'required',

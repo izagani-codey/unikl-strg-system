@@ -167,7 +167,71 @@
                 </div>
             </div>
 
-            {{-- Export Tools Section --}}
+            {{-- Deadline Reminder Widget --}}
+            @if($urgentRequests->count() > 0)
+                <div class="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <h3 class="text-xl font-bold">⚠️ Urgent Deadlines</h3>
+                        </div>
+                        <span class="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-bold">
+                            {{ $urgentRequests->count() }} requests
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        @foreach($urgentRequests->take(3) as $urgent)
+                            @php
+                                $daysLeft = $urgent->daysUntilDeadline();
+                                $urgencyColor = $daysLeft <= 1 ? 'bg-white/30' : 'bg-white/20';
+                            @endphp
+                            <div class="{{ $urgencyColor }} backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-semibold">{{ $urgent->ref_number }}</p>
+                                        <p class="text-sm text-red-100">{{ $urgent->user->name }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold">
+                                            @if($daysLeft < 0)
+                                                OVERDUE
+                                            @elseif($daysLeft === 0)
+                                                DUE TODAY
+                                            @elseif($daysLeft === 1)
+                                                TOMORROW
+                                            @else
+                                                {{ $daysLeft }} days
+                                            @endif
+                                        </p>
+                                        <p class="text-xs text-red-100">{{ $urgent->deadline->format('M j') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    @if($urgentRequests->count() > 3)
+                        <div class="mt-3 text-center">
+                            <a href="{{ route('dashboard') }}?urgent=1" class="text-white/90 hover:text-white text-sm font-medium underline">
+                                View all {{ $urgentRequests->count() }} urgent requests →
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <x-dashboard-filters 
+                role="staff2" 
+                :request-types="$requestTypes"
+                title="Filter Recommendation Queue"
+                description="Find requests to review and approve"
+                color-theme="green"
+            />
+
+            {{-- Enhanced Export Tools --}}
             <div class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
                     <div>
@@ -175,23 +239,105 @@
                             <svg class="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
-                            Export Tools
+                            Export & Reports
                         </h3>
-                        <p class="text-gray-600 text-sm mt-1">Download request data for analysis</p>
+                        <p class="text-gray-600 text-sm mt-1">Download data for analysis and university reporting</p>
                     </div>
-                    <form method="GET" action="{{ route('requests.exportCsv') }}" class="flex items-center space-x-3">
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" 
-                               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" 
-                               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Quick Export -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
-                            Export CSV
-                        </button>
-                    </form>
+                            Quick CSV Export
+                        </h4>
+                        <form method="GET" action="{{ route('requests.exportCsv') }}" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Date Range (Optional)</label>
+                                <div class="flex space-x-2">
+                                    <input type="date" name="date_from" value="{{ request('date_from') }}" 
+                                           placeholder="From" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                    <input type="date" name="date_to" value="{{ request('date_to') }}" 
+                                           placeholder="To" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                    <option value="">All Statuses</option>
+                                    <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Pending Verification</option>
+                                    <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>With Staff 2</option>
+                                    <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Approved</option>
+                                    <option value="6" {{ request('status') == '6' ? 'selected' : '' }}>Declined</option>
+                                </select>
+                                <select name="type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
+                                    <option value="">All Types</option>
+                                    @foreach($requestTypes as $type)
+                                        <option value="{{ $type->id }}" {{ request('type') == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg">
+                                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                Export Filtered Data
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Admin Panel Access -->
+                    <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+                        <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Admin Functions
+                        </h4>
+                        <div class="space-y-3">
+                            <a href="{{ route('staff2.admin') }}" 
+                               class="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg text-center">
+                                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Admin Panel
+                            </a>
+                            <a href="{{ route('form-templates.index') }}" 
+                               class="block w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-3 rounded-lg font-semibold hover:from-pink-700 hover:to-rose-700 transition-all shadow-lg text-center">
+                                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                Manage Templates
+                            </a>
+                            <div class="text-center text-sm text-gray-600 mt-2">
+                                <p>Full system management and reporting capabilities</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export Info -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-semibold mb-1">Export Information:</p>
+                            <ul class="list-disc list-inside space-y-1 text-blue-700">
+                                <li>CSV format compatible with Excel and spreadsheet applications</li>
+                                <li>Includes all request details, verification trail, and staff assignments</li>
+                                <li>Respects current dashboard filters for targeted exports</li>
+                                <li>Perfect for university reporting and data analysis</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -162,7 +162,69 @@
                 </div>
             </div>
 
-            {{-- Forms & Templates Section --}}
+            {{-- Deadline Reminder Widget --}}
+            @if($urgentRequests->count() > 0)
+                <div class="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <h3 class="text-xl font-bold">⚠️ Urgent Deadlines</h3>
+                        </div>
+                        <span class="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-bold">
+                            {{ $urgentRequests->count() }} requests
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        @foreach($urgentRequests->take(3) as $urgent)
+                            @php
+                                $daysLeft = $urgent->daysUntilDeadline();
+                                $urgencyColor = $daysLeft <= 1 ? 'bg-white/30' : 'bg-white/20';
+                            @endphp
+                            <div class="{{ $urgencyColor }} backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-semibold">{{ $urgent->ref_number }}</p>
+                                        <p class="text-sm text-red-100">{{ $urgent->user->name }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold">
+                                            @if($daysLeft < 0)
+                                                OVERDUE
+                                            @elseif($daysLeft === 0)
+                                                DUE TODAY
+                                            @elseif($daysLeft === 1)
+                                                TOMORROW
+                                            @else
+                                                {{ $daysLeft }} days
+                                            @endif
+                                        </p>
+                                        <p class="text-xs text-red-100">{{ $urgent->deadline->format('M j') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    @if($urgentRequests->count() > 3)
+                        <div class="mt-3 text-center">
+                            <a href="{{ route('dashboard') }}?urgent=1" class="text-white/90 hover:text-white text-sm font-medium underline">
+                                View all {{ $urgentRequests->count() }} urgent requests →
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <x-dashboard-filters 
+                role="staff1" 
+                :request-types="$requestTypes"
+                title="Filter Verification Queue"
+                description="Find requests to verify quickly"
+                color-theme="purple"
+            />
             <div class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-6">
                     <div>

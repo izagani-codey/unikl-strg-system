@@ -118,11 +118,15 @@ class Request extends Model
      */
     public function getDecisionMaker(): ?string
     {
-        return match($this->status_id) {
-            RequestStatus::APPROVED->value => 'staff2',
-            RequestStatus::DECLINED->value => 'staff1',
-            default => null,
-        };
+        if ($this->status_id === RequestStatus::APPROVED->value) {
+            return 'staff2';
+        }
+        
+        if ($this->status_id === RequestStatus::DECLINED->value) {
+            return 'staff1';
+        }
+        
+        return null;
     }
 
     /**
@@ -163,11 +167,15 @@ class Request extends Model
      */
     public function priorityLabel(): string
     {
-        return match(true) {
-            $this->isUrgent() => 'URGENT ⚠️',
-            $this->is_priority => 'HIGH PRIORITY',
-            default => 'NORMAL',
-        };
+        if ($this->isUrgent()) {
+            return 'URGENT ⚠️';
+        }
+        
+        if ($this->is_priority) {
+            return 'HIGH PRIORITY';
+        }
+        
+        return 'NORMAL';
     }
 
     /**
@@ -175,11 +183,15 @@ class Request extends Model
      */
     public function priorityBadgeClass(): string
     {
-        return match(true) {
-            $this->isUrgent() => 'bg-red-500 text-white',
-            $this->is_priority => 'bg-orange-500 text-white',
-            default => 'bg-green-500 text-white',
-        };
+        if ($this->isUrgent()) {
+            return 'bg-red-500 text-white';
+        }
+        
+        if ($this->is_priority) {
+            return 'bg-orange-500 text-white';
+        }
+        
+        return 'bg-green-500 text-white';
     }
 
     /**
