@@ -54,7 +54,6 @@
                         </label>
                         <input type="number"
                                name="amount"
-                               step="0.01"
                                value="{{ $grantRequest->payload['amount'] ?? '' }}"
                                class="w-full rounded border-gray-300 text-sm"
                                placeholder="0.00">

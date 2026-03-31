@@ -28,7 +28,7 @@
 
                     <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-700">Amount Requested (RM)</label>
-                        <input type="number" name="amount" step="0.01" class="w-full rounded border-gray-300" placeholder="0.00" required>
+                        <input type="number" name="amount" class="w-full rounded border-gray-300" placeholder="0.00" required>
                     </div>
 
                     <div class="mb-4">

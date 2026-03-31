@@ -29,17 +29,17 @@ class DatabaseSeeder extends Seeder
         // Seed Test Users
         User::updateOrCreate(
             ['email' => 'admission@unikl.edu.my'],
-            ['name' => 'Admission Student', 'password' => Hash::make('password'), 'role' => 'admission']
+            ['name' => 'Admission Student', 'password' => Hash::make('password'), 'role' => 'admission', 'email_verified_at' => now()]
         );
 
         User::updateOrCreate(
             ['email' => 'staff1@unikl.edu.my'],
-            ['name' => 'Staff One', 'password' => Hash::make('password'), 'role' => 'staff1']
+            ['name' => 'Staff One', 'password' => Hash::make('password'), 'role' => 'staff1', 'email_verified_at' => now()]
         );
 
         User::updateOrCreate(
             ['email' => 'staff2@unikl.edu.my'],
-            ['name' => 'Staff Two', 'password' => Hash::make('password'), 'role' => 'staff2']
+            ['name' => 'Staff Two', 'password' => Hash::make('password'), 'role' => 'staff2', 'email_verified_at' => now()]
         );
     }
 }
