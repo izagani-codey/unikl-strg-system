@@ -2,26 +2,21 @@
 
 namespace App\Providers;
 
-use App\Models\Request as GrantRequest;
-use App\Policies\GrantRequestPolicy;
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\ServiceProvider;
+use App\Models\Request;
+use App\Policies\RequestPolicy;
 
-class AppServiceProvider extends ServiceProvider
+class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
+    protected $policies = [
+        Request::class => RequestPolicy::class,
+    ];
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        Gate::policy(GrantRequest::class, GrantRequestPolicy::class);
+        $this->registerPolicies();
+        
+        Gate::policy(Request::class, RequestPolicy::class);
     }
 }

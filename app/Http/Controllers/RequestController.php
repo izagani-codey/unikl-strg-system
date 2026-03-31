@@ -112,13 +112,16 @@ class RequestController extends Controller
     // ==========================================
 
     public function edit($id)
+
     {
+        $grantRequest = GrantRequest::findOrFail($id);
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('update', $grantRequest);
         $grantRequest = GrantRequest::where('id', $id)
                                     ->where('user_id', Auth::id())
                                     ->where('status_id', 3)
                                     ->firstOrFail();
-
-        $this->authorize('revise', $grantRequest);
 
         $requestTypes = RequestType::all();
         return view('requests.edit', compact('grantRequest', 'requestTypes'));
@@ -187,6 +190,12 @@ class RequestController extends Controller
     {
         $grantRequest = GrantRequest::with([
             'user',
+        $grantRequest = GrantRequest::findOrFail($id);
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('view', $grantRequest);
+        $grantRequest = GrantRequest::with([
+            'user',
             'requestType',
             'verifiedBy',
             'recommendedBy',
@@ -195,14 +204,6 @@ class RequestController extends Controller
         ])->findOrFail($id);
 
         $this->authorize('view', $grantRequest);
-
-        // NOTE: recordRequestView() removed — it was polluting the audit log
-        // with from_status == to_status noise on every page load.
-
-        return view('requests.show', compact('grantRequest'));
-    }
-
-    // ==========================================
     // Printable summary
     // ==========================================
 
@@ -297,17 +298,18 @@ class RequestController extends Controller
 
     public function updateStatus(UpdateStatusRequest $request, $id)
     {
+            $grantRequest = GrantRequest::findOrFail($id);
+    
+    // ✨ NEW: Check authorization
         $grantRequest = GrantRequest::findOrFail($id);
-        $user         = Auth::user();
-        $newStatus    = (int) $request->validated()['status_id'];
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('changeStatus', $grantRequest);
 
-        // isValidTransition is already checked inside UpdateStatusRequest::authorize()
-        // via the policy, but we double-check here to catch any direct calls.
-        if (! self::isValidTransition($user->role, (int) $grantRequest->status_id, $newStatus)) {
-            return back()
-                ->with('error', 'That status change is not allowed from the current state.')
-                ->withInput();
-        }
+        $grantRequest = GrantRequest::findOrFail($id);
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('changeStatus', $grantRequest);
 
         $updateData = ['status_id' => $newStatus];
         $isOverride = $grantRequest->canBeOverridden() && $user->role === 'staff2';
@@ -361,24 +363,25 @@ class RequestController extends Controller
 
     public function addComment(StoreCommentRequest $request, $id)
     {
+        $grantRequest = Request::findOrFail($id);
+    $grantRequest = GrantRequest::findOrFail($id);
+    
+    // ✨ NEW: Check authorization
+    $this->authorize('addComment', $grantRequest);
+        Comment::create([
         $grantRequest = GrantRequest::findOrFail($id);
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('addComment', $grantRequest);
 
         Comment::create([
             'request_id'  => $id,
-            'user_id'     => Auth::id(),
-            'body'        => $request->body,
-            'is_internal' => true,
-            'created_at'  => now(),
-        ]);
-
-        return redirect()->route('requests.show', $id)
-                         ->with('success', 'Comment added.');
-    }
-
-    // ==========================================
-    // Private helpers
-    // ==========================================
-
+        $grantRequest = GrantRequest::findOrFail($id);
+    
+        // ✨ NEW: Check authorization
+        $this->authorize('addComment', $grantRequest);
+    
+        $grantRequest = GrantRequest::findOrFail($id);
     private function dispatchStatusNotification(GrantRequest $request, int $statusId): void
     {
         match ($statusId) {
