@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RequestStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Request extends Model
@@ -68,137 +69,154 @@ class Request extends Model
         return $this->hasMany(Document::class);
     }
 
-    // Helper — human readable status
+    // Helper methods using enum
+    public function getStatus(): RequestStatus
+    {
+        return RequestStatus::from($this->status_id);
+    }
+
     public function statusLabel(): string
     {
-        return match($this->status_id) {
-            1 => 'Pending Verification',
-            2 => 'Pending Recommendation',
-            3 => 'Returned to Admission',
-            4 => 'Returned to Staff 1',
-            5 => 'Approved',
-            6 => 'Declined',
-            default => 'Unknown',
-        };
+        return $this->getStatus()->getLabel();
     }
 
-    // Helper — status color for badges
     public function statusClass(): string
     {
+        return $this->getStatus()->getColor();
+    }
+
+    public function isFinal(): bool
+    {
+        return $this->getStatus()->isFinal();
+    }
+
+    public function canBeEditedByAdmission(): bool
+    {
+        return $this->getStatus()->canBeEditedByAdmission();
+    }
+
+    public function canBeActionedByStaff1(): bool
+    {
+        return $this->getStatus()->canBeActionedByStaff1();
+    }
+
+    public function canBeActionedByStaff2(): bool
+    {
+        return $this->getStatus()->canBeActionedByStaff2();
+    }
+
+    /**
+     * Determine if this request can be overridden by staff.
+     */
+    public function canBeOverridden(): bool
+    {
+        return $this->isFinal();
+    }
+
+    /**
+     * Get the staff role who made the current decision.
+     */
+    public function getDecisionMaker(): ?string
+    {
         return match($this->status_id) {
-            1 => 'bg-orange-100 text-orange-700',
-            2 => 'bg-blue-100 text-blue-700',
-            3 => 'bg-yellow-100 text-yellow-700',
-            4 => 'bg-purple-100 text-purple-700',
-            5 => 'bg-green-100 text-green-700',
-            6 => 'bg-red-100 text-red-700',
-            default => 'bg-gray-100 text-gray-700',
+            RequestStatus::APPROVED->value => 'staff2',
+            RequestStatus::DECLINED->value => 'staff1',
+            default => null,
         };
     }
+
     /**
- * Determine if this request can be overridden by staff.
- */
-public function canBeOverridden(): bool
-{
-    return in_array($this->status_id, [5, 6]);
-}
+     * Get the User object who made the current decision.
+     */
+    public function getDecisionUser()
+    {
+        if ($this->status_id === RequestStatus::APPROVED->value) {
+            return $this->recommendedBy;
+        }
 
-/**
- * Get the staff role who made the current decision.
- */
-public function getDecisionMaker(): ?string
-{
-    return match($this->status_id) {
-        5 => 'staff2',
-        6 => 'staff1',
-        default => null,
-    };
-}
+        if ($this->status_id === RequestStatus::DECLINED->value) {
+            $latestAuditLog = $this->auditLogs()
+                ->where('action', 'declined')
+                ->latest()
+                ->first();
 
-/**
- * Get the User object who made the current decision.
- */
-public function getDecisionUser()
-{
-    if ($this->status_id === 5) {
-        return $this->recommendedBy;
-    }
+            return $latestAuditLog ? $latestAuditLog->user : null;
+        }
 
-    if ($this->status_id === 6) {
-        $latestAuditLog = $this->auditLogs()
-            ->where('action', 'declined')
-            ->latest()
-            ->first();
-
-        return $latestAuditLog ? $latestAuditLog->user : null;
-    }
-
-    return null;
-}
-
-/**
- * Check if request is urgent (deadline within 3 days).
- */
-public function isUrgent(): bool
-{
-    if (!$this->deadline) {
-        return false;
-    }
-
-    return $this->deadline->diffInDays(now()) <= 3 && $this->deadline->isFuture();
-}
-
-/**
- * Get human-readable priority label.
- */
-public function priorityLabel(): string
-{
-    return match(true) {
-        $this->isUrgent() => 'URGENT ⚠️',
-        $this->is_priority => 'HIGH PRIORITY',
-        default => 'NORMAL',
-    };
-}
-
-/**
- * Get CSS classes for priority badge.
- */
-public function priorityBadgeClass(): string
-{
-    return match(true) {
-        $this->isUrgent() => 'bg-red-500 text-white',
-        $this->is_priority => 'bg-orange-500 text-white',
-        default => 'bg-green-500 text-white',
-    };
-}
-
-/**
- * Get number of days until deadline.
- */
-public function daysUntilDeadline(): ?int
-{
-    if (!$this->deadline) {
         return null;
     }
 
-    return $this->deadline->diffInDays(now());
-}
+    /**
+     * Check if request is urgent (deadline within 3 days).
+     */
+    public function isUrgent(): bool
+    {
+        if (!$this->deadline) {
+            return false;
+        }
 
-/** 
- * Filter requests by priority flag.
- */
-public function scopeByPriority($query, $isPriority)
-{
-    return $query->where('is_priority', $isPriority);
-}
+        return $this->deadline->diffInDays(now()) <= 3 && $this->deadline->isFuture();
+    }
 
-/**
- * Filter urgent requests (deadline within 3 days, not finalized).
- */
-public function scopeUrgent($query)
-{
-    return $query->whereBetween('deadline', [now(), now()->addDays(3)])
-        ->whereNotIn('status_id', [5, 6])
-        ->orderBy('deadline', 'asc');
-}
+    /**
+     * Get human-readable priority label.
+     */
+    public function priorityLabel(): string
+    {
+        return match(true) {
+            $this->isUrgent() => 'URGENT ⚠️',
+            $this->is_priority => 'HIGH PRIORITY',
+            default => 'NORMAL',
+        };
+    }
+
+    /**
+     * Get CSS classes for priority badge.
+     */
+    public function priorityBadgeClass(): string
+    {
+        return match(true) {
+            $this->isUrgent() => 'bg-red-500 text-white',
+            $this->is_priority => 'bg-orange-500 text-white',
+            default => 'bg-green-500 text-white',
+        };
+    }
+
+    /**
+     * Get number of days until deadline.
+     */
+    public function daysUntilDeadline(): ?int
+    {
+        if (!$this->deadline) {
+            return null;
+        }
+
+        return $this->deadline->diffInDays(now());
+    }
+
+    /** 
+     * Filter requests by priority flag.
+     */
+    public function scopeByPriority($query, $isPriority)
+    {
+        return $query->where('is_priority', $isPriority);
+    }
+
+    /**
+     * Filter urgent requests (deadline within 3 days, not finalized).
+     */
+    public function scopeUrgent($query)
+    {
+        return $query->whereBetween('deadline', [now(), now()->addDays(3)])
+            ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+            ->orderBy('deadline', 'asc');
+    }
+
+    /**
+     * Filter by status using enum
+     */
+    public function scopeByStatus($query, RequestStatus $status)
+    {
+        return $query->where('status_id', $status->value);
+    }
 }

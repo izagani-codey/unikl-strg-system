@@ -11,7 +11,7 @@ return new class extends Migration
         $table->id();
         $table->foreignId('request_id')->constrained()->cascadeOnDelete();
         $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-        $table->text('body');
+        $table->text('content');
         $table->boolean('is_internal')->default(true); // staff only vs visible to admission
         $table->timestamp('created_at');
     });

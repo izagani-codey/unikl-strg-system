@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use App\Models\Request;
 use App\Policies\RequestPolicy;
 
-class AuthServiceProvider extends ServiceProvider
+class AppServiceProvider extends ServiceProvider
 {
     protected $policies = [
         Request::class => RequestPolicy::class,
@@ -15,8 +15,6 @@ class AuthServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->registerPolicies();
-        
         Gate::policy(Request::class, RequestPolicy::class);
     }
 }
