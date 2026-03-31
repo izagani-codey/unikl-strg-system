@@ -119,14 +119,14 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('view', $grantRequest);
         
-        $grantRequest = GrantRequest::with([
+        $grantRequest->load([
             'user',
             'requestType',
             'verifiedBy',
             'recommendedBy',
             'comments.user',
             'auditLogs.actor',
-        ])->findOrFail($id);
+        ]);
 
         return view('requests.show', compact('grantRequest'));
     }
@@ -173,6 +173,7 @@ class RequestController extends Controller
             'user_id'     => auth()->id(),
             'content'     => $request->input('content'),
             'is_internal' => true,
+            'created_at'  => now(),
         ]);
 
         return redirect()->back()

@@ -208,7 +208,7 @@
                                 'type' => 'comment',
                                 'at' => $comment->created_at,
                                 'actor' => $comment->user?->name ?? 'Unknown',
-                                'note' => $comment->body,
+                                'note' => $comment->content,
                             ]);
                         }
                     }
@@ -360,7 +360,7 @@
                             <span class="font-bold">{{ $comment->user->name }}</span>
                             · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
                         </p>
-                        <p class="text-sm">{{ $comment->body }}</p>
+                        <p class="text-sm">{{ $comment->content }}</p>
                     </div>
                 @empty
                     <p class="text-gray-400 italic text-sm">No comments yet.</p>
@@ -369,7 +369,7 @@
                 @can('addComment', $grantRequest)
                     <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
                         @csrf
-                        <textarea name="body" rows="2" placeholder="Leave an internal comment for the review team..."
+                        <textarea name="content" rows="2" placeholder="Leave an internal comment for the review team..."
                             class="w-full border rounded p-2 text-sm"></textarea>
                         <button type="submit"
                             class="mt-2 bg-gray-700 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800">

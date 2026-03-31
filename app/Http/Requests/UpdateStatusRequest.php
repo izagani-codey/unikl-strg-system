@@ -14,7 +14,7 @@ class UpdateStatusRequest extends FormRequest
 
         return $grantRequest
             && $this->user()
-            && Gate::allows('updateStatus', $grantRequest);
+            && Gate::allows('changeStatus', $grantRequest);
     }
 
     public function rules(): array

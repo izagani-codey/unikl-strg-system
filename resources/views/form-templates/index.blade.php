@@ -93,77 +93,14 @@
 
             @if(session('error'))
                 <div class="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl shadow-sm flex items-center">
-            <div class="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-slate-900">Upload New Blank Form Template</h3>
-                            <p class="text-sm text-slate-500">Allowed file types: PDF, JPG, PNG. Maximum size: 5MB.</p>
-                        </div>
-
-                        <form action="{{ route('form-templates.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-                            @csrf
-
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700">Template Title</label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    required
-                                    class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                    placeholder="e.g., STRG Application Form"
-                                >
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700">File Upload</label>
-                                <input
-                                    type="file"
-                                    name="file"
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    required
-                                    class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                >
-                            </div>
-
-                            <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                Upload Template
-                            </button>
-                        </form>
-                    </div>
+                    <svg class="w-5 h-5 mr-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ session('error') }}
                 </div>
+            @endif
 
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-                    <div class="flex items-center justify-between gap-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-slate-900">Template Summary</h3>
-                            <p class="text-sm text-slate-500">Quick overview of uploaded blank forms.</p>
-                        </div>
-                        <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                            {{ $templates->count() }} templates
-                        </span>
-                    </div>
-
-                    <div class="mt-6 space-y-4">
-                        <div class="rounded-2xl bg-slate-50 p-4">
-                            <div class="flex items-center justify-between gap-4">
-                                <div>
-                                    <p class="text-sm text-slate-500">Most recent upload</p>
-                                    <p class="mt-1 text-sm font-semibold text-slate-900">
-                                        {{ optional($templates->first()?->created_at)->format('d M Y') ?? 'No uploads yet' }}
-                                    </p>
-                                </div>
-                                <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-200">Latest</span>
-                            </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-4">
-                            <p class="text-sm text-slate-500">Admin access</p>
-                            <p class="mt-1 text-sm font-semibold text-slate-900">Only Staff 2 can upload or delete templates.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <!-- Templates Table -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-5 border-b border-slate-200 bg-slate-50">
                     <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">

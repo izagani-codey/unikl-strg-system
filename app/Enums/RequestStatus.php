@@ -76,7 +76,7 @@ enum RequestStatus: int
 
     public function canBeEditedByAdmission(): bool
     {
-        return in_array($this, [self::PENDING_VERIFICATION, self::RETURNED_TO_ADMISSION, self::RETURNED_TO_STAFF_1]);
+        return $this === self::RETURNED_TO_ADMISSION;
     }
 
     public function canBeActionedByStaff1(): bool

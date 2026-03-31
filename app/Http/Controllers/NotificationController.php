@@ -35,6 +35,6 @@ class NotificationController extends Controller
             $notification->update(['is_read' => true]);
         }
 
-        return redirect($notification->link ?: route('dashboard'));
+        return redirect($notification->url ?: route('dashboard'));
     }
 }

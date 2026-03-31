@@ -31,6 +31,18 @@ class WorkflowTransitionService
                 RequestStatus::PENDING_RECOMMENDATION->value => [
                     RequestStatus::APPROVED->value,
                     RequestStatus::DECLINED->value,
+                    RequestStatus::RETURNED_TO_STAFF_1->value,
+                ],
+                RequestStatus::APPROVED->value => [
+                    RequestStatus::DECLINED->value,
+                ],
+                RequestStatus::DECLINED->value => [
+                    RequestStatus::APPROVED->value,
+                ],
+            ],
+            'admission' => [
+                RequestStatus::RETURNED_TO_ADMISSION->value => [
+                    RequestStatus::PENDING_VERIFICATION->value,
                 ],
             ],
         ];

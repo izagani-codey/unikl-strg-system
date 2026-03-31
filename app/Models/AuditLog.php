@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Request as GrantRequest;
 use Illuminate\Database\Eloquent\Model;
 
 class AuditLog extends Model
@@ -24,6 +25,6 @@ class AuditLog extends Model
 
     public function request()
     {
-        return $this->belongsTo(Request::class);
+        return $this->belongsTo(GrantRequest::class);
     }
 }
