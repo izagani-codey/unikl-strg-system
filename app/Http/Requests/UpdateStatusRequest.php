@@ -20,7 +20,7 @@ class UpdateStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status_id' => 'required|integer|between:1,6',
+            'status_id' => 'required|integer|between:1,9',
             'notes'     => 'nullable|string',
             'rejection_reason' => 'nullable|string',
             'override_reason' => 'nullable|string',

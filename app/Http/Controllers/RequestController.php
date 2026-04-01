@@ -29,15 +29,36 @@ class RequestController extends Controller
     {
         return [
             'staff1' => [
-                1 => [2, 4, 8], // Pending Verification -> Pending Recommendation, Returned to Staff 2, Declined
-                5 => [2, 8],     // Returned to Staff 1 -> Pending Recommendation, Declined
+                RequestStatus::PENDING_VERIFICATION->value => [
+                    RequestStatus::PENDING_RECOMMENDATION->value,
+                    RequestStatus::RETURNED_TO_ADMISSION->value,
+                    RequestStatus::DECLINED->value,
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
+                ],
+                RequestStatus::RETURNED_TO_STAFF_1->value => [
+                    RequestStatus::PENDING_RECOMMENDATION->value,
+                    RequestStatus::RETURNED_TO_ADMISSION->value,
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
+                ],
             ],
             'staff2' => [
-                2 => [3, 6, 8], // Pending Recommendation -> Pending Dean Approval, Returned to Staff 2, Declined
-                6 => [3, 8],     // Returned to Staff 2 -> Pending Dean Approval, Declined
+                RequestStatus::PENDING_RECOMMENDATION->value => [
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::RETURNED_TO_STAFF_2->value,
+                    RequestStatus::DECLINED->value,
+                ],
+                RequestStatus::RETURNED_TO_STAFF_2->value => [
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::DECLINED->value,
+                ],
             ],
             'dean' => [
-                3 => [7, 5, 6, 8], // Pending Dean Approval -> Approved, Returned to Staff 1, Returned to Staff 2, Declined
+                RequestStatus::PENDING_DEAN_APPROVAL->value => [
+                    RequestStatus::APPROVED->value,
+                    RequestStatus::RETURNED_TO_STAFF_1->value,
+                    RequestStatus::RETURNED_TO_STAFF_2->value,
+                    RequestStatus::DECLINED->value,
+                ],
             ],
         ];
     }
@@ -58,7 +79,10 @@ class RequestController extends Controller
             $query->where('user_id', $user->id);
         } elseif ($user->isStaff1()) {
             // Staff 1 can see requests that need verification
-            $query->whereIn('status_id', [1, 4]); // Pending verification or returned to staff 1
+            $query->whereIn('status_id', [
+                RequestStatus::PENDING_VERIFICATION->value, 
+                RequestStatus::RETURNED_TO_STAFF_1->value
+            ]);
         } elseif ($user->isStaff2()) {
             // Staff 2 can see all requests
             // No additional filtering needed
