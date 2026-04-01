@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\RequestStatus;
 use App\Models\Request;
 use App\Models\User;
+use App\Services\OverrideService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Auth\Access\Response;
 
@@ -144,8 +145,9 @@ class RequestPolicy
      */
     public function override(User $user, Request $request): bool
     {
-        // Only staff2 can override approved/declined requests
-        return $user->role === 'staff2' && 
-               RequestStatus::from($request->status_id)->isFinal();
+        // Only staff2 can override and only if override mode is enabled
+        return $user->isStaff2() && 
+               $user->canOverride() && 
+               OverrideService::canOverride($request, $user);
     }
 }

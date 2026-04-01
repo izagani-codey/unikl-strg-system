@@ -54,13 +54,14 @@ Route::middleware('auth')->group(function () {
     // ── Staff 1 + 2 ──────────────────────────────────────────────────────────
     Route::middleware('role:staff1,staff2')->group(function () {
         Route::patch('/requests/{id}/status', [RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+        Route::patch('/requests/{id}/priority', [RequestController::class, 'updatePriority'])->name('requests.updatePriority');
         Route::post('/requests/{id}/comments', [RequestController::class, 'addComment'])->name('requests.comment');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
     });
 
     // ── All roles — view requests ─────────────────────────────────────────────
-    Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show')->middleware('auto.priority');
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
 
@@ -69,7 +70,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
-    // ── Staff 2 only ──────────────────────────────────────────────────────────
+    // ── Staff 2 Override Routes ───────────────────────────────────────────────────────
+    Route::middleware('role:staff2')->group(function () {
+        Route::post('/requests/{id}/override', [RequestController::class, 'performOverride'])->name('requests.override');
+        Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
+    });
+
+    // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {
         // Admin panel
         Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');

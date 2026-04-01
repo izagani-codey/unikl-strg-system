@@ -17,7 +17,7 @@ class Request extends Model
         'staff_notes', 'rejection_reason',
         'verified_by', 'recommended_by',
         'revision_count', 'deadline', 'is_priority',
-        'is_overridden', 'overridden_by', 'override_reason',
+        'is_overridden', 'overridden_by', 'override_reason', 'overridden_at',
     ];
 
     protected $casts = [
@@ -28,6 +28,7 @@ class Request extends Model
         'deadline'    => 'date',
         'signed_at'   => 'datetime',
         'submitted_at' => 'datetime',
+        'overridden_at' => 'datetime',
         'total_amount' => 'decimal:2',
     ];
 
@@ -39,9 +40,11 @@ class Request extends Model
     public function requestType()  { return $this->belongsTo(RequestType::class); }
     public function verifiedBy()   { return $this->belongsTo(User::class, 'verified_by'); }
     public function recommendedBy(){ return $this->belongsTo(User::class, 'recommended_by'); }
+    public function overriddenBy() { return $this->belongsTo(User::class, 'overridden_by'); }
     public function comments()     { return $this->hasMany(Comment::class); }
     public function auditLogs()    { return $this->hasMany(AuditLog::class); }
     public function documents()    { return $this->hasMany(Document::class); }
+    public function overrideLogs() { return $this->hasMany(OverrideLog::class); }
 
     // ==========================================
     // VOT helpers
@@ -89,6 +92,7 @@ class Request extends Model
     {
         if ($this->isUrgent())   return 'URGENT ⚠️';
         if ($this->is_priority)  return 'HIGH PRIORITY';
+        if ($this->isAutoHighPriority()) return 'HIGH PRIORITY (Auto)';
         return 'NORMAL';
     }
 
@@ -96,12 +100,75 @@ class Request extends Model
     {
         if ($this->isUrgent())  return 'bg-red-500 text-white';
         if ($this->is_priority) return 'bg-orange-500 text-white';
+        if ($this->isAutoHighPriority()) return 'bg-yellow-500 text-white';
         return 'bg-green-500 text-white';
+    }
+
+    public function isAutoHighPriority(): bool
+    {
+        if (!$this->deadline) return false;
+        $daysUntil = $this->daysUntilDeadline();
+        return $daysUntil !== null && $daysUntil <= 5 && $daysUntil > 3;
+    }
+
+    public function calculateAutoPriority(): void
+    {
+        if (!$this->deadline) return;
+        
+        $daysUntil = $this->daysUntilDeadline();
+        if ($daysUntil !== null && $daysUntil <= 5) {
+            $this->is_priority = true;
+            $this->save();
+        }
+    }
+
+    public function updatePriorityFromDeadline(): void
+    {
+        if (!$this->deadline) return;
+        
+        $daysUntil = $this->daysUntilDeadline();
+        $shouldBeHighPriority = $daysUntil !== null && $daysUntil <= 5;
+        
+        // Only auto-update if not manually set (we could add a is_manual_priority flag)
+        if ($shouldBeHighPriority && !$this->is_priority) {
+            $this->is_priority = true;
+            $this->save();
+        } elseif (!$shouldBeHighPriority && $this->isAutoHighPriority()) {
+            $this->is_priority = false;
+            $this->save();
+        }
     }
 
     public function daysUntilDeadline(): ?int
     {
         return $this->deadline?->diffInDays(now());
+    }
+
+    // ==========================================
+    // Override helpers
+    // ==========================================
+
+    public function isOverridden(): bool
+    {
+        return $this->is_overridden && $this->overridden_by && $this->overridden_at;
+    }
+
+    public function markAsOverridden(User $overriddenBy, string $reason): void
+    {
+        $this->is_overridden = true;
+        $this->overridden_by = $overriddenBy->id;
+        $this->override_reason = $reason;
+        $this->overridden_at = now();
+        $this->save();
+    }
+
+    public function clearOverride(): void
+    {
+        $this->is_overridden = false;
+        $this->overridden_by = null;
+        $this->override_reason = null;
+        $this->overridden_at = null;
+        $this->save();
     }
 
     // ==========================================

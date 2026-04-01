@@ -12,6 +12,7 @@ use App\Models\Comment;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
+use App\Services\OverrideService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
@@ -61,6 +62,17 @@ class RequestController extends Controller
         $votItems = $request->input('vot_items', []);
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
+        // Calculate automatic priority based on deadline
+        $isPriority = $request->boolean('priority', false);
+        $deadline = $request->input('deadline');
+        
+        if ($deadline && !$isPriority) {
+            $daysUntil = now()->diffInDays(\Carbon\Carbon::parse($deadline), false);
+            if ($daysUntil <= 5 && $daysUntil >= 0) {
+                $isPriority = true;
+            }
+        }
+
         // Optional supplementary file upload
         $filePath = null;
         if ($request->hasFile('document')) {
@@ -87,7 +99,7 @@ class RequestController extends Controller
             'submitted_at'            => now(),
             'file_path'               => $filePath,
             'deadline'                => $request->input('deadline'),
-            'is_priority'             => $request->boolean('priority', false),
+            'is_priority'             => $isPriority,
         ]);
 
         // Generate filled PDF and attach it
@@ -271,6 +283,62 @@ class RequestController extends Controller
         }
 
         return \Storage::disk('public')->download($grantRequest->file_path, $grantRequest->ref_number . '.pdf');
+    }
+
+    // ==========================================
+    // Staff 2 Override Actions
+    // ==========================================
+
+    public function performOverride(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('override', $grantRequest);
+
+        $request->validate([
+            'action_type' => 'required|in:approve,reject_reverse,bypass_verification,priority_override',
+            'reason' => 'required|string|min:10|max:500',
+        ]);
+
+        try {
+            OverrideService::performOverride($grantRequest, $request->input('action_type'), $request->input('reason'));
+            return redirect()->route('requests.show', $id)->with('success', 'Override action completed successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Override failed: ' . $e->getMessage());
+        }
+    }
+
+    public function toggleOverrideMode(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->isStaff2()) {
+            return back()->with('error', 'Only Staff 2 can enable override mode.');
+        }
+
+        $user->toggleOverride();
+        
+        $status = $user->override_enabled ? 'enabled' : 'disabled';
+        return back()->with('success', "Override mode {$status}.");
+    }
+
+    /**
+     * Update request priority
+     */
+    public function updatePriority(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('changeStatus', $grantRequest);
+
+        $request->validate([
+            'is_priority' => 'required|boolean',
+        ]);
+
+        $grantRequest->update([
+            'is_priority' => $request->boolean('is_priority'),
+        ]);
+
+        $action = $request->boolean('is_priority') ? 'set to high priority' : 'removed from high priority';
+        return back()->with('success', "Request priority {$action}.");
     }
 
     // ==========================================

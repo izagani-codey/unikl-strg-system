@@ -450,6 +450,101 @@
                     @endif
                 @endcan
 
+                {{-- STAFF 2 OVERRIDE ACTIONS --}}
+                @can('override', $grantRequest)
+                    @if(auth()->user()->isStaff2() && auth()->user()->override_enabled)
+                        <div class="mt-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
+                            <h4 class="font-bold text-purple-800 mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Override Actions
+                            </h4>
+                            
+                            <form action="{{ route('requests.override', $grantRequest->id) }}" method="POST" class="space-y-3">
+                                @csrf
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-purple-700">Override Action:</label>
+                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required>
+                                        <option value="">Select override action...</option>
+                                        @if($grantRequest->status_id === 6)
+                                            <option value="reject_reverse">↩ Reverse Rejection</option>
+                                        @endif
+                                        @if($grantRequest->status_id === 1)
+                                            <option value="bypass_verification">⚡ Bypass Staff 1 Verification</option>
+                                        @endif
+                                        @if(in_array($grantRequest->status_id, [1, 2]))
+                                            <option value="approve">✓ Direct Approval</option>
+                                        @endif
+                                        <option value="priority_override">🔥 Toggle Priority</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-purple-700">Override Reason:</label>
+                                    <textarea name="reason" rows="3" placeholder="Please provide a detailed reason for this override action (10-500 characters)..."
+                                        class="w-full border-purple-300 rounded p-2 text-sm" required minlength="10" maxlength="500"></textarea>
+                                </div>
+                                
+                                <button type="submit" 
+                                    class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700 transition-colors"
+                                    onclick="return confirm('This override action will be logged and notifications will be sent to affected staff members. Are you sure?')">
+                                    ⚡ Execute Override
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                @endcan
+
+                {{-- MANUAL PRIORITY CONTROLS --}}
+                @if(in_array(auth()->user()->role, ['staff1', 'staff2']) && !in_array($grantRequest->status_id, [5, 6]))
+                    <div class="mt-6 p-4 bg-orange-50 border-l-4 border-orange-500 rounded">
+                        <h4 class="font-bold text-orange-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Priority Management
+                        </h4>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-orange-700">Current Priority:</p>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $grantRequest->priorityBadgeClass() }}">
+                                        {{ $grantRequest->priorityLabel() }}
+                                    </span>
+                                </div>
+                                
+                                @if($grantRequest->deadline)
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">Days until deadline:</span> 
+                                        <span class="{{ $grantRequest->daysUntilDeadline() <= 3 ? 'text-red-600 font-bold' : ($grantRequest->daysUntilDeadline() <= 5 ? 'text-orange-600 font-semibold' : '') }}">
+                                            {{ $grantRequest->daysUntilDeadline() }} days
+                                        </span>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <form method="POST" action="{{ route('requests.updatePriority', $grantRequest->id) }}" class="flex items-center gap-3">
+                                @csrf
+                                @method('PATCH')
+                                
+                                <input type="hidden" name="is_priority" value="{{ $grantRequest->is_priority ? '0' : '1' }}">
+                                
+                                <button type="submit" 
+                                    class="{{ $grantRequest->is_priority ? 'bg-gray-600 hover:bg-gray-700' : 'bg-orange-600 hover:bg-orange-700' }} text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                                    onclick="return confirm('Are you sure you want to ' . ($grantRequest->is_priority ? 'remove' : 'set') . ' high priority for this request?')">
+                                    {{ $grantRequest->is_priority ? '🔻 Remove Priority' : '🔺 Set High Priority' }}
+                                </button>
+                                
+                                <span class="text-xs text-gray-500">
+                                    {{ $grantRequest->deadline ? 'Auto: ≤5 days = HIGH' : 'Manual control only' }}
+                                </span>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- No actions available --}}
                 @if(
                     (auth()->user()->role === 'admission' && $grantRequest->status_id != 3) ||
