@@ -254,7 +254,7 @@
                             </svg>
                             Quick CSV Export
                         </h4>
-                        <form method="GET" action="{{ route('requests.exportCsv') }}" class="space-y-4">
+                        <form method="GET" action="{{ route('requests.exportExcel') }}" class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Date Range (Optional)</label>
                                 <div class="flex space-x-2">

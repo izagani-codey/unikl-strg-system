@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,5 +57,25 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Update user's digital signature via AJAX.
+     */
+    public function updateSignature(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        $request->validate([
+            'signature_data' => 'required|string',
+        ]);
+
+        $user->signature_data = $request->input('signature_data');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signature updated successfully!'
+        ]);
     }
 }

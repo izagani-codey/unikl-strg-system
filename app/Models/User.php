@@ -8,11 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'email', 'password', 'role', 'staff_id', 'designation', 'department', 'phone', 'employee_level', 'signature_data'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     protected function casts(): array
@@ -24,28 +23,29 @@ class User extends Authenticatable
     }
 
     // ==========================================
-    // Role helpers — match the actual role strings
+    // Role helpers
     // ==========================================
 
-    public function isAdmission(): bool
+    public function isAdmission(): bool { return $this->role === 'admission'; }
+    public function isStaff1(): bool    { return $this->role === 'staff1'; }
+    public function isStaff2(): bool    { return $this->role === 'staff2'; }
+    public function isAdmissions(): bool { return $this->isAdmission(); }
+
+    // ==========================================
+    // Profile helpers
+    // ==========================================
+
+    public function hasCompleteProfile(): bool
     {
-        return $this->role === 'admission';
+        return !empty($this->staff_id)
+            && !empty($this->designation)
+            && !empty($this->department)
+            && !empty($this->phone);
     }
 
-    public function isStaff1(): bool
+    public function displayName(): string
     {
-        return $this->role === 'staff1';
-    }
-
-    public function isStaff2(): bool
-    {
-        return $this->role === 'staff2';
-    }
-
-    /** Alias kept for any Blade templates still using this name. */
-    public function isAdmissions(): bool
-    {
-        return $this->isAdmission();
+        return $this->name . ($this->staff_id ? ' (' . $this->staff_id . ')' : '');
     }
 
     // ==========================================

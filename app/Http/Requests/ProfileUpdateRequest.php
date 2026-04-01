@@ -9,21 +9,17 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
+            'name'           => ['required', 'string', 'max:255'],
+            'staff_id'       => ['required', 'string', 'max:50', Rule::unique(User::class)->ignore($this->user()->id)],
+            'designation'    => ['required', 'string', 'max:255'],
+            'department'     => ['required', 'string', 'max:255'],
+            'phone'          => ['required', 'string', 'max:20'],
+            'employee_level' => ['nullable', 'string', 'max:100'],
+            'email'          => [
+                'required', 'string', 'lowercase', 'email', 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
         ];
