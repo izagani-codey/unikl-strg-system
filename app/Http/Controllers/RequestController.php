@@ -251,10 +251,11 @@ class RequestController extends Controller
             );
         }
 
-        // Re-generate PDF
+        // Re-generate PDF only when no original attachment is being preserved.
         try {
             $pdfPath = RequestPdfService::generate($grantRequest->fresh());
-            $grantRequest->update(['file_path' => $pdfPath]);
+            $keepAttachmentPath = is_string($filePath) && str_starts_with($filePath, 'requests/attachments/');
+            $grantRequest->update(['file_path' => $keepAttachmentPath ? $filePath : $pdfPath]);
         } catch (\Exception $e) {
             \Log::warning('PDF re-generation failed: ' . $e->getMessage());
         }
@@ -360,11 +361,22 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('view', $grantRequest);
 
-        if (!$grantRequest->file_path || !\Storage::disk('public')->exists($grantRequest->file_path)) {
-            return back()->with('error', 'PDF not available for this request.');
+        $storedPath = $grantRequest->file_path;
+        $isStoredPdf = is_string($storedPath)
+            && strtolower(pathinfo($storedPath, PATHINFO_EXTENSION)) === 'pdf'
+            && \Storage::disk('public')->exists($storedPath);
+
+        if ($isStoredPdf) {
+            return \Storage::disk('public')->download($storedPath, $grantRequest->ref_number . '.pdf');
         }
 
-        return \Storage::disk('public')->download($grantRequest->file_path, $grantRequest->ref_number . '.pdf');
+        try {
+            $generatedPdfPath = RequestPdfService::generate($grantRequest->fresh());
+            return \Storage::disk('public')->download($generatedPdfPath, $grantRequest->ref_number . '.pdf');
+        } catch (\Exception $e) {
+            \Log::warning('PDF download generation failed for ' . $grantRequest->ref_number . ': ' . $e->getMessage());
+            return back()->with('error', 'PDF not available for this request.');
+        }
     }
 
     // ==========================================
