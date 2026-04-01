@@ -1,0 +1,217 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Enums\RequestStatus;
+use App\Models\Request as GrantRequest;
+use App\Models\User;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+
+class StatisticsRepository
+{
+    /**
+     * Get cached dashboard statistics for a user.
+     */
+    public function getDashboardStats(User $user): array
+    {
+        $cacheKey = "dashboard_stats_{$user->id}_{$user->role}";
+        
+        return Cache::remember($cacheKey, 900, function () use ($user) {
+            return $this->calculateDashboardStats($user);
+        });
+    }
+
+    /**
+     * Calculate dashboard statistics.
+     */
+    private function calculateDashboardStats(User $user): array
+    {
+        $base = GrantRequest::query();
+        
+        if ($user->role === 'admission') {
+            $base->where('user_id', $user->id);
+        }
+
+        $counts = (clone $base)
+            ->selectRaw('status_id, COUNT(*) as total')
+            ->groupBy('status_id')
+            ->pluck('total', 'status_id');
+
+        return [
+            'total' => (clone $base)->count(),
+            'pending_verification' => (int) ($counts[RequestStatus::PENDING_VERIFICATION->value] ?? 0),
+            'with_staff_2' => (int) ($counts[RequestStatus::PENDING_RECOMMENDATION->value] ?? 0),
+            'returned_to_admission' => (int) ($counts[RequestStatus::RETURNED_TO_ADMISSION->value] ?? 0),
+            'returned_to_staff_1' => (int) ($counts[RequestStatus::RETURNED_TO_STAFF_1->value] ?? 0),
+            'approved' => (int) ($counts[RequestStatus::APPROVED->value] ?? 0),
+            'declined' => (int) ($counts[RequestStatus::DECLINED->value] ?? 0),
+            'high_priority' => (clone $base)->where('is_priority', true)->count(),
+        ];
+    }
+
+    /**
+     * Get system-wide statistics for admin users.
+     */
+    public function getSystemStats(): array
+    {
+        return Cache::remember('system_stats', 3600, function () {
+            return [
+                'total_requests' => GrantRequest::count(),
+                'total_users' => User::count(),
+                'pending_verification' => GrantRequest::where('status_id', RequestStatus::PENDING_VERIFICATION->value)->count(),
+                'pending_recommendation' => GrantRequest::where('status_id', RequestStatus::PENDING_RECOMMENDATION->value)->count(),
+                'approved_today' => GrantRequest::where('status_id', RequestStatus::APPROVED->value)
+                    ->whereDate('updated_at', today())->count(),
+                'urgent_requests' => GrantRequest::where('deadline', '<=', now()->addDays(3))
+                    ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+                    ->count(),
+            ];
+        });
+    }
+
+    /**
+     * Get request type statistics.
+     */
+    public function getRequestTypeStats(): Collection
+    {
+        return Cache::remember('request_type_stats', 3600, function () {
+            return GrantRequest::join('request_types', 'requests.request_type_id', '=', 'request_types.id')
+                ->selectRaw('request_types.name, COUNT(*) as count')
+                ->groupBy('request_types.id', 'request_types.name')
+                ->orderBy('count', 'desc')
+                ->get();
+        });
+    }
+
+    /**
+     * Get user role distribution.
+     */
+    public function getUserRoleStats(): Collection
+    {
+        return Cache::remember('user_role_stats', 3600, function () {
+            return User::selectRaw('role, COUNT(*) as count')
+                ->groupBy('role')
+                ->orderBy('count', 'desc')
+                ->get();
+        });
+    }
+
+    /**
+     * Get monthly request trends.
+     */
+    public function getMonthlyTrends(int $months = 12): Collection
+    {
+        return Cache::remember("monthly_trends_{$months}", 3600, function () use ($months) {
+            return GrantRequest::selectRaw('
+                    DATE_FORMAT(created_at, "%Y-%m") as month,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status_id = ? THEN 1 ELSE 0 END) as approved,
+                    SUM(CASE WHEN status_id = ? THEN 1 ELSE 0 END) as declined
+                ', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+                ->where('created_at', '>=', now()->subMonths($months))
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+        });
+    }
+
+    /**
+     * Get performance metrics.
+     */
+    public function getPerformanceMetrics(): array
+    {
+        return Cache::remember('performance_metrics', 1800, function () {
+            $avgProcessingTime = GrantRequest::where('status_id', RequestStatus::APPROVED->value)
+                ->selectRaw('AVG(TIMESTAMPDIFF(DAY, created_at, updated_at)) as avg_days')
+                ->value('avg_days') ?? 0;
+
+            $requestsPerDay = GrantRequest::where('created_at', '>=', now()->subDays(30))
+                ->count() / 30;
+
+            return [
+                'avg_processing_days' => round($avgProcessingTime, 1),
+                'requests_per_day' => round($requestsPerDay, 1),
+                'approval_rate' => $this->calculateApprovalRate(),
+                'overdue_requests' => GrantRequest::where('deadline', '<', now())
+                    ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+                    ->count(),
+            ];
+        });
+    }
+
+    /**
+     * Calculate approval rate.
+     */
+    private function calculateApprovalRate(): float
+    {
+        $total = GrantRequest::whereIn('status_id', [
+            RequestStatus::APPROVED->value,
+            RequestStatus::DECLINED->value
+        ])->count();
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        $approved = GrantRequest::where('status_id', RequestStatus::APPROVED->value)->count();
+
+        return round(($approved / $total) * 100, 1);
+    }
+
+    /**
+     * Clear statistics cache.
+     */
+    public function clearCache(): void
+    {
+        $patterns = [
+            'dashboard_stats_*',
+            'system_stats',
+            'request_type_stats',
+            'user_role_stats',
+            'monthly_trends_*',
+            'performance_metrics'
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (str_contains($pattern, '*')) {
+                // Handle wildcard patterns
+                $keys = Cache::getRedis()->keys($pattern);
+                if (!empty($keys)) {
+                    Cache::getRedis()->del($keys);
+                }
+            } else {
+                Cache::forget($pattern);
+            }
+        }
+    }
+
+    /**
+     * Get staff workload statistics.
+     */
+    public function getStaffWorkload(): Collection
+    {
+        return Cache::remember('staff_workload', 1800, function () {
+            return GrantRequest::selectRaw('
+                    verified_by as staff_id,
+                    "staff1" as role,
+                    COUNT(*) as handled,
+                    AVG(TIMESTAMPDIFF(HOUR, created_at, verified_at)) as avg_hours
+                ')
+                ->whereNotNull('verified_by')
+                ->groupBy('verified_by')
+                ->unionAll(
+                    GrantRequest::selectRaw('
+                        recommended_by as staff_id,
+                        "staff2" as role,
+                        COUNT(*) as handled,
+                        AVG(TIMESTAMPDIFF(HOUR, created_at, recommended_at)) as avg_hours
+                    ')
+                    ->whereNotNull('recommended_by')
+                    ->groupBy('recommended_by')
+                )
+                ->with(['verifiedBy', 'recommendedBy'])
+                ->get();
+        });
+    }
+}

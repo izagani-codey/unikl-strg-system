@@ -41,59 +41,70 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+// Admin Routes
+Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::patch('/users/{id}/role', [AdminController::class, 'updateUserRole'])->name('users.role');
+    Route::patch('/users/{id}/toggle', [AdminController::class, 'toggleUserStatus'])->name('users.toggle');
+    Route::get('/request-types', [AdminController::class, 'requestTypes'])->name('request-types');
+    Route::post('/request-types', [AdminController::class, 'createRequestType'])->name('request-types.create');
+    Route::patch('/request-types/{id}', [AdminController::class, 'updateRequestType'])->name('request-types.update');
+    Route::patch('/request-types/{id}/toggle', [AdminController::class, 'toggleRequestTypeStatus'])->name('request-types.toggle');
+    Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+    Route::post('/settings', [AdminController::class, 'settings'])->name('settings.update');
+    Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
+    Route::post('/notifications', [AdminController::class, 'sendNotification'])->name('notifications.send');
+    Route::get('/stats', [AdminController::class, 'getStats'])->name('stats');
+    Route::post('/clear-cache', [AdminController::class, 'clearCache'])->name('clear-cache');
+});
 
+// Dashboard AJAX Routes
+Route::middleware(['auth', 'verified'])->prefix('dashboard/ajax')->name('dashboard.ajax.')->group(function () {
+    Route::get('/stats', [DashboardController::class, 'getStats'])->name('stats');
+    Route::get('/activity', [DashboardController::class, 'getActivity'])->name('activity');
+    Route::get('/deadline-alerts', [DashboardController::class, 'getDeadlineAlerts'])->name('deadline-alerts');
+    Route::get('/performance', [DashboardController::class, 'getPerformanceComparison'])->name('performance');
+    Route::post('/clear-cache', [DashboardController::class, 'clearCache'])->name('clear-cache');
+});
+
+Route::middleware('auth')->group(function () {
     // Profile (all roles)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Admission only
-    Route::middleware('role:admission')->group(function () {
-        Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
-        Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
-        Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
-        Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
-    });
-
-    // Staff 1 + Staff 2 only
-    Route::middleware('role:staff1,staff2')->group(function () {
-        Route::patch('/requests/{id}/status', [RequestController::class, 'updateStatus'])->name('requests.updateStatus');
-        Route::post('/requests/{id}/comments', [RequestController::class, 'addComment'])->name('requests.comment');
-    });
-
-    // All roles — view requests
+    // Requests (all roles)
+    Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
+    Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
-    Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
+    Route::get('/requests/{id}/print', [RequestController::class, 'print'])->name('requests.print');
+    Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
+    Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
+    Route::delete('/requests/{id}', [RequestController::class, 'destroy'])->name('requests.delete');
 
+    // Request actions (staff)
+    Route::patch('/requests/{id}/status', [RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+    Route::post('/requests/{id}/comment', [RequestController::class, 'comment'])->name('requests.comment');
+    Route::post('/requests/bulk-update', [RequestController::class, 'bulkUpdateStatus'])->name('requests.bulkUpdate');
+    Route::get('/requests/export', [RequestController::class, 'export'])->name('requests.export');
+
+    // Form Templates (staff2 admin)
+    Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
+    Route::get('/form-templates/create', [FormTemplateController::class, 'create'])->name('form-templates.create');
+    Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
+    Route::get('/form-templates/{id}/download', [FormTemplateController::class, 'download'])->name('form-templates.download');
+    Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.delete');
+
+    // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
-    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'delete'])->name('notifications.delete');
 
-    Route::middleware('role:staff1,staff2')->group(function () {
-        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
-    });
-
-
-    Route::middleware('role:staff1,staff2')->group(function () {
-        // Both staff roles can review/download blank templates.
-        Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
-    });
-
-    Route::middleware('role:staff2')->group(function () {
-        Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
-        Route::get('/staff2/admin/users', [Staff2AdminController::class, 'users'])->name('staff2.admin.users');
-        Route::get('/staff2/admin/request-types', [Staff2AdminController::class, 'requestTypes'])->name('staff2.admin.request-types');
-        Route::post('/staff2/admin/request-types', [Staff2AdminController::class, 'storeRequestType'])->name('staff2.admin.request-types.store');
-        Route::put('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'updateRequestType'])->name('staff2.admin.request-types.update');
-        Route::delete('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'destroyRequestType'])->name('staff2.admin.request-types.destroy');
-        Route::get('/staff2/requests/export', [RequestController::class, 'exportCsv'])->name('requests.exportCsv');
-        Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
-        Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
-    });
-
-
+    // Audit Logs
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
-
 
 require __DIR__.'/auth.php';

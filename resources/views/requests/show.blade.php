@@ -82,7 +82,108 @@
             </div>
 
             {{-- Request Timeline --}}
-            <x-request-timeline :request="$grantRequest" />
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Request Timeline
+                </h3>
+                
+                <div class="relative">
+                    <!-- Timeline Line -->
+                    <div class="absolute left-8 top-8 bottom-8 w-0.5 bg-gray-300"></div>
+                    
+                    <!-- Timeline Steps -->
+                    <div class="space-y-8">
+                        <!-- Step 1: Submitted -->
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-6 flex-1">
+                                <h4 class="font-semibold text-gray-900">Submitted</h4>
+                                <p class="text-sm text-gray-600">Request submitted by applicant</p>
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <span class="font-medium">Submitted by:</span> {{ $grantRequest->user->name }}
+                                    <span class="ml-2">on {{ $grantRequest->created_at->format('d M Y, h:i A') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: Staff 1 Verification -->
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 {{ $grantRequest->status_id >= 2 ? 'bg-green-500' : ($grantRequest->status_id == 1 ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-6 flex-1">
+                                <h4 class="font-semibold text-gray-900">Staff 1 Verification</h4>
+                                <p class="text-sm text-gray-600">Request verified by Staff 1</p>
+                                @if($grantRequest->verifiedBy)
+                                    <div class="text-xs text-gray-500 mt-2">
+                                        <span class="font-medium">Verified by:</span> {{ $grantRequest->verifiedBy->name }}
+                                        @if($grantRequest->verified_at)
+                                            <span class="ml-2">on {{ $grantRequest->verified_at->format('d M Y, h:i A') }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Staff 2 Recommendation -->
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 {{ $grantRequest->status_id >= 5 ? 'bg-green-500' : ($grantRequest->status_id == 2 ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-6 flex-1">
+                                <h4 class="font-semibold text-gray-900">Staff 2 Recommendation</h4>
+                                <p class="text-sm text-gray-600">Request reviewed and recommended by Staff 2</p>
+                                @if($grantRequest->recommendedBy)
+                                    <div class="text-xs text-gray-500 mt-2">
+                                        <span class="font-medium">Recommended by:</span> {{ $grantRequest->recommendedBy->name }}
+                                        @if($grantRequest->recommended_at)
+                                            <span class="ml-2">on {{ $grantRequest->recommended_at->format('d M Y, h:i A') }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                                
+                                <!-- Show rejection info if declined -->
+                                @if($grantRequest->status_id === 6)
+                                    <div class="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                                        <p class="text-sm text-red-800">
+                                            <span class="font-medium">Declined:</span> 
+                                            @if($grantRequest->rejection_reason)
+                                                {{ $grantRequest->rejection_reason }}
+                                            @else
+                                                No reason provided
+                                            @endif
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Completed -->
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 {{ $grantRequest->status_id == 5 ? 'bg-green-500' : 'bg-gray-300' }} rounded-full flex items-center justify-center text-white">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div class="ml-6 flex-1">
+                                <h4 class="font-semibold text-gray-900">Completed</h4>
+                                <p class="text-sm text-gray-600">Request approved and completed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {{-- Uploaded Document --}}
             @if($grantRequest->file_path)
@@ -270,7 +371,7 @@
                 @endcan
 
                 {{-- STAFF 1: Verify or Return to Admission --}}
-                @can('updateStatus', $grantRequest)
+                @can('changeStatus', $grantRequest)
                     @if(auth()->user()->role === 'staff1')
                         <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
                             @csrf
@@ -304,7 +405,7 @@
                 @endcan
 
                 {{-- STAFF 2: Approve, Return to Staff 1, or Decline --}}
-                @can('updateStatus', $grantRequest)
+                @can('changeStatus', $grantRequest)
                     @if(auth()->user()->role === 'staff2')
                         <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
                             @csrf
@@ -321,6 +422,7 @@
                                     class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
                                     ✓ Approve & Finalise
                                 </button>
+                                
                                 @if($grantRequest->status_id === 2)
                                     <button type="submit"
                                         onclick="document.getElementById('status2-input').value='4'"
@@ -328,6 +430,15 @@
                                         ↩ Return to Staff 1
                                     </button>
                                 @endif
+                                
+                                @if($grantRequest->status_id === 1)
+                                    <button type="submit"
+                                        onclick="document.getElementById('status2-input').value='2'"
+                                        class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">
+                                        ⚡ Override: Send to Staff 2 Review
+                                    </button>
+                                @endif
+                                
                                 <button type="submit"
                                     onclick="document.getElementById('status2-input').value='6'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
@@ -343,7 +454,7 @@
                 @if(
                     (auth()->user()->role === 'admission' && $grantRequest->status_id != 3) ||
                     (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [1, 4])) ||
-                    (auth()->user()->role === 'staff2' && in_array($grantRequest->status_id, [3, 5, 6], true))
+                    (auth()->user()->role === 'staff2' && in_array($grantRequest->status_id, [5, 6], true))
                 )
                     <p class="text-gray-400 italic text-sm">No actions available at this stage.</p>
                 @endif
