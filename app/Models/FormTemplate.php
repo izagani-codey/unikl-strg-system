@@ -40,7 +40,7 @@ class FormTemplate extends Model
 
     public function isActive(): bool
     {
-        return $this->is_active;
+        return (bool) $this->is_active;
     }
 
     public function getFieldTypeLabel(): string
@@ -51,7 +51,7 @@ class FormTemplate extends Model
             'budget_request' => 'Budget Request',
             'travel_request' => 'Travel Request',
             default => 'General Form',
-        };
+        } ?? 'General Form';
     }
 
     public function getAvailableFields(): array

@@ -31,6 +31,7 @@ class User extends Authenticatable
     public function isAdmission(): bool { return $this->role === 'admission'; }
     public function isStaff1(): bool    { return $this->role === 'staff1'; }
     public function isStaff2(): bool    { return $this->role === 'staff2'; }
+    public function isDean(): bool      { return $this->role === 'dean'; }
     public function isAdmissions(): bool { return $this->isAdmission(); }
 
     // ==========================================

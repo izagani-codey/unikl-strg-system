@@ -50,7 +50,7 @@
                     </svg>
                     {{ session('success') }}
                 </div>
-            @@endif
+            @endif
 
             {{-- Override Mode Indicator --}}
             @if(auth()->user()->override_enabled)

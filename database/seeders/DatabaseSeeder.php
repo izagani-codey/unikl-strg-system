@@ -11,6 +11,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call([
+            VotCodeSeeder::class,
+        ]);
+
         // Seed Request Types
         $types = [
             ['name' => 'STRG New Application',            'slug' => 'strg-new'],
@@ -26,20 +30,85 @@ class DatabaseSeeder extends Seeder
             RequestType::updateOrCreate(['slug' => $type['slug']], $type);
         }
 
-        // Seed Test Users
+        // Remove old admission user if exists
+        User::where('email', 'admission@unikl.edu.my')->delete();
+
+        // Seed Updated Admissions Dev Account with complete profile
         User::updateOrCreate(
-            ['email' => 'admission@unikl.edu.my'],
-            ['name' => 'Admission Student', 'password' => Hash::make('password'), 'role' => 'admission', 'email_verified_at' => now()]
+            ['email' => 'admissions@unikl.edu.my'],
+            [
+                'name' => 'Admissions Dev User',
+                'password' => Hash::make('password'),
+                'role' => 'admission',
+                'email_verified_at' => now(),
+                // Complete staff profile
+                'staff_id' => 'DEV001',
+                'designation' => 'Admissions Officer',
+                'department' => 'Student Affairs',
+                'phone' => '+60123456789',
+                'employee_level' => 'Executive',
+                // Enable dev features
+                'override_enabled' => false,
+                'override_enabled_at' => null,
+            ]
         );
 
+        // Staff 1 User
         User::updateOrCreate(
             ['email' => 'staff1@unikl.edu.my'],
-            ['name' => 'Staff One', 'password' => Hash::make('password'), 'role' => 'staff1', 'email_verified_at' => now()]
+            [
+                'name' => 'Staff One', 
+                'password' => Hash::make('password'), 
+                'role' => 'staff1', 
+                'email_verified_at' => now(),
+                'staff_id' => 'STF001',
+                'designation' => 'Senior Lecturer',
+                'department' => 'Academic Affairs',
+                'phone' => '+60123456780',
+                'employee_level' => 'Senior Executive',
+            ]
         );
 
+        // Staff 2 User (with override enabled)
         User::updateOrCreate(
             ['email' => 'staff2@unikl.edu.my'],
-            ['name' => 'Staff Two', 'password' => Hash::make('password'), 'role' => 'staff2', 'email_verified_at' => now()]
+            [
+                'name' => 'Staff Two', 
+                'password' => Hash::make('password'), 
+                'role' => 'staff2', 
+                'email_verified_at' => now(),
+                'staff_id' => 'STF002',
+                'designation' => 'Director',
+                'department' => 'Academic Affairs',
+                'phone' => '+60123456781',
+                'employee_level' => 'Management',
+                'override_enabled' => true,
+                'override_enabled_at' => now(),
+            ]
         );
+
+        // Dean User
+        User::updateOrCreate(
+            ['email' => 'dean@unikl.edu.my'],
+            [
+                'name' => 'Department Dean', 
+                'password' => Hash::make('password'), 
+                'role' => 'dean', 
+                'email_verified_at' => now(),
+                'staff_id' => 'DEAN001',
+                'designation' => 'Dean',
+                'department' => 'Academic Affairs',
+                'phone' => '+60123456782',
+                'employee_level' => 'Management',
+                'override_enabled' => false,
+                'override_enabled_at' => null,
+            ]
+        );
+
+        $this->command->info('✅ Seeded updated development accounts:');
+        $this->command->info('   📧 admissions@unikl.edu.my (password) - Admissions Dev User');
+        $this->command->info('   📧 staff1@unikl.edu.my (password) - Staff One');
+        $this->command->info('   📧 staff2@unikl.edu.my (password) - Staff Two (Override Enabled)');
+        $this->command->info('   📧 dean@unikl.edu.my (password) - Department Dean');
     }
 }

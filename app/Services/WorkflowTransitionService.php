@@ -21,23 +21,32 @@ class WorkflowTransitionService
                 RequestStatus::PENDING_VERIFICATION->value => [
                     RequestStatus::PENDING_RECOMMENDATION->value,
                     RequestStatus::RETURNED_TO_ADMISSION->value,
+                    RequestStatus::DECLINED->value,
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
                 ],
                 RequestStatus::RETURNED_TO_STAFF_1->value => [
                     RequestStatus::PENDING_RECOMMENDATION->value,
                     RequestStatus::RETURNED_TO_ADMISSION->value,
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
                 ],
             ],
             'staff2' => [
                 RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::APPROVED->value,
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::RETURNED_TO_STAFF_2->value,
                     RequestStatus::DECLINED->value,
+                ],
+                RequestStatus::RETURNED_TO_STAFF_2->value => [
+                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::DECLINED->value,
+                ],
+            ],
+            'dean' => [
+                RequestStatus::PENDING_DEAN_APPROVAL->value => [
+                    RequestStatus::APPROVED->value,
                     RequestStatus::RETURNED_TO_STAFF_1->value,
-                ],
-                RequestStatus::APPROVED->value => [
+                    RequestStatus::RETURNED_TO_STAFF_2->value,
                     RequestStatus::DECLINED->value,
-                ],
-                RequestStatus::DECLINED->value => [
-                    RequestStatus::APPROVED->value,
                 ],
             ],
             'admission' => [
@@ -117,8 +126,20 @@ class WorkflowTransitionService
     {
         if ($newStatus === RequestStatus::PENDING_RECOMMENDATION) {
             $request->update(['verified_by' => $user->id]);
-        } elseif ($newStatus->value >= 5) { // Approved or Declined
+        } elseif ($newStatus === RequestStatus::PENDING_DEAN_APPROVAL) {
             $request->update(['recommended_by' => $user->id]);
+        } elseif ($newStatus === RequestStatus::PENDING_DEAN_VERIFICATION) {
+            // Dean confirmation by staff
+            $request->update([
+                'dean_approved_by' => $user->id,
+                'dean_approved_at' => now(),
+                'dean_notes' => 'Confirmed by ' . ($user->role === 'staff1' ? 'Staff 1' : 'Staff 2') . ' on behalf of Dean',
+            ]);
+        } elseif (in_array($newStatus, [RequestStatus::APPROVED, RequestStatus::DECLINED]) && $user->isDean()) {
+            $request->update([
+                'dean_approved_by' => $user->id,
+                'dean_approved_at' => now(),
+            ]);
         }
     }
 
@@ -129,10 +150,16 @@ class WorkflowTransitionService
     {
         if ($to === RequestStatus::PENDING_RECOMMENDATION) {
             self::notifyStaff2($request);
+        } elseif ($to === RequestStatus::PENDING_DEAN_APPROVAL) {
+            self::notifyDean($request);
+        } elseif ($to === RequestStatus::PENDING_DEAN_VERIFICATION) {
+            self::notifyAdmission($request, 'Request confirmed by Dean - pending verification');
         } elseif ($to === RequestStatus::RETURNED_TO_ADMISSION) {
             self::notifyAdmission($request, 'Request returned for revision');
         } elseif ($to === RequestStatus::RETURNED_TO_STAFF_1) {
             self::notifyStaff1($request);
+        } elseif ($to === RequestStatus::RETURNED_TO_STAFF_2) {
+            self::notifyStaff2($request, 'Request returned for additional review');
         } elseif ($to === RequestStatus::APPROVED || $to === RequestStatus::DECLINED) {
             self::notifyAdmission($request, 
                 $to === RequestStatus::APPROVED ? 'Request approved' : 'Request declined'
@@ -140,7 +167,7 @@ class WorkflowTransitionService
         }
     }
 
-    private static function notifyStaff2(Request $request): void
+    private static function notifyStaff2(Request $request, ?string $customMessage = null): void
     {
         $staff2Users = \App\Models\User::where('role', 'staff2')->get();
         
@@ -149,8 +176,24 @@ class WorkflowTransitionService
                 $user->id,
                 'request_ready_for_recommendation',
                 'Request Ready for Recommendation',
-                "Request {$request->ref_number} is ready for your review.",
+                $customMessage ?? "Request {$request->ref_number} is ready for your review.",
                 route('requests.show', $request->id),
+                ['request_id' => $request->id]
+            );
+        }
+    }
+
+    private static function notifyDean(Request $request): void
+    {
+        $deanUsers = \App\Models\User::where('role', 'dean')->get();
+        
+        foreach ($deanUsers as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_pending_dean_approval',
+                'Request Pending Dean Approval',
+                "Request {$request->ref_number} is ready for your final approval.",
+                route('dean.requests.show', $request->id),
                 ['request_id' => $request->id]
             );
         }

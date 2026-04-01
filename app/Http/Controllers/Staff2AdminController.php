@@ -85,41 +85,62 @@ class Staff2AdminController extends Controller
 
     public function storeRequestType()
     {
-        $validated = request()->validate([
-            'name' => 'required|string|max:255|unique:request_types',
-            'description' => 'nullable|string',
-        ]);
+        try {
+            $validated = request()->validate([
+                'name' => 'required|string|max:255|unique:request_types',
+                'description' => 'nullable|string',
+            ]);
 
-        RequestType::create($validated);
+            // Create slug from name
+            $validated['slug'] = \Str::slug($validated['name']);
 
-        return back()->with('success', 'Request type created successfully.');
+            RequestType::create($validated);
+
+            return back()->with('success', 'Request type created successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error creating request type: ' . $e->getMessage());
+            return back()->with('error', 'Error creating request type: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function updateRequestType($id)
     {
-        $requestType = RequestType::findOrFail($id);
-        
-        $validated = request()->validate([
-            'name' => 'required|string|max:255|unique:request_types,name,' . $id,
-            'description' => 'nullable|string',
-        ]);
+        try {
+            $requestType = RequestType::findOrFail($id);
+            
+            $validated = request()->validate([
+                'name' => 'required|string|max:255|unique:request_types,name,' . $id,
+                'description' => 'nullable|string',
+            ]);
 
-        $requestType->update($validated);
+            // Update slug if name changed
+            $validated['slug'] = \Str::slug($validated['name']);
 
-        return back()->with('success', 'Request type updated successfully.');
+            $requestType->update($validated);
+
+            return back()->with('success', 'Request type updated successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error updating request type: ' . $e->getMessage());
+            return back()->with('error', 'Error updating request type: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function destroyRequestType($id)
     {
-        $requestType = RequestType::findOrFail($id);
-        
-        // Check if there are requests using this type
-        if ($requestType->requests()->count() > 0) {
-            return back()->with('error', 'Cannot delete request type that has associated requests.');
+        try {
+            $requestType = RequestType::findOrFail($id);
+            
+            // Check if there are requests using this type
+            if ($requestType->requests()->count() > 0) {
+                return back()->with('error', 'Cannot delete request type that has associated requests.');
+            }
+
+            $requestType->delete();
+
+            return back()->with('success', 'Request type deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting request type: ' . $e->getMessage());
+            return back()->with('error', 'Error deleting request type: ' . $e->getMessage());
         }
-
-        $requestType->delete();
-
-        return back()->with('success', 'Request type deleted successfully.');
     }
 }

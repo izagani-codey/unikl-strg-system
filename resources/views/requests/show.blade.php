@@ -390,6 +390,11 @@
                                     ✓ Verify & Send to Staff 2
                                 </button>
                                 <button type="submit"
+                                    onclick="document.getElementById('s1-status').value='4'"
+                                    class="bg-purple-600 text-white px-5 py-2 rounded font-bold hover:bg-purple-700">
+                                    👑 Confirm by Dean
+                                </button>
+                                <button type="submit"
                                     onclick="document.getElementById('s1-status').value='3'"
                                     class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
                                     ↩ Return to Admission
@@ -418,9 +423,9 @@
                             <input type="hidden" name="status_id" value="5" id="status2-input">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='5'"
-                                    class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
-                                    ✓ Approve & Finalise
+                                    onclick="document.getElementById('status2-input').value='4'"
+                                    class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700">
+                                    👑 Confirm by Dean
                                 </button>
                                 
                                 @if($grantRequest->status_id === 2)

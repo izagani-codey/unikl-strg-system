@@ -24,6 +24,10 @@ class DashboardController extends BaseController
         $dashboardData = $this->dashboardService->getDashboardData($user, $filters);
 
         // Route to the correct dashboard view for this role
+        if ($user->role === 'dean') {
+            return redirect()->route('dean.dashboard');
+        }
+        
         return view('dashboard.' . $user->role, $dashboardData);
     }
 

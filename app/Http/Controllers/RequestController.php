@@ -29,15 +29,72 @@ class RequestController extends Controller
     {
         return [
             'staff1' => [
-                1 => [2, 3, 6],
-                4 => [2, 3],
+                1 => [2, 4, 8], // Pending Verification -> Pending Recommendation, Returned to Staff 2, Declined
+                5 => [2, 8],     // Returned to Staff 1 -> Pending Recommendation, Declined
             ],
             'staff2' => [
-                2 => [4, 5, 6],
-                5 => [6],
-                6 => [5],
+                2 => [3, 6, 8], // Pending Recommendation -> Pending Dean Approval, Returned to Staff 2, Declined
+                6 => [3, 8],     // Returned to Staff 2 -> Pending Dean Approval, Declined
+            ],
+            'dean' => [
+                3 => [7, 5, 6, 8], // Pending Dean Approval -> Approved, Returned to Staff 1, Returned to Staff 2, Declined
             ],
         ];
+    }
+
+    // ==========================================
+    // Global Requests Index (if needed)
+    // ==========================================
+
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Get base query based on user role
+        $query = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy']);
+        
+        // Filter based on role
+        if ($user->isAdmission()) {
+            $query->where('user_id', $user->id);
+        } elseif ($user->isStaff1()) {
+            // Staff 1 can see requests that need verification
+            $query->whereIn('status_id', [1, 4]); // Pending verification or returned to staff 1
+        } elseif ($user->isStaff2()) {
+            // Staff 2 can see all requests
+            // No additional filtering needed
+        }
+        
+        // Apply filters
+        if ($search = $request->get('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('ref_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+        
+        if ($status = $request->get('status')) {
+            $query->where('status_id', $status);
+        }
+        
+        if ($type = $request->get('type')) {
+            $query->where('request_type_id', $type);
+        }
+        
+        if ($dateFrom = $request->get('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        
+        if ($dateTo = $request->get('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        
+        $requests = $query->orderBy('created_at', 'desc')->paginate(10);
+        $statuses = RequestStatus::getAllCases();
+        $requestTypes = RequestType::all();
+        
+        return view('requests.index', compact('requests', 'statuses', 'requestTypes'));
     }
 
     // ==========================================
@@ -62,11 +119,12 @@ class RequestController extends Controller
         $votItems = $request->input('vot_items', []);
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
-        // Calculate automatic priority based on deadline
-        $isPriority = $request->boolean('priority', false);
+        // Calculate automatic priority based on deadline (staff only)
+        $isPriority = false; // Admission cannot set priority
         $deadline = $request->input('deadline');
         
-        if ($deadline && !$isPriority) {
+        // Only staff can have priority, admission users get normal priority
+        if ($deadline && !$user->isAdmission()) {
             $daysUntil = now()->diffInDays(\Carbon\Carbon::parse($deadline), false);
             if ($daysUntil <= 5 && $daysUntil >= 0) {
                 $isPriority = true;

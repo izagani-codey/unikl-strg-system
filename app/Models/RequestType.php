@@ -6,12 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class RequestType extends Model
 {
-    public $timestamps = false;
+    protected $fillable = ['name', 'slug', 'description'];
 
-    protected $fillable = ['name', 'slug'];
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     public function requests()
     {
         return $this->hasMany(Request::class);
+    }
+
+    public function requestsCount()
+    {
+        return $this->requests()->count();
     }
 }

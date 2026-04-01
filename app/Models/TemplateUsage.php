@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TemplateUsage extends Model
 {
+    protected $table = 'template_usage';
+    
     protected $fillable = [
         'template_id',
         'request_id',

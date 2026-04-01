@@ -51,7 +51,7 @@
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                                 <div class="text-2xl font-bold">{{ $dashboardStats['approved'] }}</div>
-                                <div class="text-sm text-blue-100">Approved</div>
+                                <div class="text-sm text-blue-100">Pending Dean Verification</div>
                             </div>
                         </div>
                     </div>
@@ -115,12 +115,12 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Approved</p>
+                            <p class="text-sm font-medium text-gray-600">Pending Dean Verification</p>
                             <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['approved'] }}</p>
                         </div>
-                        <div class="bg-green-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <div class="bg-amber-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>

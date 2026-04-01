@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── All roles — view requests ─────────────────────────────────────────────
+    Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show')->middleware('auto.priority');
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
@@ -70,10 +71,20 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
-    // ── Staff 2 Override Routes ───────────────────────────────────────────────────────
+    // ── Staff 2 Override Routes ─────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {
         Route::post('/requests/{id}/override', [RequestController::class, 'performOverride'])->name('requests.override');
         Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
+    });
+
+    // ── Dean Routes ──────────────────────────────────────────────────────────────────
+    Route::middleware('role:dean')->group(function () {
+        Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
+        Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
+        Route::post('/dean/requests/{id}/approve', [DeanController::class, 'approve'])->name('dean.requests.approve');
+        Route::post('/dean/requests/{id}/reject', [DeanController::class, 'reject'])->name('dean.requests.reject');
+        Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
+        Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
     });
 
     // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────

@@ -53,21 +53,45 @@
                     {{-- VOT Line Items --}}
                     <div class="mb-6 border-b border-gray-200 pb-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown (VOT Items)</h3>
+                        <p class="text-sm text-gray-600 mb-4">Enter amounts for each VOT code. Zero values are allowed.</p>
                         
-                        <div id="vot-items-container" class="space-y-3 mb-4">
-                            <!-- VOT items will be added here dynamically -->
+                        <div class="space-y-3">
+                            @php
+                                $votCodes = \App\Models\VotCode::active()->ordered()->get();
+                            @endphp
+                            
+                            @foreach($votCodes as $index => $votCode)
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div class="md:col-span-1">
+                                            <label class="block text-sm font-bold text-gray-700">
+                                                {{ $votCode->code }} - {{ $votCode->description }}
+                                            </label>
+                                        </div>
+                                        <div class="md:col-span-1">
+                                            <input type="number" 
+                                                   name="vot_items[{{ $votCode->code }}][amount]" 
+                                                   class="w-full rounded border-gray-300 mt-1" 
+                                                   placeholder="0.00" 
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   onchange="calculateTotal()"
+                                                   data-vot-code="{{ $votCode->code }}">
+                                        </div>
+                                        <div class="md:col-span-1 flex items-center">
+                                            <span class="text-sm text-gray-600">RM</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                         
-                        <div class="flex justify-between items-center">
-                            <button type="button" onclick="addVotItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
-                                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" data-slot="icon" d="M12 4.5v15m7.5-7.5h-7.5m7.5 7.5l-3-3m0 0l-3 3"/>
-                                </svg>
-                                Add VOT Item
-                            </button>
-                            
-                            <div class="text-sm text-gray-600">
-                                Total: <span id="total-amount" class="font-bold text-lg">0.00</span> RM
+                        <div class="mt-4 flex justify-between items-center bg-gray-100 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-700">
+                                Total Amount:
+                            </div>
+                            <div class="text-lg font-bold text-blue-600">
+                                RM <span id="total-amount">0.00</span>
                             </div>
                         </div>
                     </div>
@@ -131,61 +155,16 @@
                 penWidth: 1.5
             });
 
-            // Add first VOT item by default
-            addVotItem();
+            // Initialize total calculation
+            calculateTotal();
         });
 
-        // VOT Item Management
-        function addVotItem() {
-            votItemCount++;
-            const container = document.getElementById('vot-items-container');
-            
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
-            itemDiv.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">VOT Code *</label>
-                        <input type="text" name="vot_items[${votItemCount}][vot_code]" 
-                               class="w-full rounded border-gray-300 mt-1" 
-                               placeholder="e.g. A12345" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Description *</label>
-                        <input type="text" name="vot_items[${votItemCount}][description]" 
-                               class="w-full rounded border-gray-300 mt-1" 
-                               placeholder="Describe the item" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Amount (RM) *</label>
-                        <input type="number" name="vot_items[${votItemCount}][amount]" 
-                               class="w-full rounded border-gray-300 mt-1" 
-                               placeholder="0.00" step="0.01" min="0.01" 
-                               onchange="calculateTotal()" required>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <button type="button" onclick="removeVotItem(this)" 
-                                class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors">
-                            Remove
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(itemDiv);
-            calculateTotal();
-        }
-
-        function removeVotItem(button) {
-            button.closest('.bg-gray-50').remove();
-            calculateTotal();
-        }
-
+        // VOT Total Calculation
         function calculateTotal() {
-            const amountInputs = document.querySelectorAll('input[name*="[amount]"]');
+            const votInputs = document.querySelectorAll('input[data-vot-code]');
             let total = 0;
             
-            amountInputs.forEach(input => {
+            votInputs.forEach(input => {
                 const value = parseFloat(input.value) || 0;
                 total += value;
             });

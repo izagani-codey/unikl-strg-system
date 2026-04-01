@@ -16,6 +16,7 @@ class Request extends Model
         'signature_data', 'signed_at', 'submitted_at',
         'staff_notes', 'rejection_reason',
         'verified_by', 'recommended_by',
+        'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
         'revision_count', 'deadline', 'is_priority',
         'is_overridden', 'overridden_by', 'override_reason', 'overridden_at',
     ];
@@ -28,6 +29,7 @@ class Request extends Model
         'deadline'    => 'date',
         'signed_at'   => 'datetime',
         'submitted_at' => 'datetime',
+        'dean_approved_at' => 'datetime',
         'overridden_at' => 'datetime',
         'total_amount' => 'decimal:2',
     ];
@@ -40,6 +42,7 @@ class Request extends Model
     public function requestType()  { return $this->belongsTo(RequestType::class); }
     public function verifiedBy()   { return $this->belongsTo(User::class, 'verified_by'); }
     public function recommendedBy(){ return $this->belongsTo(User::class, 'recommended_by'); }
+    public function deanApprovedBy(){ return $this->belongsTo(User::class, 'dean_approved_by'); }
     public function overriddenBy() { return $this->belongsTo(User::class, 'overridden_by'); }
     public function comments()     { return $this->hasMany(Comment::class); }
     public function auditLogs()    { return $this->hasMany(AuditLog::class); }
@@ -76,6 +79,7 @@ class Request extends Model
     public function canBeEditedByAdmission(): bool    { return $this->getStatus()->canBeEditedByAdmission(); }
     public function canBeActionedByStaff1(): bool     { return $this->getStatus()->canBeActionedByStaff1(); }
     public function canBeActionedByStaff2(): bool     { return $this->getStatus()->canBeActionedByStaff2(); }
+    public function canBeActionedByDean(): bool       { return $this->getStatus()->canBeActionedByDean(); }
     public function canBeOverridden(): bool           { return $this->isFinal(); }
 
     // ==========================================
@@ -168,6 +172,50 @@ class Request extends Model
         $this->overridden_by = null;
         $this->override_reason = null;
         $this->overridden_at = null;
+        $this->save();
+    }
+
+    // ==========================================
+    // Dean approval helpers
+    // ==========================================
+
+    public function approveByDean(User $dean, ?string $notes = null): void
+    {
+        $this->dean_approved_by = $dean->id;
+        $this->dean_approved_at = now();
+        $this->dean_notes = $notes;
+        $this->dean_rejection_reason = null;
+        $this->status_id = RequestStatus::APPROVED->value;
+        $this->save();
+    }
+
+    public function rejectByDean(User $dean, string $reason): void
+    {
+        $this->dean_approved_by = $dean->id;
+        $this->dean_approved_at = now();
+        $this->dean_rejection_reason = $reason;
+        $this->dean_notes = null;
+        $this->status_id = RequestStatus::DECLINED->value;
+        $this->save();
+    }
+
+    public function returnToStaff1(User $dean, string $reason): void
+    {
+        $this->dean_approved_by = $dean->id;
+        $this->dean_approved_at = now();
+        $this->dean_notes = $reason;
+        $this->dean_rejection_reason = null;
+        $this->status_id = RequestStatus::RETURNED_TO_STAFF_1->value;
+        $this->save();
+    }
+
+    public function returnToStaff2(User $dean, string $reason): void
+    {
+        $this->dean_approved_by = $dean->id;
+        $this->dean_approved_at = now();
+        $this->dean_notes = $reason;
+        $this->dean_rejection_reason = null;
+        $this->status_id = RequestStatus::RETURNED_TO_STAFF_2->value;
         $this->save();
     }
 

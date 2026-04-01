@@ -4,15 +4,15 @@ namespace App\Http\Middleware;
 
 use App\Models\Request;
 use Closure;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Response;
+use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Http\Response;
 
 class AutoPriorityMiddleware
 {
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(HttpRequest $request, Closure $next): Response
     {
         $response = $next($request);
 

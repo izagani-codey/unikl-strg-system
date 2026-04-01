@@ -47,6 +47,14 @@
                         </x-nav-link>
                     @endif
 
+                    {{-- Dean navigation hidden for now
+                    @if(auth()->user()->role === 'dean')
+                        <x-nav-link :href="route('dean.dashboard')" :active="request()->routeIs('dean.*')">
+                            {{ __('Dean Dashboard') }}
+                        </x-nav-link>
+                    @endif
+                    --}}
+
                     @if(in_array(auth()->user()->role, ['staff1', 'staff2'], true))
                         <x-nav-link :href="route('form-templates.index')" :active="request()->routeIs('form-templates.*')">
                             {{ __('Blank Forms') }}

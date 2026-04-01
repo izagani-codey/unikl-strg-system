@@ -140,8 +140,13 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $type->created_at->format('M j, Y') }}
-                                        <div class="text-xs">{{ $type->created_at->diffForHumans() }}</div>
+                                        @if(is_string($type->created_at))
+                                            {{ \Carbon\Carbon::parse($type->created_at)->format('M j, Y') }}
+                                            <div class="text-xs">{{ \Carbon\Carbon::parse($type->created_at)->diffForHumans() }}</div>
+                                        @else
+                                            {{ $type->created_at->format('M j, Y') }}
+                                            <div class="text-xs">{{ $type->created_at->diffForHumans() }}</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2">
