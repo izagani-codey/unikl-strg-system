@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
@@ -13,10 +14,10 @@ class Staff2AdminController extends Controller
     {
         // System Stats
         $totalRequests = GrantRequest::count();
-        $pendingVerification = GrantRequest::where('status_id', 1)->count();
-        $withStaff2 = GrantRequest::where('status_id', 2)->count();
-        $approved = GrantRequest::where('status_id', 5)->count();
-        $declined = GrantRequest::where('status_id', 6)->count();
+        $pendingVerification = GrantRequest::where('status_id', RequestStatus::PENDING_VERIFICATION->value)->count();
+        $withStaff2 = GrantRequest::where('status_id', RequestStatus::PENDING_RECOMMENDATION->value)->count();
+        $approved = GrantRequest::where('status_id', RequestStatus::APPROVED->value)->count();
+        $declined = GrantRequest::where('status_id', RequestStatus::DECLINED->value)->count();
 
         // Request Types Stats
         $byType = RequestType::query()
