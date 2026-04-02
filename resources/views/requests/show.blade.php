@@ -568,6 +568,62 @@
                     @endif
                 @endcan
 
+                {{-- DEAN ACTIONS --}}
+                @if(auth()->user()->role === 'dean' && $grantRequest->status_id === \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value)
+                    <div class="mt-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
+                        <h4 class="font-bold text-purple-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            Dean Approval Actions
+                        </h4>
+                        
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
+                            @csrf
+                            @method('PATCH')
+                            
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-purple-700">Dean Decision:</label>
+                                <div class="flex gap-3 flex-wrap">
+                                    <button type="submit"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::APPROVED->value }}'"
+                                        class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
+                                        ✓ Approve Request
+                                    </button>
+                                    
+                                    <button type="submit"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::DECLINED->value }}'"
+                                        class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
+                                        ✗ Reject Request
+                                    </button>
+                                    
+                                    <button type="submit"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value }}'"
+                                        class="bg-orange-600 text-white px-6 py-2 rounded font-bold hover:bg-orange-700">
+                                        ↩ Return to Staff 1
+                                    </button>
+                                    
+                                    <button type="submit"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value }}'"
+                                        class="bg-yellow-600 text-white px-6 py-2 rounded font-bold hover:bg-yellow-700">
+                                        ↩ Return to Staff 2
+                                    </button>
+                                </div>
+                                <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::APPROVED->value }}" id="dean-status-input">
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-purple-700">Comments/Reason:</label>
+                                <textarea name="rejection_reason" rows="2"
+                                    placeholder="Reason (required for Reject or Return)"
+                                    class="w-full border rounded p-2 text-sm"></textarea>
+                            </div>
+                        </form>
+                        
+                        <p class="text-xs text-gray-400 mt-3 italic">Final approval stage. Dean decision is final.</p>
+                    </div>
+                @endif
+
                 {{-- MANUAL PRIORITY CONTROLS --}}
                 @if(in_array(auth()->user()->role, ['staff1', 'staff2']) && !$isFinalStatus)
                     <div class="mt-6 p-4 bg-orange-50 border-l-4 border-orange-500 rounded">

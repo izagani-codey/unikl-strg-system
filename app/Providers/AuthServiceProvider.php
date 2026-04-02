@@ -15,8 +15,6 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Request::class => RequestPolicy::class,
-        // Add alias for GrantRequest to point to Request model
-        'GrantRequest' => RequestPolicy::class,
     ];
 
     /**
@@ -24,9 +22,6 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerPolicies();
-        
-        // Register GrantRequest alias
         $this->registerPolicies();
     }
 }

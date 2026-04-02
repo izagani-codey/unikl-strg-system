@@ -273,6 +273,17 @@ class RequestController extends Controller
         return view('requests.fill-pdf-form', compact('grantRequest', 'templates'));
     }
 
+    public function processFillPdfForm(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+        
+        // Handle the form submission (same logic as fillPdfForm)
+        $templates = FormTemplate::where('is_active', true)->get();
+        
+        return view('requests.fill-pdf-form', compact('grantRequest', 'templates'));
+    }
+
     // ==========================================
     // DEAN CHECK
     // ==========================================

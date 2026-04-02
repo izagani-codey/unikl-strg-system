@@ -4,7 +4,7 @@
     <div class="flex flex-wrap gap-3">
         <form action="{{ route('dev.login') }}" method="POST">
             @csrf
-            <input type="hidden" name="email" value="admission@unikl.edu.my">
+            <input type="hidden" name="email" value="admissions@unikl.edu.my">
             <button type="submit"
                     class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs {{ auth()->user()->role === 'admission' ? 'ring-2 ring-white' : '' }}">
                 Become: Admission
