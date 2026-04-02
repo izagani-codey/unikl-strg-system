@@ -281,7 +281,6 @@
             row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
         }
 
-        // VOT Total Calculation
         function calculateTotal() {
             const votInputs = document.querySelectorAll('.vot-amount-input');
             let total = 0;
@@ -368,6 +367,10 @@
 
         let isSubmitting = false;
         document.getElementById('request-form').addEventListener('submit', function(e) {
+            if (e.defaultPrevented) {
+                return false;
+            }
+
             if (isSubmitting) {
                 e.preventDefault();
                 return false;
