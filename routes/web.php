@@ -78,6 +78,8 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
+    // Commented out - Dean interface hidden for now
+    /*
     Route::middleware('role:dean')->group(function () {
         Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
         Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
@@ -86,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
         Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
     });
+    */
 
     // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {
@@ -93,6 +96,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
         Route::get('/staff2/admin/users', [Staff2AdminController::class, 'users'])->name('staff2.admin.users');
         Route::get('/staff2/admin/request-types', [Staff2AdminController::class, 'requestTypes'])->name('staff2.admin.request-types');
+        Route::get('/staff2/deployment-playbook', [Staff2AdminController::class, 'deploymentPlaybook'])->name('staff2.deployment-playbook');
         Route::post('/staff2/admin/request-types', [Staff2AdminController::class, 'storeRequestType'])->name('staff2.admin.request-types.store');
         Route::put('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'updateRequestType'])->name('staff2.admin.request-types.update');
         Route::delete('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'destroyRequestType'])->name('staff2.admin.request-types.destroy');

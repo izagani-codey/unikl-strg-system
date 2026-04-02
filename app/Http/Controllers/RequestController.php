@@ -88,8 +88,9 @@ class RequestController extends Controller
     {
         $this->authorize('create', GrantRequest::class);
         $requestTypes = RequestType::all();
+        $votCodes = \App\Models\VotCode::active()->ordered()->get();
         $user = Auth::user();
-        return view('requests.create', compact('requestTypes', 'user'));
+        return view('requests.create', compact('requestTypes', 'votCodes', 'user'));
     }
 
     public function store(StoreRequestRequest $request)
@@ -418,29 +419,16 @@ class RequestController extends Controller
         return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
     }
 
-    private function normalizeVotItems(array $rawItems): array
+    private function normalizeVotItems(array $votItems): array
     {
-        $votLookup = VotCode::query()
-            ->pluck('description', 'code')
-            ->toArray();
-
-        return collect($rawItems)
-            ->map(function ($item) use ($votLookup) {
-                $code = trim((string) ($item['vot_code'] ?? ''));
-                $amount = (float) ($item['amount'] ?? 0);
-
-                if ($code === '' || !array_key_exists($code, $votLookup)) {
-                    return null;
-                }
-
-                return [
-                    'vot_code' => $code,
-                    'description' => $votLookup[$code],
-                    'amount' => $amount,
-                ];
-            })
-            ->filter(fn ($item) => $item !== null)
-            ->values()
-            ->all();
+        return collect($votItems)->map(function ($item) {
+            return [
+                'vot_code_id' => $item['vot_code'] ?? null, // Changed from vot_code_id to vot_code
+                'amount' => (float) ($item['amount'] ?? 0),
+                'description' => $item['description'] ?? '',
+            ];
+        })->filter(function ($item) {
+            return !empty($item['vot_code_id']) && $item['amount'] > 0;
+        })->values()->all();
     }
 }

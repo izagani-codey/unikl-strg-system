@@ -145,4 +145,8 @@ class Staff2AdminController extends Controller
         }
     }
 
+    public function deploymentPlaybook()
+    {
+        return view('staff2.deployment-playbook');
+    }
 }

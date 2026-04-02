@@ -13,6 +13,9 @@ class VotCodeSeeder extends Seeder
      */
     public function run(): void
     {
+        // Clear existing VOT codes to prevent duplicates
+        VotCode::query()->delete();
+        
         $votCodes = [
             ['code' => 'VOT11000', 'description' => 'Salary and wages', 'sort_order' => 1],
             ['code' => 'VOT14000', 'description' => 'Overtime', 'sort_order' => 2],
@@ -28,9 +31,9 @@ class VotCodeSeeder extends Seeder
         ];
 
         foreach ($votCodes as $votCode) {
-            VotCode::updateOrCreate(['code' => $votCode['code']], $votCode);
+            VotCode::create($votCode);
         }
 
-        $this->command->info('✅ Seeded 11 VOT codes successfully');
+        $this->command->info('✅ Cleaned and seeded 11 VOT codes successfully');
     }
 }
