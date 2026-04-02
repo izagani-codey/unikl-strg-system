@@ -27,6 +27,13 @@
                     </svg>
                     Blank Forms
                 </a>
+                <a href="{{ route('staff2.deployment-playbook') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-900 text-white text-sm font-semibold rounded-lg hover:from-slate-800 hover:to-black transition-all shadow-lg">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3v2h6v-2c0-1.657-1.343-3-3-3zm-7 5V9a7 7 0 1114 0v4m-1 0H6a2 2 0 00-2 2v3a2 2 0 002 2h12a2 2 0 002-2v-3a2 2 0 00-2-2z"/>
+                    </svg>
+                    Secure Deploy
+                </a>
             </div>
         </div>
     </x-slot>

@@ -52,14 +52,7 @@
 
                     {{-- VOT Line Items --}}
                     <div class="mb-6 border-b border-gray-200 pb-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Budget Breakdown (VOT Items)</h3>
-                            <button type="button"
-                                    onclick="addVotItemRow()"
-                                    class="inline-flex items-center px-3 py-2 rounded bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm">
-                                + Add VOT
-                            </button>
-                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown (VOT Items)</h3>
                         <p class="text-sm text-gray-600 mb-4">Choose VOT code from dropdown and enter any amount (no maximum cap enforced in system).</p>
 
                         @php
@@ -67,14 +60,9 @@
                         @endphp
 
                         <div id="vot-items-container" class="space-y-3"></div>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            <button type="button" id="add-vot-row-btn" onclick="addVotItemRow()" class="px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 shadow">
-                                + Add VOT Item
-                            </button>
-                            <button type="button" onclick="addVotItemRow(); addVotItemRow();" class="px-4 py-2 rounded bg-green-600 text-white text-sm font-semibold hover:bg-green-700 shadow">
-                                + Add 2 Rows
-                            </button>
-                        </div>
+                        <button type="button" onclick="addVotItemRow()" class="mt-3 px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800">
+                            + Add VOT Item
+                        </button>
 
                         <template id="vot-item-template">
                             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 vot-item-row">
@@ -204,11 +192,6 @@
         }
 
         function removeVotItemRow(button) {
-            const totalRows = document.querySelectorAll('.vot-item-row').length;
-            if (totalRows <= 1) {
-                alert('At least one VOT item is required.');
-                return;
-            }
             const row = button.closest('.vot-item-row');
             row.remove();
             calculateTotal();
