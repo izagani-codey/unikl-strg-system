@@ -7,7 +7,6 @@ use App\Models\Request;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class WorkflowTransitionService
 {
@@ -99,8 +98,17 @@ class WorkflowTransitionService
         // Update verification/recommendation tracking
         self::updateTrackingFields($request, $newStatus, $user);
 
-        // Dispatch notifications
-        self::dispatchNotifications($request, $oldStatus, $newStatus);
+        // Dispatch notifications (best-effort; must not block transition success)
+        try {
+            self::dispatchNotifications($request, $oldStatus, $newStatus);
+        } catch (\Throwable $e) {
+            \Log::warning('Workflow transition notification dispatch failed', [
+                'request_id' => $request->id,
+                'from_status' => $oldStatus->value,
+                'to_status' => $newStatus->value,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $request->fresh();
     }
@@ -143,15 +151,39 @@ class WorkflowTransitionService
     private static function dispatchNotifications(Request $request, RequestStatus $from, RequestStatus $to): void
     {
         if ($to === RequestStatus::PENDING_RECOMMENDATION) {
-            self::notifyStaff2($request);
+            self::notifyRole(
+                role: 'staff2',
+                request: $request,
+                type: 'request_ready_for_recommendation',
+                title: 'Request Ready for Recommendation',
+                message: "Request {$request->ref_number} is ready for your review.",
+            );
         } elseif ($to === RequestStatus::PENDING_DEAN_APPROVAL) {
-            self::notifyDean($request);
+            self::notifyRole(
+                role: 'dean',
+                request: $request,
+                type: 'request_pending_dean_approval',
+                title: 'Request Pending Dean Approval',
+                message: "Request {$request->ref_number} is ready for your final approval.",
+            );
         } elseif ($to === RequestStatus::RETURNED_TO_ADMISSION) {
             self::notifyAdmission($request, 'Request returned for revision');
         } elseif ($to === RequestStatus::RETURNED_TO_STAFF_1) {
-            self::notifyStaff1($request);
+            self::notifyRole(
+                role: 'staff1',
+                request: $request,
+                type: 'request_returned_for_verification',
+                title: 'Request Returned for Verification',
+                message: "Request {$request->ref_number} has been returned for additional verification.",
+            );
         } elseif ($to === RequestStatus::RETURNED_TO_STAFF_2) {
-            self::notifyStaff2($request, 'Request returned for additional review');
+            self::notifyRole(
+                role: 'staff2',
+                request: $request,
+                type: 'request_ready_for_recommendation',
+                title: 'Request Ready for Recommendation',
+                message: "Request {$request->ref_number} has been returned for additional review.",
+            );
         } elseif ($to === RequestStatus::APPROVED || $to === RequestStatus::DECLINED) {
             self::notifyAdmission($request, 
                 $to === RequestStatus::APPROVED ? 'Request approved' : 'Request declined'
@@ -159,63 +191,43 @@ class WorkflowTransitionService
         }
     }
 
-    private static function notifyStaff2(Request $request, ?string $customMessage = null): void
+    private static function notifyRole(string $role, Request $request, string $type, string $title, string $message): void
     {
-        $staff2Users = \App\Models\User::where('role', 'staff2')->get();
-        
-        foreach ($staff2Users as $user) {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_ready_for_recommendation',
-                'Request Ready for Recommendation',
-                $customMessage ?? "Request {$request->ref_number} is ready for your review.",
-                route('requests.show', $request->id),
-                ['request_id' => $request->id]
-            );
-        }
-    }
+        $users = \App\Models\User::where('role', $role)->get();
+        $url = route('requests.show', $request->id);
 
-    private static function notifyDean(Request $request): void
-    {
-        $deanUsers = \App\Models\User::where('role', 'dean')->get();
-        
-        foreach ($deanUsers as $user) {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_pending_dean_approval',
-                'Request Pending Dean Approval',
-                "Request {$request->ref_number} is ready for your final approval.",
-                route('dean.requests.show', $request->id),
-                ['request_id' => $request->id]
-            );
-        }
-    }
-
-    private static function notifyStaff1(Request $request): void
-    {
-        $staff1Users = \App\Models\User::where('role', 'staff1')->get();
-        
-        foreach ($staff1Users as $user) {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_returned_for_verification',
-                'Request Returned for Verification',
-                "Request {$request->ref_number} has been returned for additional verification.",
-                route('requests.show', $request->id),
-                ['request_id' => $request->id]
-            );
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
         }
     }
 
     private static function notifyAdmission(Request $request, string $title): void
     {
-        \App\Models\Notification::createForUser(
+        self::notifyUser(
             $request->user_id,
             'request_updated',
             $title,
             "Request {$request->ref_number} has been updated. Please review the changes.",
             route('requests.show', $request->id),
-            ['request_id' => $request->id]
+            $request->id
+        );
+    }
+
+    private static function notifyUser(
+        int $userId,
+        string $type,
+        string $title,
+        string $message,
+        string $url,
+        int $requestId
+    ): void {
+        \App\Models\Notification::createForUser(
+            $userId,
+            $type,
+            $title,
+            $message,
+            $url,
+            ['request_id' => $requestId]
         );
     }
 }
