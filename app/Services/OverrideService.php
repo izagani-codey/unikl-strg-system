@@ -153,6 +153,27 @@ class OverrideService
 
         // Notify admission user
         $request->user->notify(new OverrideNotification($request, $message, $action));
+
+        // Additional explicit confirmation notifications for reinstatement actions
+        if ($action === 'reject_reverse') {
+            \App\Models\Notification::createForUser(
+                $request->user_id,
+                'request_reinstated',
+                'Request Reinstated',
+                "Request {$request->ref_number} has been reinstated into the workflow.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id, 'action' => $action]
+            );
+
+            \App\Models\Notification::createForUser(
+                $overrideUser->id,
+                'reinstatement_confirmation',
+                'Reinstatement Confirmed',
+                "You reinstated request {$request->ref_number}. This action was logged and is now active.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id, 'action' => $action]
+            );
+        }
     }
 
     /**
