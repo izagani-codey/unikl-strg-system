@@ -83,11 +83,14 @@ class RequestPolicy
         }
 
         if ($user->role === 'staff2' && !$currentStatus->canBeActionedByStaff2()) {
-            // Staff 2 has override capabilities - can act on any active request
             if ($currentStatus->isFinal()) {
                 return Response::deny('This request is already finalized.');
             }
-            // Staff 2 can override any non-finalized request
+
+            // For non-standard stages, Staff 2 must use explicit override actions.
+            if (!$user->canOverride() || !OverrideService::canOverride($request, $user)) {
+                return Response::deny('This request is outside normal Staff 2 flow. Use override mode when needed.');
+            }
         }
 
         return true;

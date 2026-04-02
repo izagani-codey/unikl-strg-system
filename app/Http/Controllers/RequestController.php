@@ -22,48 +22,6 @@ use Illuminate\Support\Facades\Gate;
 class RequestController extends Controller
 {
     // ==========================================
-    // Allowed transitions map (used by Policy)
-    // ==========================================
-
-    public static function allowedTransitions(): array
-    {
-        return [
-            'staff1' => [
-                RequestStatus::PENDING_VERIFICATION->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::DECLINED->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
-                ],
-                RequestStatus::RETURNED_TO_STAFF_1->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
-                ],
-            ],
-            'staff2' => [
-                RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
-                ],
-                RequestStatus::RETURNED_TO_STAFF_2->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
-                    RequestStatus::DECLINED->value,
-                ],
-            ],
-            'dean' => [
-                RequestStatus::PENDING_DEAN_APPROVAL->value => [
-                    RequestStatus::APPROVED->value,
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
-                ],
-            ],
-        ];
-    }
-
-    // ==========================================
     // Global Requests Index (if needed)
     // ==========================================
 
