@@ -99,8 +99,17 @@ class WorkflowTransitionService
         // Update verification/recommendation tracking
         self::updateTrackingFields($request, $newStatus, $user);
 
-        // Dispatch notifications
-        self::dispatchNotifications($request, $oldStatus, $newStatus);
+        // Dispatch notifications (best-effort; must not block transition success)
+        try {
+            self::dispatchNotifications($request, $oldStatus, $newStatus);
+        } catch (\Throwable $e) {
+            \Log::warning('Workflow transition notification dispatch failed', [
+                'request_id' => $request->id,
+                'from_status' => $oldStatus->value,
+                'to_status' => $newStatus->value,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $request->fresh();
     }
@@ -185,7 +194,7 @@ class WorkflowTransitionService
                 'request_pending_dean_approval',
                 'Request Pending Dean Approval',
                 "Request {$request->ref_number} is ready for your final approval.",
-                route('dean.requests.show', $request->id),
+                route('requests.show', $request->id),
                 ['request_id' => $request->id]
             );
         }
