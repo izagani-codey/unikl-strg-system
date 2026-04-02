@@ -55,7 +55,7 @@ The system tracks request status changes, internal comments, and audit history.
 
 All demo users use password: `password`.
 
-- `admission@unikl.edu.my`
+- `admissions@unikl.edu.my`
 - `staff1@unikl.edu.my`
 - `staff2@unikl.edu.my`
 

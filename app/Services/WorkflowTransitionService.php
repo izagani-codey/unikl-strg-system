@@ -185,7 +185,7 @@ class WorkflowTransitionService
                 'request_pending_dean_approval',
                 'Request Pending Dean Approval',
                 "Request {$request->ref_number} is ready for your final approval.",
-                route('dean.requests.show', $request->id),
+                route('requests.show', $request->id),
                 ['request_id' => $request->id]
             );
         }
