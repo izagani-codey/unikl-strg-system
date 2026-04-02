@@ -661,7 +661,10 @@
                         </span>
                         <span class="font-semibold w-32 shrink-0">{{ $log->actor->name }}</span>
                         <span class="text-gray-600">
-                            Status {{ $log->from_status }} -> {{ $log->to_status }}
+                            Status
+                            {{ \App\Enums\RequestStatus::tryFrom((int) $log->from_status)?->getLabel() ?? $log->from_status }}
+                            ->
+                            {{ \App\Enums\RequestStatus::tryFrom((int) $log->to_status)?->getLabel() ?? $log->to_status }}
                             @if($log->note) · {{ $log->note }} @endif
                         </span>
                     </div>
