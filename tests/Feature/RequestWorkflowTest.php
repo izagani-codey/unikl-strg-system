@@ -108,8 +108,6 @@ class RequestWorkflowTest extends TestCase
         $response = $this->actingAs($staff2)->post(route('requests.override', $grantRequest->id), [
             'action_type' => 'reject_reverse',
             'reason' => 'Override workflow recovery for approved record',
-            'confirm_reinstate' => '1',
-            'confirmation_phrase' => 'REINSTATE',
         ]);
 
         $response->assertForbidden();
@@ -134,8 +132,6 @@ class RequestWorkflowTest extends TestCase
         $response = $this->actingAs($staff2)->post(route('requests.override', $grantRequest->id), [
             'action_type' => 'reject_reverse',
             'reason' => 'Staff 2 override because Staff 1 is unavailable',
-            'confirm_reinstate' => '1',
-            'confirmation_phrase' => 'REINSTATE',
         ]);
 
         $response->assertRedirect(route('requests.show', $grantRequest->id));
