@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use App\Enums\RequestStatus;
 use App\Models\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +15,7 @@ Artisan::command('requests:update-priorities', function () {
     $this->info('Starting priority update process...');
 
     $requests = Request::whereNotNull('deadline')
-        ->whereNotIn('status_id', [5, 6]) // Not approved or declined
+        ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
         ->get();
 
     $updatedCount = 0;
