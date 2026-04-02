@@ -66,10 +66,6 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown (VOT Items)</h3>
                         <p class="text-sm text-gray-600 mb-4">Choose VOT code from dropdown and enter any amount (no maximum cap enforced in system).</p>
 
-                        @php
-                            $votCodes = \App\Models\VotCode::active()->ordered()->get();
-                        @endphp
-
                         <div id="vot-items-container" class="space-y-3"></div>
                         <button type="button" onclick="addVotItemRow()" class="mt-3 px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800">
                             + Add VOT Item

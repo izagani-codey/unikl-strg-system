@@ -88,8 +88,9 @@ class RequestController extends Controller
     {
         $this->authorize('create', GrantRequest::class);
         $requestTypes = RequestType::all();
+        $votCodes = \App\Models\VotCode::active()->ordered()->get();
         $user = Auth::user();
-        return view('requests.create', compact('requestTypes', 'user'));
+        return view('requests.create', compact('requestTypes', 'votCodes', 'user'));
     }
 
     public function store(StoreRequestRequest $request)
@@ -416,5 +417,18 @@ class RequestController extends Controller
         $year     = date('Y');
         $sequence = GrantRequest::whereYear('created_at', $year)->count() + 1;
         return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
+    }
+
+    private function normalizeVotItems(array $votItems): array
+    {
+        return collect($votItems)->map(function ($item) {
+            return [
+                'vot_code_id' => $item['vot_code'] ?? null, // Changed from vot_code_id to vot_code
+                'amount' => (float) ($item['amount'] ?? 0),
+                'description' => $item['description'] ?? '',
+            ];
+        })->filter(function ($item) {
+            return !empty($item['vot_code_id']) && $item['amount'] > 0;
+        })->values()->all();
     }
 }
