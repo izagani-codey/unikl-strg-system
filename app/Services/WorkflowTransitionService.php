@@ -196,6 +196,11 @@ class WorkflowTransitionService
         $users = \App\Models\User::where('role', $role)->get();
         $url = route('requests.show', $request->id);
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
     private static function notifyDean(Request $request): void
     {
         $deanUsers = \App\Models\User::where('role', 'dean')->get();
@@ -225,6 +230,26 @@ class WorkflowTransitionService
                 route('requests.show', $request->id),
                 ['request_id' => $request->id]
             );
+=======
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+>>>>>>> theirs
+=======
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+>>>>>>> theirs
+=======
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+>>>>>>> theirs
+=======
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+>>>>>>> theirs
+=======
+        foreach ($users as $user) {
+            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+>>>>>>> theirs
         }
     }
 

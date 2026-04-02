@@ -48,6 +48,38 @@ class NotificationController extends Controller
 
     private function isSafeRedirectTarget(string $url): bool
     {
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+        // Reject protocol-relative URLs (e.g. //evil.example) which browsers treat as external.
+        if (Str::startsWith($url, ['//'])) {
+            return false;
+        }
+
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         if (Str::startsWith($url, ['/'])) {
             return true;
         }
@@ -56,9 +88,44 @@ class NotificationController extends Controller
             return false;
         }
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
         $targetHost = parse_url($url, PHP_URL_HOST);
         $appHost = parse_url(config('app.url'), PHP_URL_HOST);
 
+=======
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        $targetHost = parse_url($url, PHP_URL_HOST);
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+
+        if (! in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
+            return false;
+        }
+
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         return is_string($targetHost)
             && is_string($appHost)
             && strcasecmp($targetHost, $appHost) === 0;
