@@ -39,7 +39,6 @@ class StoreRequestRequest extends FormRequest
             'vot_items.required'             => 'At least one VOT item is required.',
             'vot_items.min'                  => 'At least one VOT item is required.',
             'vot_items.*.vot_code.required'  => 'Each VOT item must have a VOT code.',
-            'vot_items.*.description.required' => 'Each VOT item must have a description.',
             'vot_items.*.amount.required'    => 'Each VOT item must have an amount.',
             'vot_items.*.amount.min'         => 'Each VOT amount must be zero or greater.',
             'signature_data.required'        => 'Please sign the form before submitting.',
