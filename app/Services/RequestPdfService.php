@@ -14,7 +14,7 @@ class RequestPdfService
      */
     public static function generate(GrantRequest $request): string
     {
-        $pdf = Pdf::loadView('requests.pdf-template', [
+        $pdf = Pdf::loadView('pdf-template', [
             'request' => $request,
         ])->setPaper('a4', 'portrait');
 

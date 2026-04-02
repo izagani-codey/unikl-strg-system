@@ -100,7 +100,7 @@ class Staff2AdminController extends Controller
             return back()->with('success', 'Request type created successfully.');
         } catch (\Exception $e) {
             \Log::error('Error creating request type: ' . $e->getMessage());
-            return back()->with('error', 'Error creating request type: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Unable to create request type at the moment. Please try again.')->withInput();
         }
     }
 
@@ -122,7 +122,7 @@ class Staff2AdminController extends Controller
             return back()->with('success', 'Request type updated successfully.');
         } catch (\Exception $e) {
             \Log::error('Error updating request type: ' . $e->getMessage());
-            return back()->with('error', 'Error updating request type: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Unable to update request type at the moment. Please try again.')->withInput();
         }
     }
 
@@ -141,7 +141,7 @@ class Staff2AdminController extends Controller
             return back()->with('success', 'Request type deleted successfully.');
         } catch (\Exception $e) {
             \Log::error('Error deleting request type: ' . $e->getMessage());
-            return back()->with('error', 'Error deleting request type: ' . $e->getMessage());
+            return back()->with('error', 'Unable to delete request type at the moment. Please try again.');
         }
     }
 
