@@ -10,6 +10,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
+use App\Http\Controllers\TestController;
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'));
@@ -18,15 +19,26 @@ Route::get('/', fn() => view('welcome'));
 if (app()->environment('local')) {
     Route::post('/dev-login', function (Request $request) {
         $request->validate(['email' => ['required', 'email']]);
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        if (Auth::attempt(['email' => $request->email, 'password' => 'password'])) {
-            $request->session()->regenerate();
-            return redirect()->route('dashboard');
+        
+        $email = $request->input('email');
+        
+        // Find user by email
+        $user = \App\Models\User::where('email', $email)->first();
+        
+        if (!$user) {
+            return back()->with('error', 'User not found');
         }
-        return back()->with('error', 'Switch failed.');
+        
+        // Log in as user
+        Auth::login($user);
+        
+        return redirect()->intended('dashboard');
     })->name('dev.login');
+}
+
+// ─── Development Routes ───────────────────────────────────────────────────────
+if (app()->environment('local')) {
+    Route::get('/test-auth', [TestController::class, 'testAuth'])->middleware('auth');
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -43,45 +55,45 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/signature', [ProfileController::class, 'updateSignature'])->name('profile.signature.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ── Request Management Routes ─────────────────────────────────────────────────────
+    // ── Admission ────────────────────────────────────────────────────────────────
     Route::middleware(['auth', 'can:create,request'])->group(function () {
-        Route::get('/requests', [RequestManagementController::class, 'index'])->name('requests.index');
-        Route::get('/requests/create', [RequestManagementController::class, 'create'])->name('requests.create');
-        Route::post('/requests', [RequestManagementController::class, 'store'])->name('requests.store');
-        Route::get('/requests/{id}', [RequestManagementController::class, 'show'])->name('requests.show');
-        Route::get('/requests/{id}/edit', [RequestManagementController::class, 'edit'])->name('requests.edit');
-        Route::patch('/requests/{id}', [RequestManagementController::class, 'update'])->name('requests.update');
-        Route::delete('/requests/{id}', [RequestManagementController::class, 'destroy'])->name('requests.destroy');
+        Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+        Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
+        Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
+        Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+        Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
+        Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
     });
 
     // ── Staff 1 + 2 ──────────────────────────────────────────────────────────
     Route::middleware('role:staff1,staff2')->group(function () {
-        Route::patch('/requests/{id}/status', [RequestWorkflowController::class, 'updateStatus'])->name('requests.updateStatus');
-        Route::patch('/requests/{id}/priority', [RequestWorkflowController::class, 'updatePriority'])->name('requests.updatePriority');
-        Route::post('/requests/{id}/comments', [RequestWorkflowController::class, 'addComment'])->name('requests.comment');
+        Route::patch('/requests/{id}/status', [RequestController::class, 'updateStatus'])->name('requests.updateStatus');
+        Route::patch('/requests/{id}/priority', [RequestController::class, 'updatePriority'])->name('requests.updatePriority');
+        Route::post('/requests/{id}/comments', [RequestController::class, 'addComment'])->name('requests.comment');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
     });
 
     // ── All roles — view requests ─────────────────────────────────────────────
-    Route::get('/requests/{id}/print', [RequestPdfController::class, 'printSummary'])->name('requests.print');
-    Route::get('/requests/{id}/pdf', [RequestPdfController::class, 'downloadPdf'])->name('requests.pdf');
+    Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
+    Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+
     // ── Notifications ─────────────────────────────────────────────────────────
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
-    // ── Staff 2 Override Routes ─────────────────────────────────────────────────
+    // ── Staff 2 Override Routes ─────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {
-        Route::post('/requests/{id}/override', [RequestWorkflowController::class, 'performOverride'])->name('requests.override');
-        Route::post('/override/toggle', [RequestWorkflowController::class, 'toggleOverrideMode'])->name('override.toggle');
+        Route::post('/requests/{id}/override', [RequestController::class, 'performOverride'])->name('requests.override');
+        Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
     });
 
     // ── Request PDF Routes ──────────────────────────────────────────────────────
     Route::middleware(['auth', 'can:view,request'])->group(function () {
-        Route::get('/requests/{id}/pdf', [RequestPdfController::class, 'downloadPdf'])->name('requests.pdf');
-        Route::post('/requests/{id}/fill-pdf-form', [RequestPdfController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
-        Route::get('/requests/{id}/dean-check', [RequestWorkflowController::class, 'checkDeanApproval'])->name('requests.dean.check');
+        Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+        Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
+        Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
     });
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────

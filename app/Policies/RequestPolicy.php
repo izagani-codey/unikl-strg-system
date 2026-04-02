@@ -21,8 +21,8 @@ class RequestPolicy
             return $user->id === $request->user_id;
         }
 
-        // Staff users can view any request
-        return in_array($user->role, ['staff1', 'staff2']);
+        // Staff and Dean users can view any request
+        return in_array($user->role, ['staff1', 'staff2', 'dean']);
     }
 
     /**
@@ -30,7 +30,7 @@ class RequestPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admission', 'staff1', 'staff2']);
+        return in_array($user->role, ['admission', 'staff1', 'staff2', 'dean']);
     }
 
     /**
@@ -71,8 +71,8 @@ class RequestPolicy
      */
     public function changeStatus(User $user, Request $request): Response|bool
     {
-        if (!in_array($user->role, ['staff1', 'staff2'])) {
-            return Response::deny('Only staff members can update request status.');
+        if (!in_array($user->role, ['staff1', 'staff2', 'dean'])) {
+            return Response::deny('Only staff members and dean can update request status.');
         }
 
         $currentStatus = RequestStatus::from($request->status_id);
@@ -91,6 +91,11 @@ class RequestPolicy
             if (!$user->canOverride() || !OverrideService::canOverride($request, $user)) {
                 return Response::deny('This request is outside normal Staff 2 flow. Use override mode when needed.');
             }
+        }
+
+        // Dean can approve/reject requests that need dean approval
+        if ($user->role === 'dean' && !$currentStatus->canBeActionedByDean()) {
+            return Response::deny('This request cannot be actioned by Dean at this stage.');
         }
 
         return true;
@@ -120,6 +125,11 @@ class RequestPolicy
             }
             // Staff 2 can comment on any active request (override)
             return true;
+        }
+
+        // Dean can comment on requests they can action
+        if ($user->role === 'dean') {
+            return $currentStatus->canBeActionedByDean();
         }
 
         return false;

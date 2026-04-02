@@ -22,12 +22,6 @@ class DashboardController extends BaseController
 
         // Get dashboard data using service
         $dashboardData = $this->dashboardService->getDashboardData($user, $filters);
-
-        // Route to the correct dashboard view for this role
-        // Dean interface is hidden for now
-        if ($user->role === 'dean') {
-            return redirect()->route('dashboard')->with('info', 'Dean dashboard is currently disabled.');
-        }
         
         return view('dashboard.' . $user->role, $dashboardData);
     }
