@@ -11,6 +11,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
 use App\Http\Controllers\TestController;
+use App\Http\Controllers\DeanController;
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'));
@@ -56,14 +57,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // ── Requests ───────────────────────────────────────────────────────────────
-    Route::middleware('auth')->group(function () {
-        Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
-        Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
-        Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
-        Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
-        Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
-        Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
-    });
+    Route::get('/requests', [RequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/create', [RequestController::class, 'create'])->name('requests.create');
+    Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
+    Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
+    Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
 
     // ── Staff 1 + 2 + Dean ──────────────────────────────────────────────────────────
     Route::middleware('role:staff1,staff2,dean')->group(function () {

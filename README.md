@@ -8,6 +8,17 @@ A Laravel 13 web application for managing STRG-related requests across three rol
 
 The system tracks request status changes, internal comments, and audit history.
 
+## Template-Friendly Customization
+
+This project can be reused as a public skeleton while keeping the same workflow logic:
+
+- Rename organization/product labels via environment variables:
+  - `SYSTEM_ORGANIZATION`
+  - `SYSTEM_PRODUCT_NAME`
+  - `SYSTEM_REQUEST_LABEL`
+- Toggle dean-facing routes/UI without code edits:
+  - `FEATURE_DEAN_INTERFACE=true|false`
+
 ## Core Features
 
 - Role-based dashboard for admission and staff workflows.
