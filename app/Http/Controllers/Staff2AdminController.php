@@ -143,4 +143,9 @@ class Staff2AdminController extends Controller
             return back()->with('error', 'Error deleting request type: ' . $e->getMessage());
         }
     }
+
+    public function deploymentPlaybook()
+    {
+        return view('staff2.deployment-playbook');
+    }
 }
