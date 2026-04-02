@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
+use App\Models\VotCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,7 @@ class RequestWorkflowTest extends TestCase
         Storage::fake('public');
 
         $requestType = RequestType::create(['name' => 'General', 'slug' => 'general']);
+        VotCode::create(['code' => 'VOT11000', 'description' => 'Salary and wages', 'is_active' => true, 'sort_order' => 1]);
 
         $admission = User::factory()->create(['role' => 'admission']);
         $staff1 = User::factory()->create(['role' => 'staff1']);
@@ -27,8 +29,11 @@ class RequestWorkflowTest extends TestCase
 
         $response = $this->actingAs($admission)->post(route('requests.store'), [
             'request_type_id' => $requestType->id,
-            'amount' => 150.00,
             'description' => 'Test request workflow',
+            'vot_items' => [
+                ['vot_code' => 'VOT11000', 'description' => 'Salary and wages', 'amount' => 150.00],
+            ],
+            'signature_data' => 'data:image/png;base64,AAAA',
             'document' => UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'),
             'deadline' => now()->addDays(7)->toDateString(),
         ]);
@@ -54,14 +59,14 @@ class RequestWorkflowTest extends TestCase
         $this->assertSame(RequestStatus::PENDING_RECOMMENDATION->value, $grantRequest->status_id);
 
         $response = $this->actingAs($staff2)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::APPROVED->value,
-            'notes' => 'Approved by staff 2',
+            'status_id' => RequestStatus::PENDING_DEAN_APPROVAL->value,
+            'notes' => 'Recommended and sent to Dean',
             'rejection_reason' => '',
         ]);
 
         $response->assertRedirect(route('requests.show', $grantRequest->id));
         $grantRequest->refresh();
-        $this->assertSame(RequestStatus::APPROVED->value, $grantRequest->status_id);
+        $this->assertSame(RequestStatus::PENDING_DEAN_APPROVAL->value, $grantRequest->status_id);
     }
 
     public function test_invalid_status_transition_is_blocked(): void
@@ -105,15 +110,14 @@ class RequestWorkflowTest extends TestCase
             'file_path' => null,
         ]);
 
-        $response = $this->actingAs($staff2)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::DECLINED->value,
-            'notes' => 'Reversing approval',
-            'rejection_reason' => 'Override decline',
+        $response = $this->actingAs($staff2)->post(route('requests.override', $grantRequest->id), [
+            'action_type' => 'reject_reverse',
+            'reason' => 'Override workflow recovery for approved record',
+            'confirm_reinstate' => '1',
+            'confirmation_phrase' => 'REINSTATE',
         ]);
 
-        $response->assertRedirect(route('requests.show', $grantRequest->id));
-        $grantRequest->refresh();
-        $this->assertSame(RequestStatus::DECLINED->value, $grantRequest->status_id);
+        $response->assertForbidden();
     }
 
     public function test_staff2_can_override_declined_request_to_approved(): void
@@ -131,15 +135,17 @@ class RequestWorkflowTest extends TestCase
             'file_path' => null,
         ]);
 
-        $response = $this->actingAs($staff2)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::APPROVED->value,
-            'notes' => 'Reversing decline',
-            'rejection_reason' => '',
+        $staff2->enableOverride();
+        $response = $this->actingAs($staff2)->post(route('requests.override', $grantRequest->id), [
+            'action_type' => 'reject_reverse',
+            'reason' => 'Staff 2 override because Staff 1 is unavailable',
+            'confirm_reinstate' => '1',
+            'confirmation_phrase' => 'REINSTATE',
         ]);
 
         $response->assertRedirect(route('requests.show', $grantRequest->id));
         $grantRequest->refresh();
-        $this->assertSame(RequestStatus::APPROVED->value, $grantRequest->status_id);
+        $this->assertSame(RequestStatus::PENDING_VERIFICATION->value, $grantRequest->status_id);
     }
 
     public function test_file_upload_validation_rejects_invalid_document_type(): void
@@ -147,12 +153,16 @@ class RequestWorkflowTest extends TestCase
         Storage::fake('public');
 
         $requestType = RequestType::create(['name' => 'General', 'slug' => 'general']);
+        VotCode::create(['code' => 'VOT11000', 'description' => 'Salary and wages', 'is_active' => true, 'sort_order' => 1]);
         $admission = User::factory()->create(['role' => 'admission']);
 
         $response = $this->actingAs($admission)->post(route('requests.store'), [
             'request_type_id' => $requestType->id,
-            'amount' => 200,
             'description' => 'Disallowed file test',
+            'vot_items' => [
+                ['vot_code' => 'VOT11000', 'description' => 'Salary and wages', 'amount' => 200],
+            ],
+            'signature_data' => 'data:image/png;base64,AAAA',
             'document' => UploadedFile::fake()->create('document.txt', 50, 'text/plain'),
             'deadline' => now()->addDays(2)->toDateString(),
         ]);
@@ -176,7 +186,7 @@ class RequestWorkflowTest extends TestCase
         $this->assertTrue($declined->isFinal());
         $this->assertFalse($pending->isFinal());
 
-        $this->assertTrue($pending->canBeEditedByAdmission());
+        $this->assertFalse($pending->canBeEditedByAdmission());
         $this->assertFalse($approved->canBeEditedByAdmission());
 
         $this->assertTrue($pending->canBeActionedByStaff1());

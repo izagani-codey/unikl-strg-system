@@ -441,7 +441,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('requests.show', $request->id) }}" 
                                            class="text-green-600 hover:text-green-900 transition-colors">
-                                            {{ $request->status_id === 2 ? 'Review Request' : 'View Details' }}
+                                            {{ $request->status_id === \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value ? 'Review Request' : 'View Details' }}
                                         </a>
                                     </td>
                                 </tr>

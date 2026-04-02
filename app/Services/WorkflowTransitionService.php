@@ -22,22 +22,23 @@ class WorkflowTransitionService
                     RequestStatus::PENDING_RECOMMENDATION->value,
                     RequestStatus::RETURNED_TO_ADMISSION->value,
                     RequestStatus::DECLINED->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
                 ],
                 RequestStatus::RETURNED_TO_STAFF_1->value => [
                     RequestStatus::PENDING_RECOMMENDATION->value,
                     RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
+                    RequestStatus::DECLINED->value,
                 ],
             ],
             'staff2' => [
                 RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::PENDING_DEAN_APPROVAL->value,
+                    RequestStatus::RETURNED_TO_STAFF_1->value,
                     RequestStatus::RETURNED_TO_STAFF_2->value,
                     RequestStatus::DECLINED->value,
                 ],
                 RequestStatus::RETURNED_TO_STAFF_2->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
+                    RequestStatus::PENDING_DEAN_APPROVAL->value,
+                    RequestStatus::RETURNED_TO_STAFF_1->value,
                     RequestStatus::DECLINED->value,
                 ],
             ],
@@ -128,13 +129,6 @@ class WorkflowTransitionService
             $request->update(['verified_by' => $user->id]);
         } elseif ($newStatus === RequestStatus::PENDING_DEAN_APPROVAL) {
             $request->update(['recommended_by' => $user->id]);
-        } elseif ($newStatus === RequestStatus::PENDING_DEAN_VERIFICATION) {
-            // Dean confirmation by staff
-            $request->update([
-                'dean_approved_by' => $user->id,
-                'dean_approved_at' => now(),
-                'dean_notes' => 'Confirmed by ' . ($user->role === 'staff1' ? 'Staff 1' : 'Staff 2') . ' on behalf of Dean',
-            ]);
         } elseif (in_array($newStatus, [RequestStatus::APPROVED, RequestStatus::DECLINED]) && $user->isDean()) {
             $request->update([
                 'dean_approved_by' => $user->id,
@@ -152,8 +146,6 @@ class WorkflowTransitionService
             self::notifyStaff2($request);
         } elseif ($to === RequestStatus::PENDING_DEAN_APPROVAL) {
             self::notifyDean($request);
-        } elseif ($to === RequestStatus::PENDING_DEAN_VERIFICATION) {
-            self::notifyAdmission($request, 'Request confirmed by Dean - pending verification');
         } elseif ($to === RequestStatus::RETURNED_TO_ADMISSION) {
             self::notifyAdmission($request, 'Request returned for revision');
         } elseif ($to === RequestStatus::RETURNED_TO_STAFF_1) {
