@@ -63,14 +63,7 @@
 
                     {{-- VOT Line Items --}}
                     <div class="mb-6 border-b border-gray-200 pb-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">Budget Breakdown (VOT Items)</h3>
-                            <button type="button"
-                                    onclick="addVotItemRow()"
-                                    class="inline-flex items-center px-3 py-2 rounded bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm">
-                                + Add VOT
-                            </button>
-                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown (VOT Items)</h3>
                         <p class="text-sm text-gray-600 mb-4">Choose VOT code from dropdown and enter any amount (no maximum cap enforced in system).</p>
 
                         @php
@@ -78,21 +71,16 @@
                         @endphp
 
                         <div id="vot-items-container" class="space-y-3"></div>
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            <button type="button" id="add-vot-row-btn" onclick="addVotItemRow()" class="px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 shadow">
-                                + Add VOT Item
-                            </button>
-                            <button type="button" onclick="addVotItemRow(); addVotItemRow();" class="px-4 py-2 rounded bg-green-600 text-white text-sm font-semibold hover:bg-green-700 shadow">
-                                + Add 2 Rows
-                            </button>
-                        </div>
+                        <button type="button" onclick="addVotItemRow()" class="mt-3 px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800">
+                            + Add VOT Item
+                        </button>
 
                         <template id="vot-item-template">
                             <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 vot-item-row">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                     <div class="md:col-span-2">
                                         <label class="block text-sm font-bold text-gray-700">VOT Code</label>
-                                        <select class="w-full rounded border-gray-300 mt-1 vot-code-select" required>
+                                        <select class="w-full rounded border-gray-300 mt-1 vot-code-select" onchange="handleVotSelection(this)" required>
                                             <option value="">Select VOT code</option>
                                             @foreach($votCodes as $votCode)
                                                 <option value="{{ $votCode->code }}" data-description="{{ $votCode->description }}">
@@ -106,7 +94,7 @@
                                     <div>
                                         <label class="block text-sm font-bold text-gray-700">Amount (RM)</label>
                                         <input type="number" class="w-full rounded border-gray-300 mt-1 vot-amount-input"
-                                               placeholder="0.00" step="0.01" min="0" required>
+                                               placeholder="0.00" step="0.01" min="0" onchange="calculateTotal()" required>
                                     </div>
                                     <div class="flex items-end">
                                         <button type="button" onclick="removeVotItemRow(this)" class="px-3 py-2 rounded bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 w-full">
@@ -231,8 +219,8 @@
             });
             amountInput.addEventListener('input', calculateTotal);
 
-            container.appendChild(clone);
-            votItemCount++;
+            // Initialize total calculation
+            addVotItemRow();
             calculateTotal();
         }
 
@@ -258,6 +246,46 @@
             row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
         }
 
+        function addVotItemRow() {
+            const container = document.getElementById('vot-items-container');
+            const template = document.getElementById('vot-item-template');
+            const clone = template.content.cloneNode(true);
+            const row = clone.querySelector('.vot-item-row');
+
+            const select = row.querySelector('.vot-code-select');
+            const codeInput = row.querySelector('.vot-code-input');
+            const descInput = row.querySelector('.vot-description-input');
+            const amountInput = row.querySelector('.vot-amount-input');
+
+            select.name = '';
+            codeInput.name = `vot_items[${votItemCount}][vot_code]`;
+            descInput.name = `vot_items[${votItemCount}][description]`;
+            amountInput.name = `vot_items[${votItemCount}][amount]`;
+            codeInput.required = true;
+            descInput.required = true;
+
+            container.appendChild(clone);
+            votItemCount++;
+        }
+
+        function removeVotItemRow(button) {
+            const row = button.closest('.vot-item-row');
+            row.remove();
+            calculateTotal();
+        }
+
+        function handleVotSelection(selectElement) {
+            const row = selectElement.closest('.vot-item-row');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const code = selectedOption.value || '';
+            const description = selectedOption.dataset.description || '';
+
+            row.querySelector('.vot-code-input').value = code;
+            row.querySelector('.vot-description-input').value = description;
+            row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
+        }
+
+        // VOT Total Calculation
         function calculateTotal() {
             const votInputs = document.querySelectorAll('.vot-amount-input');
             let total = 0;

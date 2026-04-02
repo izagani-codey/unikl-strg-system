@@ -26,7 +26,7 @@ class UpdateRequestRequest extends FormRequest
             'description' => 'required|string',
             'vot_items' => 'required|array|min:1',
             'vot_items.*.vot_code' => 'required|string|exists:vot_codes,code',
-            'vot_items.*.description' => 'nullable|string|max:255',
+            'vot_items.*.description' => 'required|string|max:255',
             'vot_items.*.amount' => 'required|numeric|min:0',
             'document'    => [
                 'nullable',

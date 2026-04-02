@@ -417,30 +417,4 @@ class RequestController extends Controller
         $sequence = GrantRequest::whereYear('created_at', $year)->count() + 1;
         return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
     }
-
-    private function normalizeVotItems(array $rawItems): array
-    {
-        $votLookup = VotCode::query()
-            ->pluck('description', 'code')
-            ->toArray();
-
-        return collect($rawItems)
-            ->map(function ($item) use ($votLookup) {
-                $code = trim((string) ($item['vot_code'] ?? ''));
-                $amount = (float) ($item['amount'] ?? 0);
-
-                if ($code === '' || !array_key_exists($code, $votLookup)) {
-                    return null;
-                }
-
-                return [
-                    'vot_code' => $code,
-                    'description' => $votLookup[$code],
-                    'amount' => $amount,
-                ];
-            })
-            ->filter(fn ($item) => $item !== null)
-            ->values()
-            ->all();
-    }
 }

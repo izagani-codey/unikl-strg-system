@@ -18,8 +18,7 @@ class StoreRequestRequest extends FormRequest
             'description'             => 'required|string',
             'vot_items'               => 'required|array|min:1',
             'vot_items.*.vot_code'    => 'required|string|exists:vot_codes,code',
-            // Description is resolved server-side from selected VOT code.
-            'vot_items.*.description' => 'nullable|string|max:255',
+            'vot_items.*.description' => 'required|string|max:255',
             'vot_items.*.amount'      => 'required|numeric|min:0',
             'signature_data'          => 'required|string', // base64 PNG from signature pad
             'deadline'                => 'nullable|date|after:today',
