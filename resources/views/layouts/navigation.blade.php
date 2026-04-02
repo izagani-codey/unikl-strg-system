@@ -45,11 +45,9 @@
                         <x-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
                             {{ __('Staff 2 Admin') }}
                         </x-nav-link>
-                        @if(\Illuminate\Support\Facades\Route::has('staff2.deployment-playbook'))
-                            <x-nav-link :href="route('staff2.deployment-playbook')" :active="request()->routeIs('staff2.deployment-playbook')">
-                                {{ __('Secure Deploy') }}
-                            </x-nav-link>
-                        @endif
+                        <x-nav-link :href="route('staff2.deployment-playbook')" :active="request()->routeIs('staff2.deployment-playbook')">
+                            {{ __('Secure Deploy') }}
+                        </x-nav-link>
                     @endif
 
                     {{-- Dean navigation hidden for now
@@ -146,11 +144,9 @@
                 <x-responsive-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
                     {{ __('Staff 2 Admin') }}
                 </x-responsive-nav-link>
-                @if(\Illuminate\Support\Facades\Route::has('staff2.deployment-playbook'))
-                    <x-responsive-nav-link :href="route('staff2.deployment-playbook')" :active="request()->routeIs('staff2.deployment-playbook')">
-                        {{ __('Secure Deploy') }}
-                    </x-responsive-nav-link>
-                @endif
+                <x-responsive-nav-link :href="route('staff2.deployment-playbook')" :active="request()->routeIs('staff2.deployment-playbook')">
+                    {{ __('Secure Deploy') }}
+                </x-responsive-nav-link>
             @endif
 
             @if(in_array(auth()->user()->role, ['staff1', 'staff2'], true))
