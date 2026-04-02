@@ -28,6 +28,7 @@
                       enctype="multipart/form-data">
                     @csrf
                     @method('PATCH')
+                    <input type="hidden" name="request_type_id" value="{{ $grantRequest->request_type_id }}">
 
                     {{-- Email (readonly) --}}
                     <div class="mb-4">
@@ -47,16 +48,32 @@
                                readonly>
                     </div>
 
-                    {{-- Amount --}}
+                    {{-- VOT Items --}}
                     <div class="mb-4">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">
-                            Amount Requested (RM)
-                        </label>
-                        <input type="number"
-                               name="amount"
-                               value="{{ $grantRequest->payload['amount'] ?? '' }}"
-                               class="w-full rounded border-gray-300 text-sm"
-                               placeholder="0.00">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">VOT Breakdown</label>
+                        @php
+                            $votCodes = \App\Models\VotCode::active()->ordered()->get();
+                            $existingItems = collect($grantRequest->vot_items ?? [])->values();
+                            if ($existingItems->isEmpty()) {
+                                $existingItems = collect([['vot_code' => '', 'description' => '', 'amount' => 0]]);
+                            }
+                        @endphp
+                        <div id="edit-vot-items" class="space-y-3">
+                            @foreach($existingItems as $i => $item)
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 rounded border">
+                                    <select name="vot_items[{{ $i }}][vot_code]" class="rounded border-gray-300" required>
+                                        <option value="">Select VOT code</option>
+                                        @foreach($votCodes as $votCode)
+                                            <option value="{{ $votCode->code }}" @selected(($item['vot_code'] ?? '') === $votCode->code)>
+                                                {{ $votCode->code }} - {{ $votCode->description }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="text" name="vot_items[{{ $i }}][description]" value="{{ $item['description'] ?? '' }}" class="rounded border-gray-300" required>
+                                    <input type="number" step="0.01" min="0" name="vot_items[{{ $i }}][amount]" value="{{ $item['amount'] ?? 0 }}" class="rounded border-gray-300" required>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
 
                     {{-- Description --}}

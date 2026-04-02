@@ -11,9 +11,9 @@
                     <input type="text" name="actor" value="{{ request('actor') }}" placeholder="Actor name/email" class="border rounded px-3 py-2 text-sm">
                     <select name="status" class="border rounded px-3 py-2 text-sm">
                         <option value="">Any Status</option>
-                        @for($i = 1; $i <= 6; $i++)
-                            <option value="{{ $i }}" @selected(request('status') == $i)>Status {{ $i }}</option>
-                        @endfor
+                        @foreach(\App\Enums\RequestStatus::getAllCases() as $statusValue => $statusLabel)
+                            <option value="{{ $statusValue }}" @selected((string) request('status') === (string) $statusValue)>{{ $statusLabel }}</option>
+                        @endforeach
                     </select>
                     <input type="date" name="date_from" value="{{ request('date_from') }}" class="border rounded px-3 py-2 text-sm">
                     <input type="date" name="date_to" value="{{ request('date_to') }}" class="border rounded px-3 py-2 text-sm">
@@ -44,7 +44,11 @@
                                     <div class="font-medium">{{ $log->actor?->name ?? 'System' }}</div>
                                     <div class="text-xs text-slate-500">{{ $log->actor?->email }}</div>
                                 </td>
-                                <td class="px-4 py-3">{{ $log->from_status }} → {{ $log->to_status }}</td>
+                                <td class="px-4 py-3">
+                                    {{ \App\Enums\RequestStatus::tryFrom((int) $log->from_status)?->getLabel() ?? $log->from_status }}
+                                    →
+                                    {{ \App\Enums\RequestStatus::tryFrom((int) $log->to_status)?->getLabel() ?? $log->to_status }}
+                                </td>
                                 <td class="px-4 py-3 text-slate-600">{{ $log->note ?: '—' }}</td>
                             </tr>
                         @empty

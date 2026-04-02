@@ -1,4 +1,23 @@
 <x-app-layout>
+    @php
+        $isFinalStatus = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::APPROVED->value, \App\Enums\RequestStatus::DECLINED->value], true);
+        $staff1Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value], true);
+        $staff1Completed = in_array($grantRequest->status_id, [
+            \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value,
+            \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value,
+            \App\Enums\RequestStatus::RETURNED_TO_ADMISSION->value,
+            \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value,
+            \App\Enums\RequestStatus::APPROVED->value,
+            \App\Enums\RequestStatus::DECLINED->value,
+        ], true);
+        $staff2Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_RECOMMENDATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value], true);
+        $staff2Completed = in_array($grantRequest->status_id, [
+            \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value,
+            \App\Enums\RequestStatus::APPROVED->value,
+            \App\Enums\RequestStatus::DECLINED->value,
+        ], true);
+    @endphp
+
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -52,8 +71,20 @@
                         <p class="font-semibold">{{ $grantRequest->requestType->name }}</p>
                     </div>
                     <div>
+                        <p class="text-gray-500">Staff ID</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_staff_id ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Designation</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_designation ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Phone Number</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_phone ?? '-' }}</p>
+                    </div>
+                    <div>
                         <p class="text-gray-500">Amount Requested</p>
-                        <p class="font-bold text-lg">RM {{ number_format($grantRequest->payload['amount'] ?? 0, 2) }}</p>
+                        <p class="font-bold text-lg">RM {{ number_format((float) ($grantRequest->total_amount ?? 0), 2) }}</p>
                     </div>
                     <div>
                         <p class="text-gray-500">Date Submitted</p>
@@ -77,6 +108,34 @@
                     <p class="text-gray-500 text-sm">Justification / Description</p>
                     <div class="mt-1 p-3 bg-gray-50 rounded border text-sm">
                         {{ $grantRequest->payload['description'] ?? 'No description provided.' }}
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <p class="text-gray-500 text-sm mb-2">VOT Breakdown</p>
+                    <div class="overflow-hidden rounded border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="text-left px-3 py-2">VOT Code</th>
+                                    <th class="text-left px-3 py-2">Description</th>
+                                    <th class="text-right px-3 py-2">Amount (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($grantRequest->vot_items ?? []) as $item)
+                                    <tr class="border-t">
+                                        <td class="px-3 py-2 font-semibold">{{ $item['vot_code'] ?? '-' }}</td>
+                                        <td class="px-3 py-2">{{ $item['description'] ?? '-' }}</td>
+                                        <td class="px-3 py-2 text-right">{{ number_format((float) ($item['amount'] ?? 0), 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr class="border-t">
+                                        <td colspan="3" class="px-3 py-2 text-center text-gray-500">No VOT items provided</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -115,7 +174,7 @@
                         
                         <!-- Step 2: Staff 1 Verification -->
                         <div class="flex items-center">
-                            <div class="w-16 h-16 {{ $grantRequest->status_id >= 2 ? 'bg-green-500' : ($grantRequest->status_id == 1 ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
+                            <div class="w-16 h-16 {{ $staff1Completed ? 'bg-green-500' : ($staff1Active ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
@@ -136,7 +195,7 @@
                         
                         <!-- Step 3: Staff 2 Recommendation -->
                         <div class="flex items-center">
-                            <div class="w-16 h-16 {{ $grantRequest->status_id >= 5 ? 'bg-green-500' : ($grantRequest->status_id == 2 ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
+                            <div class="w-16 h-16 {{ $staff2Completed ? 'bg-green-500' : ($staff2Active ? 'bg-blue-500' : 'bg-gray-300') }} rounded-full flex items-center justify-center text-white">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
@@ -154,7 +213,7 @@
                                 @endif
                                 
                                 <!-- Show rejection info if declined -->
-                                @if($grantRequest->status_id === 6)
+                                @if($grantRequest->status_id === \App\Enums\RequestStatus::DECLINED->value)
                                     <div class="mt-2 p-2 bg-red-50 rounded border border-red-200">
                                         <p class="text-sm text-red-800">
                                             <span class="font-medium">Declined:</span> 
@@ -171,7 +230,7 @@
                         
                         <!-- Step 4: Completed -->
                         <div class="flex items-center">
-                            <div class="w-16 h-16 {{ $grantRequest->status_id == 5 ? 'bg-green-500' : 'bg-gray-300' }} rounded-full flex items-center justify-center text-white">
+                            <div class="w-16 h-16 {{ $isFinalStatus ? 'bg-green-500' : 'bg-gray-300' }} rounded-full flex items-center justify-center text-white">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -279,14 +338,7 @@
 
                 @php
                     $isStaff = auth()->user()->role !== 'admission';
-                    $statusLabels = [
-                        1 => 'Pending Verification',
-                        2 => 'With Staff 2',
-                        3 => 'Returned to Admission',
-                        4 => 'Returned to Staff 1',
-                        5 => 'Approved',
-                        6 => 'Declined',
-                    ];
+                    $statusLabels = \App\Enums\RequestStatus::getAllCases();
 
                     $events = collect();
 
@@ -390,17 +442,12 @@
                                     ✓ Verify & Send to Staff 2
                                 </button>
                                 <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='4'"
-                                    class="bg-purple-600 text-white px-5 py-2 rounded font-bold hover:bg-purple-700">
-                                    👑 Confirm by Dean
-                                </button>
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='3'"
+                                    onclick="document.getElementById('s1-status').value='5'"
                                     class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
                                     ↩ Return to Admission
                                 </button>
                                 <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='6'"
+                                    onclick="document.getElementById('s1-status').value='9'"
                                     class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
                                     ✕ Reject
                                 </button>
@@ -420,23 +467,23 @@
                             <textarea name="rejection_reason" rows="2"
                                 placeholder="Reason (required for Decline or Return)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
-                            <input type="hidden" name="status_id" value="5" id="status2-input">
+                            <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value }}" id="status2-input">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='4'"
+                                    onclick="document.getElementById('status2-input').value='3'"
                                     class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700">
-                                    👑 Confirm by Dean
+                                    ✓ Send to Dean
                                 </button>
                                 
-                                @if($grantRequest->status_id === 2)
+                                @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)
                                     <button type="submit"
-                                        onclick="document.getElementById('status2-input').value='4'"
+                                        onclick="document.getElementById('status2-input').value='6'"
                                         class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
                                         ↩ Return to Staff 1
                                     </button>
                                 @endif
                                 
-                                @if($grantRequest->status_id === 1)
+                                @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_VERIFICATION->value)
                                     <button type="submit"
                                         onclick="document.getElementById('status2-input').value='2'"
                                         class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">
@@ -445,13 +492,13 @@
                                 @endif
                                 
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='6'"
+                                    onclick="document.getElementById('status2-input').value='9'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
                                     ✕ Decline
                                 </button>
                             </div>
                         </form>
-                        <p class="text-xs text-gray-400 mt-3 italic">Staff 2 override is active on all active requests and finalises the review.</p>
+                        <p class="text-xs text-gray-400 mt-3 italic">Primary flow: Admission → Staff 1 → Staff 2 → Dean. Staff 2 can use override when Staff 1 is unavailable.</p>
                     @endif
                 @endcan
 
@@ -470,19 +517,31 @@
                                 @csrf
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-purple-700">Override Action:</label>
-                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required>
+                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required id="override-action-type">
                                         <option value="">Select override action...</option>
-                                        @if($grantRequest->status_id === 6)
+                                        @if($grantRequest->status_id === \App\Enums\RequestStatus::DECLINED->value)
                                             <option value="reject_reverse">↩ Reverse Rejection</option>
                                         @endif
-                                        @if($grantRequest->status_id === 1)
+                                        @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_VERIFICATION->value)
                                             <option value="bypass_verification">⚡ Bypass Staff 1 Verification</option>
                                         @endif
-                                        @if(in_array($grantRequest->status_id, [1, 2]))
+                                        @if(in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value], true))
                                             <option value="approve">✓ Direct Approval</option>
                                         @endif
                                         <option value="priority_override">🔥 Toggle Priority</option>
                                     </select>
+                                </div>
+
+                                <div id="reinstate-double-confirmation" class="hidden space-y-2 p-3 bg-red-50 border border-red-200 rounded">
+                                    <p class="text-xs font-semibold text-red-700">Double confirmation required for reinstatement.</p>
+                                    <label class="flex items-center gap-2 text-sm text-red-800">
+                                        <input type="checkbox" name="confirm_reinstate" value="1" class="rounded border-red-300">
+                                        I confirm this rejected request should be reinstated.
+                                    </label>
+                                    <div>
+                                        <label class="block text-sm font-medium text-red-700">Type <code>REINSTATE</code> to continue:</label>
+                                        <input type="text" name="confirmation_phrase" class="w-full border-red-300 rounded p-2 text-sm" placeholder="REINSTATE">
+                                    </div>
                                 </div>
                                 
                                 <div class="space-y-2">
@@ -502,7 +561,7 @@
                 @endcan
 
                 {{-- MANUAL PRIORITY CONTROLS --}}
-                @if(in_array(auth()->user()->role, ['staff1', 'staff2']) && !in_array($grantRequest->status_id, [5, 6]))
+                @if(in_array(auth()->user()->role, ['staff1', 'staff2']) && !$isFinalStatus)
                     <div class="mt-6 p-4 bg-orange-50 border-l-4 border-orange-500 rounded">
                         <h4 class="font-bold text-orange-800 mb-3 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -552,9 +611,9 @@
 
                 {{-- No actions available --}}
                 @if(
-                    (auth()->user()->role === 'admission' && $grantRequest->status_id != 3) ||
-                    (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [1, 4])) ||
-                    (auth()->user()->role === 'staff2' && in_array($grantRequest->status_id, [5, 6], true))
+                    (auth()->user()->role === 'admission' && $grantRequest->status_id != \App\Enums\RequestStatus::RETURNED_TO_ADMISSION->value) ||
+                    (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value], true)) ||
+                    (auth()->user()->role === 'staff2' && $isFinalStatus)
                 )
                     <p class="text-gray-400 italic text-sm">No actions available at this stage.</p>
                 @endif
@@ -602,7 +661,10 @@
                         </span>
                         <span class="font-semibold w-32 shrink-0">{{ $log->actor->name }}</span>
                         <span class="text-gray-600">
-                            Status {{ $log->from_status }} -> {{ $log->to_status }}
+                            Status
+                            {{ \App\Enums\RequestStatus::tryFrom((int) $log->from_status)?->getLabel() ?? $log->from_status }}
+                            ->
+                            {{ \App\Enums\RequestStatus::tryFrom((int) $log->to_status)?->getLabel() ?? $log->to_status }}
                             @if($log->note) · {{ $log->note }} @endif
                         </span>
                     </div>
@@ -621,6 +683,22 @@
     </div>
 
     <script>
+        const overrideActionSelect = document.getElementById('override-action-type');
+        const reinstateDoubleConfirmation = document.getElementById('reinstate-double-confirmation');
+
+        if (overrideActionSelect && reinstateDoubleConfirmation) {
+            const toggleDoubleConfirmation = () => {
+                if (overrideActionSelect.value === 'reject_reverse') {
+                    reinstateDoubleConfirmation.classList.remove('hidden');
+                } else {
+                    reinstateDoubleConfirmation.classList.add('hidden');
+                }
+            };
+
+            overrideActionSelect.addEventListener('change', toggleDoubleConfirmation);
+            toggleDoubleConfirmation();
+        }
+
         function handleFormSubmit(form, message) {
             const submitButtons = form.querySelectorAll('button[type="submit"]');
             submitButtons.forEach((btn) => {
