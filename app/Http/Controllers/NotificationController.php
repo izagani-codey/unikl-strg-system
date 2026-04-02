@@ -48,11 +48,6 @@ class NotificationController extends Controller
 
     private function isSafeRedirectTarget(string $url): bool
     {
-        // Reject protocol-relative URLs (e.g. //evil.example) which browsers treat as external.
-        if (Str::startsWith($url, ['//'])) {
-            return false;
-        }
-
         if (Str::startsWith($url, ['/'])) {
             return true;
         }
@@ -61,13 +56,8 @@ class NotificationController extends Controller
             return false;
         }
 
-        $scheme = parse_url($url, PHP_URL_SCHEME);
         $targetHost = parse_url($url, PHP_URL_HOST);
         $appHost = parse_url(config('app.url'), PHP_URL_HOST);
-
-        if (! in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
-            return false;
-        }
 
         return is_string($targetHost)
             && is_string($appHost)

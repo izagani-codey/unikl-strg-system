@@ -196,8 +196,35 @@ class WorkflowTransitionService
         $users = \App\Models\User::where('role', $role)->get();
         $url = route('requests.show', $request->id);
 
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
+    private static function notifyDean(Request $request): void
+    {
+        $deanUsers = \App\Models\User::where('role', 'dean')->get();
+        
+        foreach ($deanUsers as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_pending_dean_approval',
+                'Request Pending Dean Approval',
+                "Request {$request->ref_number} is ready for your final approval.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id]
+            );
+        }
+    }
+
+    private static function notifyStaff1(Request $request): void
+    {
+        $staff1Users = \App\Models\User::where('role', 'staff1')->get();
+        
+        foreach ($staff1Users as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_returned_for_verification',
+                'Request Returned for Verification',
+                "Request {$request->ref_number} has been returned for additional verification.",
+                route('requests.show', $request->id),
+                ['request_id' => $request->id]
+            );
         }
     }
 
