@@ -12,6 +12,7 @@ use App\Models\Comment;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
+use App\Models\VotCode;
 use App\Services\OverrideService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
@@ -21,48 +22,6 @@ use Illuminate\Support\Facades\Gate;
 
 class RequestController extends Controller
 {
-    // ==========================================
-    // Allowed transitions map (used by Policy)
-    // ==========================================
-
-    public static function allowedTransitions(): array
-    {
-        return [
-            'staff1' => [
-                RequestStatus::PENDING_VERIFICATION->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::DECLINED->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
-                ],
-                RequestStatus::RETURNED_TO_STAFF_1->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 1
-                ],
-            ],
-            'staff2' => [
-                RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
-                ],
-                RequestStatus::RETURNED_TO_STAFF_2->value => [
-                    RequestStatus::PENDING_DEAN_VERIFICATION->value, // Dean confirmation by Staff 2
-                    RequestStatus::DECLINED->value,
-                ],
-            ],
-            'dean' => [
-                RequestStatus::PENDING_DEAN_APPROVAL->value => [
-                    RequestStatus::APPROVED->value,
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
-                ],
-            ],
-        ];
-    }
-
     // ==========================================
     // Global Requests Index (if needed)
     // ==========================================
@@ -139,8 +98,8 @@ class RequestController extends Controller
 
         $user = Auth::user();
 
-        // Calculate total from VOT items
-        $votItems = $request->input('vot_items', []);
+        // Normalize and calculate total from VOT items
+        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
         // Calculate automatic priority based on deadline (staff only)
@@ -216,7 +175,7 @@ class RequestController extends Controller
         $this->authorize('update', $grantRequest);
 
         $user = Auth::user();
-        $votItems = $request->input('vot_items', []);
+        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
         $filePath = $grantRequest->file_path;
@@ -391,7 +350,19 @@ class RequestController extends Controller
         $request->validate([
             'action_type' => 'required|in:approve,reject_reverse,bypass_verification,priority_override',
             'reason' => 'required|string|min:10|max:500',
+            'confirm_reinstate' => 'nullable|accepted',
+            'confirmation_phrase' => 'nullable|string|max:20',
         ]);
+
+        if ($request->input('action_type') === 'reject_reverse') {
+            $request->validate([
+                'confirm_reinstate' => 'required|accepted',
+                'confirmation_phrase' => 'required|in:REINSTATE',
+            ], [
+                'confirm_reinstate.required' => 'Please confirm reinstatement before proceeding.',
+                'confirmation_phrase.in' => 'Type REINSTATE to confirm this sensitive action.',
+            ]);
+        }
 
         try {
             OverrideService::performOverride($grantRequest, $request->input('action_type'), $request->input('reason'));
@@ -445,5 +416,31 @@ class RequestController extends Controller
         $year     = date('Y');
         $sequence = GrantRequest::whereYear('created_at', $year)->count() + 1;
         return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
+    }
+
+    private function normalizeVotItems(array $rawItems): array
+    {
+        $votLookup = VotCode::query()
+            ->pluck('description', 'code')
+            ->toArray();
+
+        return collect($rawItems)
+            ->map(function ($item) use ($votLookup) {
+                $code = trim((string) ($item['vot_code'] ?? ''));
+                $amount = (float) ($item['amount'] ?? 0);
+
+                if ($code === '' || !array_key_exists($code, $votLookup)) {
+                    return null;
+                }
+
+                return [
+                    'vot_code' => $code,
+                    'description' => $votLookup[$code],
+                    'amount' => $amount,
+                ];
+            })
+            ->filter(fn ($item) => $item !== null)
+            ->values()
+            ->all();
     }
 }

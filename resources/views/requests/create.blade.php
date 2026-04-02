@@ -11,6 +11,17 @@
                 
                 <form action="{{ route('requests.store') }}" method="POST" enctype="multipart/form-data" id="request-form">
                     @csrf
+
+                    @if ($errors->any())
+                        <div class="mb-6 rounded-md border border-red-200 bg-red-50 p-4">
+                            <h3 class="text-sm font-semibold text-red-800">Please fix the following before submitting:</h3>
+                            <ul class="mt-2 list-disc pl-5 text-sm text-red-700">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     
                     {{-- Request Information --}}
                     <div class="mb-6 border-b border-gray-200 pb-6">
@@ -22,7 +33,7 @@
                                 <select name="request_type_id" class="w-full rounded border-gray-300" required>
                                     <option value="">Select Request Type</option>
                                     @foreach($requestTypes as $type)
-                                        <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                        <option value="{{ $type->id }}" @selected((string) old('request_type_id') === (string) $type->id)>{{ $type->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -30,7 +41,7 @@
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Priority</label>
                                 <div class="flex items-center mt-2">
-                                    <input type="checkbox" name="priority" value="1" class="rounded border-gray-300">
+                                    <input type="checkbox" name="priority" value="1" class="rounded border-gray-300" @checked(old('priority'))>
                                     <label class="ml-2 text-sm text-gray-700">Mark as High Priority</label>
                                 </div>
                             </div>
@@ -39,52 +50,73 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Deadline</label>
-                                <input type="date" name="deadline" class="w-full rounded border-gray-300 mt-1">
+                                <input type="date" name="deadline" value="{{ old('deadline') }}" class="w-full rounded border-gray-300 mt-1">
                                 <p class="text-xs text-gray-500 mt-1">Optional deadline for this request</p>
                             </div>
                         </div>
 
                         <div class="mt-4">
                             <label class="block text-sm font-bold text-gray-700">Justification / Description *</label>
-                            <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="Describe the purpose and justification for this STRG request..." required></textarea>
+                            <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="Describe the purpose and justification for this STRG request..." required>{{ old('description') }}</textarea>
                         </div>
                     </div>
 
                     {{-- VOT Line Items --}}
                     <div class="mb-6 border-b border-gray-200 pb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Budget Breakdown (VOT Items)</h3>
-                        <p class="text-sm text-gray-600 mb-4">Enter amounts for each VOT code. Zero values are allowed.</p>
-                        
-                        <div class="space-y-3">
-                            @php
-                                $votCodes = \App\Models\VotCode::active()->ordered()->get();
-                            @endphp
-                            
-                            @foreach($votCodes as $index => $votCode)
-                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div class="md:col-span-1">
-                                            <label class="block text-sm font-bold text-gray-700">
-                                                {{ $votCode->code }} - {{ $votCode->description }}
-                                            </label>
-                                        </div>
-                                        <div class="md:col-span-1">
-                                            <input type="number" 
-                                                   name="vot_items[{{ $votCode->code }}][amount]" 
-                                                   class="w-full rounded border-gray-300 mt-1" 
-                                                   placeholder="0.00" 
-                                                   step="0.01" 
-                                                   min="0" 
-                                                   onchange="calculateTotal()"
-                                                   data-vot-code="{{ $votCode->code }}">
-                                        </div>
-                                        <div class="md:col-span-1 flex items-center">
-                                            <span class="text-sm text-gray-600">RM</span>
-                                        </div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Budget Breakdown (VOT Items)</h3>
+                            <button type="button"
+                                    onclick="addVotItemRow()"
+                                    class="inline-flex items-center px-3 py-2 rounded bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shadow-sm">
+                                + Add VOT
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4">Choose VOT code from dropdown and enter any amount (no maximum cap enforced in system).</p>
+
+                        @php
+                            $votCodes = \App\Models\VotCode::active()->ordered()->get();
+                        @endphp
+
+                        <div id="vot-items-container" class="space-y-3"></div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <button type="button" id="add-vot-row-btn" onclick="addVotItemRow()" class="px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 shadow">
+                                + Add VOT Item
+                            </button>
+                            <button type="button" onclick="addVotItemRow(); addVotItemRow();" class="px-4 py-2 rounded bg-green-600 text-white text-sm font-semibold hover:bg-green-700 shadow">
+                                + Add 2 Rows
+                            </button>
+                        </div>
+
+                        <template id="vot-item-template">
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 vot-item-row">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-bold text-gray-700">VOT Code</label>
+                                        <select class="w-full rounded border-gray-300 mt-1 vot-code-select" required>
+                                            <option value="">Select VOT code</option>
+                                            @foreach($votCodes as $votCode)
+                                                <option value="{{ $votCode->code }}" data-description="{{ $votCode->description }}">
+                                                    {{ $votCode->code }} - {{ $votCode->description }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <input type="hidden" class="vot-code-input">
+                                        <input type="hidden" class="vot-description-input">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-gray-700">Amount (RM)</label>
+                                        <input type="number" class="w-full rounded border-gray-300 mt-1 vot-amount-input"
+                                               placeholder="0.00" step="0.01" min="0" required>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button type="button" onclick="removeVotItemRow(this)" class="px-3 py-2 rounded bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 w-full">
+                                            Remove
+                                        </button>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
+                                <p class="text-xs text-gray-500 mt-2 vot-desc-preview"></p>
+                            </div>
+                        </template>
                         
                         <div class="mt-4 flex justify-between items-center bg-gray-100 p-4 rounded-lg">
                             <div class="text-sm font-medium text-gray-700">
@@ -101,7 +133,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Digital Signature</h3>
                         
                         <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-                            <canvas id="signature-canvas" width="400" height="200" class="border border-gray-400 bg-white rounded cursor-crosshair"></canvas>
+                            <canvas id="signature-canvas" width="400" height="200" class="border border-gray-400 bg-white rounded cursor-crosshair touch-none select-none"></canvas>
                             
                             <div class="mt-4 flex justify-between">
                                 <button type="button" onclick="clearSignature()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors">
@@ -114,7 +146,7 @@
                             </div>
                         </div>
                         
-                        <input type="hidden" name="signature_data" id="signature_data" required>
+                        <input type="hidden" name="signature_data" id="signature_data" value="{{ old('signature_data') }}" required>
                     </div>
 
                     {{-- Document Upload --}}
@@ -140,28 +172,94 @@
         </div>
     </div>
 
-    <!-- Signature Pad JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <script>
-        let signaturePad;
+        let signatureState = {
+            isDrawing: false,
+            hasSignature: false,
+        };
         let votItemCount = 0;
+        const oldVotItems = @json(old('vot_items', []));
 
-        // Initialize signature pad
         document.addEventListener('DOMContentLoaded', function() {
-            const canvas = document.getElementById('signature-canvas');
-            signaturePad = new SignaturePad(canvas, {
-                backgroundColor: 'rgb(255, 255, 255)',
-                penColor: 'rgb(0, 0, 0)',
-                penWidth: 1.5
-            });
-
-            // Initialize total calculation
+            initializeSignaturePad();
+            initializeVotItems();
             calculateTotal();
         });
 
-        // VOT Total Calculation
+        function initializeVotItems() {
+            if (Array.isArray(oldVotItems) && oldVotItems.length > 0) {
+                oldVotItems.forEach((item) => addVotItemRow(item));
+                return;
+            }
+            addVotItemRow();
+        }
+
+        function addVotItemRow() {
+            const initialData = arguments.length > 0 ? arguments[0] : {};
+            const container = document.getElementById('vot-items-container');
+            const template = document.getElementById('vot-item-template');
+            const clone = template.content.cloneNode(true);
+            const row = clone.querySelector('.vot-item-row');
+
+            const select = row.querySelector('.vot-code-select');
+            const codeInput = row.querySelector('.vot-code-input');
+            const descInput = row.querySelector('.vot-description-input');
+            const amountInput = row.querySelector('.vot-amount-input');
+
+            select.name = '';
+            codeInput.name = `vot_items[${votItemCount}][vot_code]`;
+            descInput.name = `vot_items[${votItemCount}][description]`;
+            amountInput.name = `vot_items[${votItemCount}][amount]`;
+            codeInput.required = true;
+            descInput.required = false;
+
+            if (initialData?.vot_code) {
+                select.value = initialData.vot_code;
+                codeInput.value = initialData.vot_code;
+                const selectedOption = select.options[select.selectedIndex];
+                const description = selectedOption?.dataset?.description || initialData.description || '';
+                descInput.value = description;
+                row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
+            }
+
+            if (initialData?.amount !== undefined && initialData?.amount !== null) {
+                amountInput.value = initialData.amount;
+            }
+
+            select.addEventListener('change', function () {
+                handleVotSelection(this);
+            });
+            amountInput.addEventListener('input', calculateTotal);
+
+            container.appendChild(clone);
+            votItemCount++;
+            calculateTotal();
+        }
+
+        function removeVotItemRow(button) {
+            const totalRows = document.querySelectorAll('.vot-item-row').length;
+            if (totalRows <= 1) {
+                alert('At least one VOT item is required.');
+                return;
+            }
+            const row = button.closest('.vot-item-row');
+            row.remove();
+            calculateTotal();
+        }
+
+        function handleVotSelection(selectElement) {
+            const row = selectElement.closest('.vot-item-row');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const code = selectedOption.value || '';
+            const description = selectedOption.dataset.description || '';
+
+            row.querySelector('.vot-code-input').value = code;
+            row.querySelector('.vot-description-input').value = description;
+            row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
+        }
+
         function calculateTotal() {
-            const votInputs = document.querySelectorAll('input[data-vot-code]');
+            const votInputs = document.querySelectorAll('.vot-amount-input');
             let total = 0;
             
             votInputs.forEach(input => {
@@ -172,27 +270,78 @@
             document.getElementById('total-amount').textContent = total.toFixed(2);
         }
 
-        // Signature Management
-        function clearSignature() {
-            signaturePad.clear();
+        function initializeSignaturePad() {
+            const canvas = document.getElementById('signature-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#111827';
+
+            const getPos = (event) => {
+                const rect = canvas.getBoundingClientRect();
+                const source = event.touches ? event.touches[0] : event;
+                return {
+                    x: source.clientX - rect.left,
+                    y: source.clientY - rect.top,
+                };
+            };
+
+            const startDraw = (event) => {
+                event.preventDefault();
+                signatureState.isDrawing = true;
+                const pos = getPos(event);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            };
+
+            const draw = (event) => {
+                if (!signatureState.isDrawing) return;
+                event.preventDefault();
+                const pos = getPos(event);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                signatureState.hasSignature = true;
+            };
+
+            const stopDraw = (event) => {
+                if (event) {
+                    event.preventDefault();
+                }
+                signatureState.isDrawing = false;
+            };
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDraw);
+
+            canvas.addEventListener('touchstart', startDraw, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            window.addEventListener('touchend', stopDraw, { passive: false });
         }
 
-        // Save signature data before form submission
+        function clearSignature() {
+            const canvas = document.getElementById('signature-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            signatureState.hasSignature = false;
+            document.getElementById('signature_data').value = '';
+        }
+
         document.getElementById('request-form').addEventListener('submit', function(e) {
-            if (signaturePad.isEmpty()) {
+            if (!signatureState.hasSignature) {
                 e.preventDefault();
                 alert('Please provide your digital signature before submitting.');
                 return false;
             }
             
-            // Save signature as base64
-            const signatureData = signaturePad.toDataURL();
+            const signatureCanvas = document.getElementById('signature-canvas');
+            const signatureData = signatureCanvas.toDataURL('image/png');
             document.getElementById('signature_data').value = signatureData;
             
             return true;
         });
 
-        // Prevent form double submission
         let isSubmitting = false;
         document.getElementById('request-form').addEventListener('submit', function(e) {
             if (isSubmitting) {

@@ -88,8 +88,59 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Requested Amount</p>
-                            <p class="font-semibold text-lg">RM {{ number_format($grantRequest->payload['amount'] ?? 0, 2) }}</p>
+                            <p class="font-semibold text-lg">RM {{ number_format((float) ($grantRequest->total_amount ?? 0), 2) }}</p>
                         </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Staff ID</p>
+                            <p class="font-semibold">{{ $grantRequest->submitter_staff_id ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Designation</p>
+                            <p class="font-semibold">{{ $grantRequest->submitter_designation ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Phone Number</p>
+                            <p class="font-semibold">{{ $grantRequest->submitter_phone ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Department</p>
+                            <p class="font-semibold">{{ $grantRequest->submitter_department ?? '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VOT Breakdown -->
+                <div class="mb-8 print-break">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">VOT Breakdown</h3>
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 text-gray-700">
+                                <tr>
+                                    <th class="text-left px-4 py-2">VOT Code</th>
+                                    <th class="text-left px-4 py-2">Description</th>
+                                    <th class="text-right px-4 py-2">Amount (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($grantRequest->vot_items ?? []) as $item)
+                                    <tr class="border-t border-gray-200">
+                                        <td class="px-4 py-2 font-semibold">{{ $item['vot_code'] ?? '-' }}</td>
+                                        <td class="px-4 py-2">{{ $item['description'] ?? '-' }}</td>
+                                        <td class="px-4 py-2 text-right">{{ number_format((float) ($item['amount'] ?? 0), 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr class="border-t border-gray-200">
+                                        <td colspan="3" class="px-4 py-3 text-center text-gray-500">No VOT items recorded</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="bg-gray-50 border-t border-gray-200">
+                                <tr>
+                                    <td colspan="2" class="px-4 py-2 text-right font-semibold">Total</td>
+                                    <td class="px-4 py-2 text-right font-bold">RM {{ number_format((float) ($grantRequest->total_amount ?? 0), 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
 
@@ -105,6 +156,15 @@
                         <p class="text-gray-700 whitespace-pre-wrap">{{ $grantRequest->payload['description'] ?? 'No description provided' }}</p>
                     </div>
                 </div>
+
+                @if($grantRequest->file_path)
+                    <div class="mb-8">
+                        <h3 class="text-lg font-bold text-gray-900 mb-2">Supporting Document</h3>
+                        <p class="text-sm text-gray-700">
+                            Attached file: <span class="font-semibold">{{ basename($grantRequest->file_path) }}</span>
+                        </p>
+                    </div>
+                @endif
 
                 <!-- Verification Trail -->
                 <div class="print-break">
