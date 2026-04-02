@@ -58,7 +58,6 @@
                         <li>Seed fake request data only.</li>
                         <li>Provide a one-command setup script for reviewers.</li>
                     </ul>
-                    <p class="text-xs text-slate-500">Tip: use <code>./scripts/devbox_skeleton.sh</code> to initialize a local skeleton/devbox quickly.</p>
                 </section>
             </div>
 
