@@ -477,7 +477,7 @@
                                 @csrf
                                 <div class="space-y-2">
                                     <label class="block text-sm font-medium text-purple-700">Override Action:</label>
-                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required>
+                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required id="override-action-type">
                                         <option value="">Select override action...</option>
                                         @if($grantRequest->status_id === \App\Enums\RequestStatus::DECLINED->value)
                                             <option value="reject_reverse">↩ Reverse Rejection</option>
@@ -490,6 +490,18 @@
                                         @endif
                                         <option value="priority_override">🔥 Toggle Priority</option>
                                     </select>
+                                </div>
+
+                                <div id="reinstate-double-confirmation" class="hidden space-y-2 p-3 bg-red-50 border border-red-200 rounded">
+                                    <p class="text-xs font-semibold text-red-700">Double confirmation required for reinstatement.</p>
+                                    <label class="flex items-center gap-2 text-sm text-red-800">
+                                        <input type="checkbox" name="confirm_reinstate" value="1" class="rounded border-red-300">
+                                        I confirm this rejected request should be reinstated.
+                                    </label>
+                                    <div>
+                                        <label class="block text-sm font-medium text-red-700">Type <code>REINSTATE</code> to continue:</label>
+                                        <input type="text" name="confirmation_phrase" class="w-full border-red-300 rounded p-2 text-sm" placeholder="REINSTATE">
+                                    </div>
                                 </div>
                                 
                                 <div class="space-y-2">
@@ -628,6 +640,22 @@
     </div>
 
     <script>
+        const overrideActionSelect = document.getElementById('override-action-type');
+        const reinstateDoubleConfirmation = document.getElementById('reinstate-double-confirmation');
+
+        if (overrideActionSelect && reinstateDoubleConfirmation) {
+            const toggleDoubleConfirmation = () => {
+                if (overrideActionSelect.value === 'reject_reverse') {
+                    reinstateDoubleConfirmation.classList.remove('hidden');
+                } else {
+                    reinstateDoubleConfirmation.classList.add('hidden');
+                }
+            };
+
+            overrideActionSelect.addEventListener('change', toggleDoubleConfirmation);
+            toggleDoubleConfirmation();
+        }
+
         function handleFormSubmit(form, message) {
             const submitButtons = form.querySelectorAll('button[type="submit"]');
             submitButtons.forEach((btn) => {
