@@ -78,6 +78,8 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
+    // Commented out - Dean interface hidden for now
+    /*
     Route::middleware('role:dean')->group(function () {
         Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
         Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
@@ -86,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
         Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
     });
+    */
 
     // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {
