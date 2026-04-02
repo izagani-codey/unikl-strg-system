@@ -65,15 +65,15 @@
                             @if($stepStatus === 'completed' && $step['id'] === 'verified' && $request->verifiedBy)
                                 <div class="text-xs text-gray-500 mt-2">
                                     <span class="font-medium">Verified by:</span> {{ $request->verifiedBy->name }}
-                                    @if($request->auditLogs()->where('to_status', RequestStatus::PENDING_RECOMMENDATION)->first())
-                                        <span class="ml-2">on {{ $request->auditLogs()->where('to_status', RequestStatus::PENDING_RECOMMENDATION)->first()->created_at->format('d M Y, h:i A') }}</span>
+                                    @if($request->auditLogs()->where('to_status', \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)->first())
+                                        <span class="ml-2">on {{ $request->auditLogs()->where('to_status', \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)->first()->created_at->format('d M Y, h:i A') }}</span>
                                     @endif
                                 </div>
                             @elseif($stepStatus === 'completed' && $step['id'] === 'recommended' && $request->recommendedBy)
                                 <div class="text-xs text-gray-500 mt-2">
                                     <span class="font-medium">Recommended by:</span> {{ $request->recommendedBy->name }}
-                                    @if($request->auditLogs()->where('to_status', RequestStatus::APPROVED)->first())
-                                        <span class="ml-2">on {{ $request->auditLogs()->where('to_status', RequestStatus::APPROVED)->first()->created_at->format('d M Y, h:i A') }}</span>
+                                    @if($request->auditLogs()->where('to_status', \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value)->first())
+                                        <span class="ml-2">on {{ $request->auditLogs()->where('to_status', \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value)->first()->created_at->format('d M Y, h:i A') }}</span>
                                     @endif
                                 </div>
                             @elseif($stepStatus === 'completed' && $step['id'] === 'submitted')
@@ -84,7 +84,7 @@
                             @endif
                             
                             <!-- Show rejection info if declined -->
-                            @if($request->status_id === RequestStatus::DECLINED->value && $step['id'] === 'recommended')
+                            @if($request->status_id === \App\Enums\RequestStatus::DECLINED->value && $step['id'] === 'recommended')
                                 <div class="mt-2 p-2 bg-red-50 rounded border border-red-200">
                                     <p class="text-sm text-red-800">
                                         <span class="font-medium">Declined:</span> 
