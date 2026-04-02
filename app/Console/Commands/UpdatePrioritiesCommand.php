@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\RequestStatus;
 use App\Models\Request;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +27,7 @@ class UpdatePrioritiesCommand extends Command
         $this->info('Starting priority update process...');
 
         $requests = Request::whereNotNull('deadline')
-            ->whereNotIn('status_id', [5, 6]) // Not approved or declined
+            ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
             ->get();
 
         $updatedCount = 0;

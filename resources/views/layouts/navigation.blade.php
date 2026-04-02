@@ -45,6 +45,9 @@
                         <x-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
                             {{ __('Staff 2 Admin') }}
                         </x-nav-link>
+                        <x-nav-link :href="url('/staff2/deployment-playbook')" :active="request()->is('staff2/deployment-playbook')">
+                            {{ __('Secure Deploy') }}
+                        </x-nav-link>
                     @endif
 
                     {{-- Dean navigation hidden for now
@@ -140,6 +143,9 @@
             @if(auth()->user()->role === 'staff2')
                 <x-responsive-nav-link :href="route('staff2.admin')" :active="request()->routeIs('staff2.admin')">
                     {{ __('Staff 2 Admin') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="url('/staff2/deployment-playbook')" :active="request()->is('staff2/deployment-playbook')">
+                    {{ __('Secure Deploy') }}
                 </x-responsive-nav-link>
             @endif
 
