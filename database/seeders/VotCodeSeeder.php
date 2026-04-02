@@ -14,17 +14,17 @@ class VotCodeSeeder extends Seeder
     public function run(): void
     {
         $votCodes = [
-            ['code' => '10000', 'description' => 'Equipment', 'sort_order' => 1],
-            ['code' => '11000', 'description' => 'Materials', 'sort_order' => 2],
-            ['code' => '12000', 'description' => 'Supplies', 'sort_order' => 3],
-            ['code' => '13000', 'description' => 'Travel', 'sort_order' => 4],
-            ['code' => '14000', 'description' => 'Training', 'sort_order' => 5],
-            ['code' => '15000', 'description' => 'Consultancy', 'sort_order' => 6],
-            ['code' => '16000', 'description' => 'Maintenance', 'sort_order' => 7],
-            ['code' => '17000', 'description' => 'Rental', 'sort_order' => 8],
-            ['code' => '18000', 'description' => 'Utilities', 'sort_order' => 9],
-            ['code' => '19000', 'description' => 'Subscriptions', 'sort_order' => 10],
-            ['code' => '20000', 'description' => 'Miscellaneous', 'sort_order' => 11],
+            ['code' => 'VOT11000', 'description' => 'Salary and wages', 'sort_order' => 1],
+            ['code' => 'VOT14000', 'description' => 'Overtime', 'sort_order' => 2],
+            ['code' => 'VOT21000', 'description' => 'Training expenses, subsistence, and local conferences', 'sort_order' => 3],
+            ['code' => 'VOT22000', 'description' => 'Transportation of goods', 'sort_order' => 4],
+            ['code' => 'VOT23000', 'description' => 'Communication and utilities', 'sort_order' => 5],
+            ['code' => 'VOT24000', 'description' => 'Rental', 'sort_order' => 6],
+            ['code' => 'VOT26000', 'description' => 'Research materials (non-consumable)', 'sort_order' => 7],
+            ['code' => 'VOT27000', 'description' => 'Research materials and supplies (consumables)', 'sort_order' => 8],
+            ['code' => 'VOT28000', 'description' => 'Maintenance and minor repair services', 'sort_order' => 9],
+            ['code' => 'VOT29000', 'description' => 'Professional and other services (incl. printing/hospitality/honorarium)', 'sort_order' => 10],
+            ['code' => 'VOT35000', 'description' => 'Assets', 'sort_order' => 11],
         ];
 
         foreach ($votCodes as $votCode) {

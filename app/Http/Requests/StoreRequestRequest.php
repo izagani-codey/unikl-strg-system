@@ -17,9 +17,9 @@ class StoreRequestRequest extends FormRequest
             'request_type_id'         => 'required|exists:request_types,id',
             'description'             => 'required|string',
             'vot_items'               => 'required|array|min:1',
-            'vot_items.*.vot_code'    => 'required|string|max:50',
+            'vot_items.*.vot_code'    => 'required|string|exists:vot_codes,code',
             'vot_items.*.description' => 'required|string|max:255',
-            'vot_items.*.amount'      => 'required|numeric|min:0.01',
+            'vot_items.*.amount'      => 'required|numeric|min:0',
             'signature_data'          => 'required|string', // base64 PNG from signature pad
             'deadline'                => 'nullable|date|after:today',
             'priority'                => 'nullable|boolean',
@@ -41,7 +41,7 @@ class StoreRequestRequest extends FormRequest
             'vot_items.*.vot_code.required'  => 'Each VOT item must have a VOT code.',
             'vot_items.*.description.required' => 'Each VOT item must have a description.',
             'vot_items.*.amount.required'    => 'Each VOT item must have an amount.',
-            'vot_items.*.amount.min'         => 'Each VOT amount must be greater than 0.',
+            'vot_items.*.amount.min'         => 'Each VOT amount must be zero or greater.',
             'signature_data.required'        => 'Please sign the form before submitting.',
         ];
     }
