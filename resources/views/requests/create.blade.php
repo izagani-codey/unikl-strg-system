@@ -67,7 +67,7 @@
                         <p class="text-sm text-gray-600 mb-4">Choose VOT code from dropdown and enter any amount (no maximum cap enforced in system).</p>
 
                         <div id="vot-items-container" class="space-y-3"></div>
-                        <button type="button" onclick="addVotItemRow()" class="mt-3 px-4 py-2 rounded bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800">
+                        <button type="button" onclick="addVotItemRow()" class="mt-3 px-4 py-2 rounded bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 border-2 border-blue-800 transition-colors">
                             + Add VOT Item
                         </button>
 

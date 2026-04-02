@@ -32,10 +32,12 @@ class FormTemplateController extends Controller
         $path = $request->file('file')->store('blank-forms', 'public');
 
         FormTemplate::create([
-            'title' => $request->input('title'),
+            'name' => $request->input('title'),
+            'template_type' => 'general_form', // Default type
             'file_path' => $path,
             'uploaded_by' => $request->user()->id,
             'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return back()->with('success', 'Blank form uploaded successfully.');

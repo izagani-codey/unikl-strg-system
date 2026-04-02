@@ -260,6 +260,55 @@ class RequestController extends Controller
     }
 
     // ==========================================
+    // PDF FORM FILLER
+    // ==========================================
+    
+    public function fillPdfForm(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $templates = FormTemplate::where('is_active', true)->get();
+        
+        $this->authorize('view', $grantRequest);
+        
+        return view('requests.fill-pdf-form', compact('grantRequest', 'templates'));
+    }
+
+    // ==========================================
+    // DEAN CHECK
+    // ==========================================
+    
+    public function checkDeanApproval(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+        
+        // Check if request needs dean approval
+        $needsDean = in_array($grantRequest->status_id, [
+            RequestStatus::PENDING_DEAN_VERIFICATION->value,
+            RequestStatus::PENDING_DEAN_APPROVAL->value,
+        ]);
+        
+        if ($needsDean) {
+            // Check if dean has already confirmed
+            $deanConfirmed = $grantRequest->dean_confirmed_at !== null;
+            $deanApprovedBy = $grantRequest->dean_approved_by !== null;
+            
+            return response()->json([
+                'needs_dean' => true,
+                'dean_confirmed' => $deanConfirmed,
+                'dean_approved_by' => $deanApprovedBy,
+                'dean_confirmed_at' => $deanConfirmed ? $grantRequest->dean_confirmed_at->format('Y-m-d H:i:s') : null,
+                'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
+            ]);
+        }
+        
+        return response()->json([
+            'needs_dean' => false,
+            'message' => 'Request does not require dean approval',
+        ]);
+    }
+
+    // ==========================================
     // STAFF — Add internal comment
     // ==========================================
 
@@ -423,12 +472,12 @@ class RequestController extends Controller
     {
         return collect($votItems)->map(function ($item) {
             return [
-                'vot_code_id' => $item['vot_code'] ?? null, // Changed from vot_code_id to vot_code
+                'vot_code' => $item['vot_code'] ?? null, // Keep as vot_code to match form
                 'amount' => (float) ($item['amount'] ?? 0),
                 'description' => $item['description'] ?? '',
             ];
         })->filter(function ($item) {
-            return !empty($item['vot_code_id']) && $item['amount'] > 0;
+            return !empty($item['vot_code']) && $item['amount'] > 0;
         })->values()->all();
     }
 }

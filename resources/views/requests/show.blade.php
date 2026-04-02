@@ -413,6 +413,14 @@
             {{-- WORKFLOW ACTION BUTTONS --}}
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Actions</h3>
+                
+                {{-- PDF Form Filler --}}
+                @if($grantRequest->status_id >= \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)
+                    <a href="{{ route('requests.fill-pdf-form', $grantRequest->id) }}"
+                       class="inline-block bg-green-500 text-white px-6 py-2 rounded font-bold hover:bg-green-600 mb-2">
+                        📄 Fill PDF Form
+                    </a>
+                @endif
 
                 {{-- ADMISSION: Edit if returned --}}
                 @can('revise', $grantRequest)

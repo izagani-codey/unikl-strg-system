@@ -8,11 +8,13 @@ class FormTemplate extends Model
 {
     protected $fillable = [
         'name',
+        'title',
         'template_type',
         'file_path',
         'field_mappings',
         'is_active',
         'uploaded_by',
+        'updated_at',
     ];
 
     protected $casts = [

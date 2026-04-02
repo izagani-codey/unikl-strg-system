@@ -77,6 +77,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
     });
 
+    // ── Dean Check Routes ──────────────────────────────────────────────────────
+    Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
+    Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
+
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
     // Commented out - Dean interface hidden for now
     /*
