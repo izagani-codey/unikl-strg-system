@@ -71,8 +71,20 @@
                         <p class="font-semibold">{{ $grantRequest->requestType->name }}</p>
                     </div>
                     <div>
+                        <p class="text-gray-500">Staff ID</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_staff_id ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Designation</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_designation ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Phone Number</p>
+                        <p class="font-semibold">{{ $grantRequest->submitter_phone ?? '-' }}</p>
+                    </div>
+                    <div>
                         <p class="text-gray-500">Amount Requested</p>
-                        <p class="font-bold text-lg">RM {{ number_format($grantRequest->payload['amount'] ?? 0, 2) }}</p>
+                        <p class="font-bold text-lg">RM {{ number_format((float) ($grantRequest->total_amount ?? 0), 2) }}</p>
                     </div>
                     <div>
                         <p class="text-gray-500">Date Submitted</p>
@@ -96,6 +108,34 @@
                     <p class="text-gray-500 text-sm">Justification / Description</p>
                     <div class="mt-1 p-3 bg-gray-50 rounded border text-sm">
                         {{ $grantRequest->payload['description'] ?? 'No description provided.' }}
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <p class="text-gray-500 text-sm mb-2">VOT Breakdown</p>
+                    <div class="overflow-hidden rounded border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="text-left px-3 py-2">VOT Code</th>
+                                    <th class="text-left px-3 py-2">Description</th>
+                                    <th class="text-right px-3 py-2">Amount (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($grantRequest->vot_items ?? []) as $item)
+                                    <tr class="border-t">
+                                        <td class="px-3 py-2 font-semibold">{{ $item['vot_code'] ?? '-' }}</td>
+                                        <td class="px-3 py-2">{{ $item['description'] ?? '-' }}</td>
+                                        <td class="px-3 py-2 text-right">{{ number_format((float) ($item['amount'] ?? 0), 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr class="border-t">
+                                        <td colspan="3" class="px-3 py-2 text-center text-gray-500">No VOT items provided</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

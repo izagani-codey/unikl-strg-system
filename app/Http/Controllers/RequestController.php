@@ -12,6 +12,7 @@ use App\Models\Comment;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
+use App\Models\VotCode;
 use App\Services\OverrideService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
@@ -97,8 +98,8 @@ class RequestController extends Controller
 
         $user = Auth::user();
 
-        // Calculate total from VOT items
-        $votItems = $request->input('vot_items', []);
+        // Normalize and calculate total from VOT items
+        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
         // Calculate automatic priority based on deadline (staff only)
@@ -174,7 +175,7 @@ class RequestController extends Controller
         $this->authorize('update', $grantRequest);
 
         $user = Auth::user();
-        $votItems = $request->input('vot_items', []);
+        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
         $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
         $filePath = $grantRequest->file_path;

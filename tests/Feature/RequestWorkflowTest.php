@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
+use App\Models\VotCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,7 @@ class RequestWorkflowTest extends TestCase
         Storage::fake('public');
 
         $requestType = RequestType::create(['name' => 'General', 'slug' => 'general']);
+        VotCode::create(['code' => 'VOT11000', 'description' => 'Salary and wages', 'is_active' => true, 'sort_order' => 1]);
 
         $admission = User::factory()->create(['role' => 'admission']);
         $staff1 = User::factory()->create(['role' => 'staff1']);
@@ -27,8 +29,11 @@ class RequestWorkflowTest extends TestCase
 
         $response = $this->actingAs($admission)->post(route('requests.store'), [
             'request_type_id' => $requestType->id,
-            'amount' => 150.00,
             'description' => 'Test request workflow',
+            'vot_items' => [
+                ['vot_code' => 'VOT11000', 'description' => 'Salary and wages', 'amount' => 150.00],
+            ],
+            'signature_data' => 'data:image/png;base64,AAAA',
             'document' => UploadedFile::fake()->create('document.pdf', 100, 'application/pdf'),
             'deadline' => now()->addDays(7)->toDateString(),
         ]);
@@ -144,12 +149,16 @@ class RequestWorkflowTest extends TestCase
         Storage::fake('public');
 
         $requestType = RequestType::create(['name' => 'General', 'slug' => 'general']);
+        VotCode::create(['code' => 'VOT11000', 'description' => 'Salary and wages', 'is_active' => true, 'sort_order' => 1]);
         $admission = User::factory()->create(['role' => 'admission']);
 
         $response = $this->actingAs($admission)->post(route('requests.store'), [
             'request_type_id' => $requestType->id,
-            'amount' => 200,
             'description' => 'Disallowed file test',
+            'vot_items' => [
+                ['vot_code' => 'VOT11000', 'description' => 'Salary and wages', 'amount' => 200],
+            ],
+            'signature_data' => 'data:image/png;base64,AAAA',
             'document' => UploadedFile::fake()->create('document.txt', 50, 'text/plain'),
             'deadline' => now()->addDays(2)->toDateString(),
         ]);
