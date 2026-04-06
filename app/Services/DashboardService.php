@@ -62,11 +62,20 @@ class DashboardService
      */
     private function getCachedRequestTypes(): Collection
     {
-        return Cache::remember('request_types_active', 3600, function () {
-            return RequestType::where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'description']);
-        });
+        $cached = Cache::get('request_types_active');
+        
+        if ($cached) {
+            return collect($cached);
+        }
+        
+        $types = RequestType::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'description']);
+        
+        $arrayData = $types->toArray();
+        Cache::put('request_types_active', $arrayData, 3600);
+        
+        return collect($arrayData);
     }
 
     /**
@@ -74,25 +83,24 @@ class DashboardService
      */
     private function getCachedFormTemplates(): Collection
     {
-        return Cache::remember('form_templates_active', 3600, function () {
-            return FormTemplate::with('uploader')
-                ->where('is_active', true)
-                ->latest('created_at')
-                ->get(['id', 'title', 'file_path', 'uploaded_by', 'created_at']);
-        });
+        $cached = Cache::get('form_templates_active');
+        
+        if ($cached) {
+            return collect($cached);
+        }
+        
+        $templates = FormTemplate::with('uploader')
+            ->where('is_active', true)
+            ->latest('created_at')
+            ->get(['id', 'title', 'file_path', 'uploaded_by', 'created_at']);
+        
+        $arrayData = $templates->toArray();
+        Cache::put('form_templates_active', $arrayData, 3600);
+        
+        return collect($arrayData);
     }
 
-    /**
-     * Clear dashboard cache for user.
-     */
-    public function clearUserCache(User $user): void
-    {
-        Cache::forget("dashboard_{$user->id}_*");
-    }
-
-    /**
-     * Clear system-wide caches.
-     */
+   
     public function clearSystemCache(): void
     {
         Cache::forget('request_types_active');

@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Enums\RequestStatus;
-use App\Models\Request;
+use App\Models\Request as GrantRequest;
 use App\Models\User;
+use App\Services\RequestPdfService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,75 +13,48 @@ class WorkflowTransitionService
 {
     /**
      * Define allowed transitions for each role
+     * SINGLE SOURCE OF TRUTH for workflow rules
      */
     public static function getAllowedTransitions(): array
     {
-        $transitions = [
+        return [
             'staff1' => [
-                RequestStatus::PENDING_VERIFICATION->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::DECLINED->value,
-                ],
-                RequestStatus::RETURNED_TO_STAFF_1->value => [
-                    RequestStatus::PENDING_RECOMMENDATION->value,
-                    RequestStatus::RETURNED_TO_ADMISSION->value,
-                    RequestStatus::DECLINED->value,
+                RequestStatus::SUBMITTED->value => [
+                    RequestStatus::STAFF1_APPROVED->value,
+                    RequestStatus::RETURNED->value,
                 ],
             ],
             'staff2' => [
-                RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::APPROVED->value, // Direct approval when dean interface is disabled
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
+                RequestStatus::SUBMITTED->value => [
+                    RequestStatus::STAFF2_APPROVED->value, // Override Staff1
+                    RequestStatus::RETURNED->value,
+                    RequestStatus::REJECTED->value,
                 ],
-                RequestStatus::RETURNED_TO_STAFF_2->value => [
-                    RequestStatus::APPROVED->value, // Direct approval when dean interface is disabled
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::DECLINED->value,
+                RequestStatus::STAFF1_APPROVED->value => [
+                    RequestStatus::STAFF2_APPROVED->value,
+                    RequestStatus::RETURNED->value,
+                    RequestStatus::REJECTED->value,
+                ],
+            ],
+            'dean' => [
+                RequestStatus::STAFF2_APPROVED->value => [
+                    RequestStatus::DEAN_APPROVED->value,
+                    RequestStatus::RETURNED->value,
+                    RequestStatus::REJECTED->value,
                 ],
             ],
             'admission' => [
-                RequestStatus::RETURNED_TO_ADMISSION->value => [
-                    RequestStatus::PENDING_VERIFICATION->value,
+                RequestStatus::RETURNED->value => [
+                    RequestStatus::SUBMITTED->value,
                 ],
             ],
         ];
-
-        // Add dean transitions only when feature flag is enabled
-        if (config('system.features.dean_interface', false)) {
-            $transitions['dean'] = [
-                RequestStatus::PENDING_DEAN_APPROVAL->value => [
-                    RequestStatus::APPROVED->value,
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
-                    RequestStatus::DECLINED->value,
-                ],
-            ];
-            
-            // Update staff2 transitions to go through dean when enabled
-            $transitions['staff2'][RequestStatus::PENDING_RECOMMENDATION->value] = [
-                RequestStatus::PENDING_DEAN_APPROVAL->value,
-                RequestStatus::RETURNED_TO_STAFF_1->value,
-                RequestStatus::RETURNED_TO_STAFF_2->value,
-                RequestStatus::DECLINED->value,
-            ];
-            
-            $transitions['staff2'][RequestStatus::RETURNED_TO_STAFF_2->value] = [
-                RequestStatus::PENDING_DEAN_APPROVAL->value,
-                RequestStatus::RETURNED_TO_STAFF_1->value,
-                RequestStatus::DECLINED->value,
-            ];
-        }
-
-        return $transitions;
     }
 
     /**
      * Check if a transition is allowed for a user
      */
-    public static function canTransition(Request $request, RequestStatus $newStatus, User $user): bool
+    public static function canTransition(GrantRequest $request, RequestStatus $newStatus, User $user): bool
     {
         $transitions = self::getAllowedTransitions();
         $roleTransitions = $transitions[$user->role] ?? [];
@@ -93,91 +67,160 @@ class WorkflowTransitionService
     }
 
     /**
-     * Execute a status transition with full validation
+     * SINGLE ENTRY POINT for ALL workflow transitions
+     * Handles: validation, signatures, override, audit, notifications, PDF
      */
-    public static function executeTransition(Request $request, RequestStatus $newStatus, array $data = []): Request
+    public static function executeTransition(GrantRequest $request, RequestStatus $newStatus, array $data = []): GrantRequest
     {
         $user = Auth::user();
         
+        // 1. Validate transition authorization
         if (!self::canTransition($request, $newStatus, $user)) {
             throw new AuthorizationException('You are not authorized to perform this status transition.');
         }
 
-        // Validate signature requirement for Staff2 and Dean
+        // 2. Validate signature requirement for Staff2 and Dean
         self::validateSignatureRequirement($user, $newStatus, $data);
 
         $oldStatus = RequestStatus::from($request->status_id);
         
-        // Create audit log
-        self::createAuditLog($request, $oldStatus, $newStatus, $user, $data);
+        // 3. Detect Staff2 override (SUBMITTED -> STAFF2_APPROVED)
+        $isOverride = $user->role === 'staff2' && $oldStatus === RequestStatus::SUBMITTED && $newStatus === RequestStatus::STAFF2_APPROVED;
+        
+        // 4. Create comprehensive audit log
+        self::createAuditLog($request, $oldStatus, $newStatus, $user, $data, $isOverride);
 
-        // Update request
+        // 5. Update request status and metadata
         $request->update([
             'status_id' => $newStatus->value,
             'staff_notes' => $data['notes'] ?? $request->staff_notes,
             'rejection_reason' => $data['rejection_reason'] ?? $request->rejection_reason,
         ]);
 
-        // Update verification/recommendation tracking
-        self::updateTrackingFields($request, $newStatus, $user);
+        // 6. Update role-specific tracking fields
+        self::updateTrackingFields($request, $newStatus, $user, $isOverride);
 
-        // Save stage signatures if provided
+        // 7. Save stage signatures if provided
         self::saveStageSignatures($request, $user, $data);
 
-        // Dispatch notifications (best-effort; must not block transition success)
-        try {
-            self::dispatchNotifications($request, $oldStatus, $newStatus);
-        } catch (\Throwable $e) {
-            \Log::warning('Workflow transition notification dispatch failed', [
-                'request_id' => $request->id,
-                'from_status' => $oldStatus->value,
-                'to_status' => $newStatus->value,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // 8. Dispatch notifications (best-effort; failure doesn't block transition)
+        self::dispatchNotifications($request, $oldStatus, $newStatus);
 
-        // Regenerate PDF if signature was added
-        if (self::hasSignatureData($user->role, $data)) {
-            try {
-                $template = $request->requestType->defaultTemplate;
-                RequestPdfService::generate($request, $template);
-            } catch (\Throwable $e) {
-                \Log::warning('PDF regeneration failed after signature', [
-                    'request_id' => $request->id,
-                    'user_role' => $user->role,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // 9. Regenerate PDF if signature was added
+        self::regeneratePdfIfNeeded($request, $user, $data);
 
         return $request->fresh();
     }
 
     /**
-     * Create audit log entry
+     * Validate signature requirement for Staff2 and Dean approval/rejection
      */
-    private static function createAuditLog(Request $request, RequestStatus $from, RequestStatus $to, User $user, array $data): void
+    private static function validateSignatureRequirement(User $user, RequestStatus $newStatus, array $data): void
     {
+        // Only enforce for Staff2 and Dean roles
+        if (!in_array($user->role, ['staff2', 'dean'], true)) {
+            return;
+        }
+
+        // Require signature for approval and rejection actions
+        $requiresSignature = in_array($newStatus, [
+            RequestStatus::STAFF2_APPROVED,
+            RequestStatus::DEAN_APPROVED,
+            RequestStatus::REJECTED,
+        ], true);
+
+        if (!$requiresSignature) {
+            return;
+        }
+
+        // Check if signature data is provided based on role
+        $signatureField = match ($user->role) {
+            'staff2' => 'staff2_signature_data',
+            'dean' => 'dean_signature_data',
+            default => null,
+        };
+
+        if (!$signatureField || empty($data[$signatureField])) {
+            $roleLabel = $user->role === 'staff2' ? 'Staff 2' : 'Dean';
+            $action = $newStatus === RequestStatus::REJECTED ? 'reject' : 'approve';
+            throw new AuthorizationException(
+                "{$roleLabel} signature is required to {$action} this request."
+            );
+        }
+    }
+
+    /**
+     * Create comprehensive audit log entry
+     */
+    private static function createAuditLog(GrantRequest $request, RequestStatus $from, RequestStatus $to, User $user, array $data, bool $isOverride = false): void
+    {
+        $action = self::getActionType($from, $to, $isOverride);
+        
         \App\Models\AuditLog::create([
             'request_id' => $request->id,
             'actor_id' => $user->id,
+            'actor_role' => $user->role,
+            'action' => $action,
             'from_status' => $from->value,
             'to_status' => $to->value,
             'note' => $data['notes'] ?? null,
+            'rejection_reason' => $data['rejection_reason'] ?? null,
+            'is_override' => $isOverride,
+            'signature_data' => self::getSignatureDataForAudit($user->role, $data),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
             'created_at' => now(),
         ]);
     }
 
     /**
-     * Update verification/recommendation tracking fields
+     * Determine action type for audit logging
      */
-    private static function updateTrackingFields(Request $request, RequestStatus $newStatus, User $user): void
+    private static function getActionType(RequestStatus $from, RequestStatus $to, bool $isOverride): string
     {
-        if ($newStatus === RequestStatus::PENDING_RECOMMENDATION) {
-            $request->update(['verified_by' => $user->id]);
-        } elseif ($newStatus === RequestStatus::PENDING_DEAN_APPROVAL) {
-            $request->update(['recommended_by' => $user->id]);
-        } elseif (in_array($newStatus, [RequestStatus::APPROVED, RequestStatus::DECLINED]) && $user->isDean()) {
+        if ($isOverride) {
+            return 'override_staff1';
+        }
+        
+        return match($to) {
+            RequestStatus::STAFF1_APPROVED => 'staff1_approved',
+            RequestStatus::STAFF2_APPROVED => 'staff2_approved',
+            RequestStatus::DEAN_APPROVED => 'dean_approved',
+            RequestStatus::RETURNED => 'returned',
+            RequestStatus::REJECTED => 'rejected',
+            RequestStatus::SUBMITTED => 'resubmitted',
+            default => 'status_changed',
+        };
+    }
+
+    /**
+     * Get signature data for audit logging
+     */
+    private static function getSignatureDataForAudit(string $role, array $data): ?string
+    {
+        $signatureField = match ($role) {
+            'staff2' => 'staff2_signature_data',
+            'dean' => 'dean_signature_data',
+            default => null,
+        };
+
+        return $signatureField && !empty($data[$signatureField]) ? 'signature_provided' : null;
+    }
+
+    /**
+     * Update role-specific tracking fields
+     */
+    private static function updateTrackingFields(GrantRequest $request, RequestStatus $newStatus, User $user, bool $isOverride = false): void
+    {
+        if ($newStatus === RequestStatus::STAFF1_APPROVED && !$isOverride) {
+            $request->update(['verified_by' => $user->id, 'verified_at' => now()]);
+        } elseif ($newStatus === RequestStatus::STAFF2_APPROVED) {
+            $request->update([
+                'recommended_by' => $user->id,
+                'recommended_at' => now(),
+                'is_override' => $isOverride,
+            ]);
+        } elseif ($newStatus === RequestStatus::DEAN_APPROVED) {
             $request->update([
                 'dean_approved_by' => $user->id,
                 'dean_approved_at' => now(),
@@ -186,95 +229,9 @@ class WorkflowTransitionService
     }
 
     /**
-     * Dispatch notifications based on transition
-     */
-    private static function dispatchNotifications(Request $request, RequestStatus $from, RequestStatus $to): void
-    {
-        if ($to === RequestStatus::PENDING_RECOMMENDATION) {
-            self::notifyRole(
-                role: 'staff2',
-                request: $request,
-                type: 'request_ready_for_recommendation',
-                title: 'Request Ready for Recommendation',
-                message: "Request {$request->ref_number} is ready for your review.",
-            );
-        } elseif ($to === RequestStatus::PENDING_DEAN_APPROVAL) {
-            self::notifyRole(
-                role: 'dean',
-                request: $request,
-                type: 'request_pending_dean_approval',
-                title: 'Request Pending Dean Approval',
-                message: "Request {$request->ref_number} is ready for your final approval.",
-            );
-        } elseif ($to === RequestStatus::RETURNED_TO_ADMISSION) {
-            self::notifyAdmission($request, 'Request returned for revision');
-        } elseif ($to === RequestStatus::RETURNED_TO_STAFF_1) {
-            self::notifyRole(
-                role: 'staff1',
-                request: $request,
-                type: 'request_returned_for_verification',
-                title: 'Request Returned for Verification',
-                message: "Request {$request->ref_number} has been returned for additional verification.",
-            );
-        } elseif ($to === RequestStatus::RETURNED_TO_STAFF_2) {
-            self::notifyRole(
-                role: 'staff2',
-                request: $request,
-                type: 'request_ready_for_recommendation',
-                title: 'Request Ready for Recommendation',
-                message: "Request {$request->ref_number} has been returned for additional review.",
-            );
-        } elseif ($to === RequestStatus::APPROVED || $to === RequestStatus::DECLINED) {
-            self::notifyAdmission($request, 
-                $to === RequestStatus::APPROVED ? 'Request approved' : 'Request declined'
-            );
-        }
-    }
-
-    private static function notifyRole(string $role, Request $request, string $type, string $title, string $message): void
-    {
-        $users = \App\Models\User::where('role', $role)->get();
-        $url = route('requests.show', $request->id);
-
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
-        }
-    }
-
-    private static function notifyAdmission(Request $request, string $title): void
-    {
-        self::notifyUser(
-            $request->user_id,
-            'request_updated',
-            $title,
-            "Request {$request->ref_number} has been updated. Please review the changes.",
-            route('requests.show', $request->id),
-            $request->id
-        );
-    }
-
-    private static function notifyUser(
-        int $userId,
-        string $type,
-        string $title,
-        string $message,
-        string $url,
-        int $requestId
-    ): void {
-        \App\Models\Notification::createForUser(
-            $userId,
-            $type,
-            $title,
-            $message,
-            $url,
-            ['request_id' => $requestId]
-        );
-    }
-
-    /**
      * Save stage signatures based on user role
      */
-    private static function saveStageSignatures(Request $request, User $user, array $data): void
+    private static function saveStageSignatures(GrantRequest $request, User $user, array $data): void
     {
         $signatureField = match ($user->role) {
             'staff2' => 'staff2_signature_data',
@@ -297,37 +254,91 @@ class WorkflowTransitionService
     }
 
     /**
-     * Validate that Staff2 and Dean provide signatures for approval/decline actions
+     * Dispatch notifications based on transition
      */
-    private static function validateSignatureRequirement(User $user, RequestStatus $newStatus, array $data): void
+    private static function dispatchNotifications(GrantRequest $request, RequestStatus $from, RequestStatus $to): void
     {
-        // Only enforce for Staff2 and Dean roles
-        if (!in_array($user->role, ['staff2', 'dean'], true)) {
-            return;
+        try {
+            if ($to === RequestStatus::STAFF1_APPROVED) {
+                self::notifyRole('staff2', $request, 'request_ready_for_recommendation', 
+                    'Request Ready for Recommendation', 
+                    "Request {$request->ref_number} is ready for your review.");
+            } elseif ($to === RequestStatus::STAFF2_APPROVED) {
+                self::notifyRole('dean', $request, 'request_pending_dean_approval', 
+                    'Request Pending Dean Approval', 
+                    "Request {$request->ref_number} is ready for your final approval.");
+            } elseif ($to === RequestStatus::RETURNED) {
+                self::notifyAdmission($request, 'Request returned for revision');
+            } elseif ($to === RequestStatus::DEAN_APPROVED) {
+                self::notifyAdmission($request, 'Request approved');
+            } elseif ($to === RequestStatus::REJECTED) {
+                self::notifyAdmission($request, 'Request declined');
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Workflow transition notification dispatch failed', [
+                'request_id' => $request->id,
+                'from_status' => $from->value,
+                'to_status' => $to->value,
+                'error' => $e->getMessage(),
+            ]);
         }
+    }
 
-        // Require signature for final actions (APPROVED, DECLINED)
-        $requiresSignature = in_array($newStatus, [
-            RequestStatus::APPROVED,
-            RequestStatus::DECLINED,
-        ], true);
+    /**
+     * Notify all users with a specific role
+     */
+    private static function notifyRole(string $role, GrantRequest $request, string $type, string $title, string $message): void
+    {
+        $users = \App\Models\User::where('role', $role)->get();
+        $url = route('requests.show', $request->id);
 
-        if (!$requiresSignature) {
-            return;
-        }
-
-        // Check if signature data is provided based on role
-        $signatureField = match ($user->role) {
-            'staff2' => 'staff2_signature_data',
-            'dean' => 'dean_signature_data',
-            default => null,
-        };
-
-        if (!$signatureField || empty($data[$signatureField])) {
-            $roleLabel = $user->role === 'staff2' ? 'Staff 2' : 'Dean';
-            throw new AuthorizationException(
-                "{$roleLabel} signature is required to " . strtolower($newStatus->getLabel()) . " this request."
+        foreach ($users as $user) {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                $type,
+                $title,
+                $message,
+                $url,
+                ['request_id' => $request->id]
             );
+        }
+    }
+
+    /**
+     * Notify admission user
+     */
+    private static function notifyAdmission(GrantRequest $request, string $title): void
+    {
+        \App\Models\Notification::createForUser(
+            $request->user_id,
+            'request_updated',
+            $title,
+            "Request {$request->ref_number} has been updated. Please review the changes.",
+            route('requests.show', $request->id),
+            ['request_id' => $request->id]
+        );
+    }
+
+    /**
+     * Regenerate PDF if signature was added
+     */
+    private static function regeneratePdfIfNeeded(GrantRequest $request, User $user, array $data): void
+    {
+        if (!self::hasSignatureData($user->role, $data)) {
+            return;
+        }
+
+        try {
+            $template = $request->requestType?->defaultTemplate;
+            if ($template) {
+                RequestPdfService::generate($request, $template);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PDF regeneration failed after signature', [
+                'request_id' => $request->id,
+                'user_role' => $user->role,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

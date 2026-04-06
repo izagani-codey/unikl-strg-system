@@ -36,7 +36,7 @@ class RequestService
             'user_id' => $user->id,
             'request_type_id' => $data['request_type_id'],
             'ref_number' => $this->requestRepository->generateReferenceNumber(),
-            'status_id' => RequestStatus::PENDING_VERIFICATION->value,
+            'status_id' => RequestStatus::SUBMITTED->value,
             'payload' => $payload,
             'file_path' => $filePath,
             'deadline' => $data['deadline'] ?? null,
@@ -45,8 +45,8 @@ class RequestService
 
         $request = $this->requestRepository->create($requestData);
 
-        // Create audit log
-        $this->createAuditLog($request, null, RequestStatus::PENDING_VERIFICATION, 'Request submitted');
+        // Create audit log - WorkflowService handles this now
+        // $this->createAuditLog($request, null, RequestStatus::SUBMITTED, 'Request submitted');
 
         // Send notification to staff1
         $this->notificationService->notifyNewRequest($request);
@@ -59,49 +59,10 @@ class RequestService
      */
     public function updateStatus(GrantRequest $request, int $statusId, User $user, array $data = []): void
     {
-        $oldStatus = $request->status_id;
         $newStatus = RequestStatus::from($statusId);
 
-        // Validate transition
-        if (!$this->workflowService->canTransition($request, $newStatus, $user)) {
-            throw new \InvalidArgumentException('Invalid status transition');
-        }
-
-        // Update request
-        $updateData = ['status_id' => $statusId];
-
-        // Add staff assignments
-        if ($user->role === 'staff1' && $newStatus === RequestStatus::PENDING_RECOMMENDATION) {
-            $updateData['verified_by'] = $user->id;
-        }
-
-        if ($user->role === 'staff2' && in_array($newStatus, [RequestStatus::APPROVED, RequestStatus::DECLINED])) {
-            $updateData['recommended_by'] = $user->id;
-        }
-
-        // Add notes and rejection reason
-        if (!empty($data['notes'])) {
-            $updateData['staff_notes'] = $data['notes'];
-        }
-
-        if (!empty($data['rejection_reason'])) {
-            $updateData['rejection_reason'] = $data['rejection_reason'];
-        }
-
-        // Handle override for staff2
-        if ($user->role === 'staff2' && $oldStatus === RequestStatus::PENDING_VERIFICATION) {
-            $updateData['is_overridden'] = true;
-            $updateData['overridden_by'] = $user->id;
-            $updateData['override_reason'] = 'Staff2 override from pending verification';
-        }
-
-        $this->requestRepository->update($request, $updateData);
-
-        // Create audit log
-        $this->createAuditLog($request, $oldStatus, $newStatus, $data['notes'] ?? '');
-
-        // Send notifications
-        $this->handleStatusNotifications($request, $oldStatus, $newStatus, $user);
+        // ALL workflow actions must go through WorkflowService
+        $this->workflowService->executeTransition($request, $newStatus, $data);
     }
 
     /**
@@ -143,13 +104,13 @@ class RequestService
 
         $this->requestRepository->update($request, $updateData);
 
-        // Reset status if returned to admission
-        if ($request->status_id === RequestStatus::RETURNED_TO_ADMISSION->value) {
-            $this->updateStatus($request, RequestStatus::PENDING_VERIFICATION->value, $user);
+        // Reset status if returned to admission - use WorkflowService
+        if ($request->status_id === RequestStatus::RETURNED->value) {
+            $this->workflowService->executeTransition($request, RequestStatus::SUBMITTED, ['notes' => 'Resubmitted after revision']);
         }
 
-        // Create audit log
-        $this->createAuditLog($request, $request->status_id, RequestStatus::from($request->status_id), 'Request updated');
+        // Create audit log - WorkflowService handles this now
+        // $this->createAuditLog($request, $request->status_id, RequestStatus::from($request->status_id), 'Request updated');
 
         return $request->fresh();
     }
@@ -171,32 +132,6 @@ class RequestService
         return $file->store('requests', 'public');
     }
 
-    /**
-     * Create audit log entry.
-     */
-    private function createAuditLog(GrantRequest $request, ?int $fromStatus, RequestStatus $toStatus, string $note = ''): void
-    {
-        $request->auditLogs()->create([
-            'actor_id' => Auth::id(),
-            'from_status' => $fromStatus,
-            'to_status' => $toStatus->value,
-            'note' => $note,
-        ]);
-    }
-
-    /**
-     * Handle status change notifications.
-     */
-    private function handleStatusNotifications(GrantRequest $request, int $oldStatus, RequestStatus $newStatus, User $user): void
-    {
-        match ($newStatus) {
-            RequestStatus::RETURNED_TO_ADMISSION => $this->notificationService->notifyReturnedToAdmission($request, $user),
-            RequestStatus::RETURNED_TO_STAFF_1 => $this->notificationService->notifyReturnedToStaff1($request, $user),
-            RequestStatus::APPROVED => $this->notificationService->notifyApproved($request, $user),
-            RequestStatus::DECLINED => $this->notificationService->notifyDeclined($request, $user),
-            default => null
-        };
-    }
 
     /**
      * Get requests with filtering.
@@ -240,8 +175,8 @@ class RequestService
             Storage::disk('public')->delete($request->file_path);
         }
 
-        // Create audit log
-        $this->createAuditLog($request, $request->status_id, RequestStatus::from($request->status_id), 'Request deleted');
+        // Create audit log - WorkflowService handles this now
+        // $this->createAuditLog($request, $request->status_id, RequestStatus::from($request->status_id), 'Request deleted');
 
         return $this->requestRepository->delete($request);
     }
@@ -254,7 +189,7 @@ class RequestService
         foreach ($requestIds as $requestId) {
             $request = $this->requestRepository->findWithRelations($requestId);
             if ($request && $this->canUserUpdateRequest($user, $request)) {
-                $this->updateStatus($request, $statusId, $user, $data);
+                $this->workflowService->executeTransition($request, RequestStatus::from($statusId), $data);
             }
         }
     }
@@ -276,7 +211,7 @@ class RequestService
         // Admission can only update their own returned requests
         if ($user->role === 'admission') {
             return $request->user_id === $user->id && 
-                   $request->status_id === RequestStatus::RETURNED_TO_ADMISSION->value;
+                   $request->status_id === RequestStatus::RETURNED->value;
         }
 
         return false;
@@ -295,11 +230,12 @@ class RequestService
 
         return [
             'total' => $query->count(),
-            'approved' => $query->where('status_id', RequestStatus::APPROVED->value)->count(),
-            'declined' => $query->where('status_id', RequestStatus::DECLINED->value)->count(),
+            'approved' => $query->where('status_id', RequestStatus::DEAN_APPROVED->value)->count(),
+            'declined' => $query->where('status_id', RequestStatus::REJECTED->value)->count(),
             'pending' => $query->whereIn('status_id', [
-                RequestStatus::PENDING_VERIFICATION->value,
-                RequestStatus::PENDING_RECOMMENDATION->value
+                RequestStatus::SUBMITTED->value,
+                RequestStatus::STAFF1_APPROVED->value,
+                RequestStatus::STAFF2_APPROVED->value
             ])->count(),
             'average_amount' => $query->avg('payload->amount') ?? 0,
         ];

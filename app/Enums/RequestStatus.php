@@ -4,69 +4,63 @@ namespace App\Enums;
 
 enum RequestStatus: int
 {
-    case PENDING_VERIFICATION = 1;
-    case PENDING_RECOMMENDATION = 2;
-    case PENDING_DEAN_APPROVAL = 3;
-    case PENDING_DEAN_VERIFICATION = 4;
-    case RETURNED_TO_ADMISSION = 5;
-    case RETURNED_TO_STAFF_1 = 6;
-    case RETURNED_TO_STAFF_2 = 7;
-    case APPROVED = 8;
-    case DECLINED = 9;
+    case DRAFT = 1;
+    case SUBMITTED = 2;
+    case STAFF1_APPROVED = 3;
+    case STAFF2_APPROVED = 4;
+    case DEAN_APPROVED = 5;
+    case RETURNED = 6;
+    case REJECTED = 7;
 
     public function getLabel(): string
     {
         return match($this) {
-            self::PENDING_VERIFICATION => 'Pending Verification',
-            self::PENDING_RECOMMENDATION => 'Pending Recommendation',
-            self::PENDING_DEAN_APPROVAL => 'Pending Dean Approval',
-            self::PENDING_DEAN_VERIFICATION => 'Pending Dean Verification',
-            self::RETURNED_TO_ADMISSION => 'Returned to Admission',
-            self::RETURNED_TO_STAFF_1 => 'Returned to Staff 1',
-            self::RETURNED_TO_STAFF_2 => 'Returned to Staff 2',
-            self::APPROVED => 'Approved',
-            self::DECLINED => 'Declined',
+            self::DRAFT => 'Draft',
+            self::SUBMITTED => 'Submitted',
+            self::STAFF1_APPROVED => 'Staff 1 Approved',
+            self::STAFF2_APPROVED => 'Staff 2 Approved',
+            self::DEAN_APPROVED => 'Dean Approved',
+            self::RETURNED => 'Returned for Revision',
+            self::REJECTED => 'Rejected',
         };
     }
 
     public function getColor(): string
     {
         return match($this) {
-            self::PENDING_VERIFICATION => 'bg-orange-100 text-orange-700',
-            self::PENDING_RECOMMENDATION => 'bg-blue-100 text-blue-700',
-            self::PENDING_DEAN_APPROVAL => 'bg-purple-100 text-purple-700',
-            self::PENDING_DEAN_VERIFICATION => 'bg-amber-100 text-amber-700',
-            self::RETURNED_TO_ADMISSION => 'bg-yellow-100 text-yellow-700',
-            self::RETURNED_TO_STAFF_1 => 'bg-indigo-100 text-indigo-700',
-            self::RETURNED_TO_STAFF_2 => 'bg-pink-100 text-pink-700',
-            self::APPROVED => 'bg-green-100 text-green-700',
-            self::DECLINED => 'bg-red-100 text-red-700',
+            self::DRAFT => 'bg-gray-100 text-gray-700',
+            self::SUBMITTED => 'bg-orange-100 text-orange-700',
+            self::STAFF1_APPROVED => 'bg-blue-100 text-blue-700',
+            self::STAFF2_APPROVED => 'bg-purple-100 text-purple-700',
+            self::DEAN_APPROVED => 'bg-green-100 text-green-700',
+            self::RETURNED => 'bg-yellow-100 text-yellow-700',
+            self::REJECTED => 'bg-red-100 text-red-700',
         };
     }
 
     public function isFinal(): bool
     {
-        return in_array($this, [self::APPROVED, self::DECLINED]);
+        return in_array($this, [self::DEAN_APPROVED, self::REJECTED]);
     }
 
     public function canBeEditedByAdmission(): bool
     {
-        return $this === self::RETURNED_TO_ADMISSION;
+        return $this === self::RETURNED;
     }
 
     public function canBeActionedByStaff1(): bool
     {
-        return in_array($this, [self::PENDING_VERIFICATION, self::RETURNED_TO_STAFF_1]);
+        return $this === self::SUBMITTED;
     }
 
     public function canBeActionedByStaff2(): bool
     {
-        return in_array($this, [self::PENDING_RECOMMENDATION, self::RETURNED_TO_STAFF_2]);
+        return in_array($this, [self::SUBMITTED, self::STAFF1_APPROVED]);
     }
 
     public function canBeActionedByDean(): bool
     {
-        return $this === self::PENDING_DEAN_APPROVAL;
+        return $this === self::STAFF2_APPROVED;
     }
 
     public static function getAllCases(): array

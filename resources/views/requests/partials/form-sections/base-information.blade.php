@@ -1,0 +1,109 @@
+@props(['requestTypes', 'user', 'grantRequest' => null])
+
+@php
+$selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
+@endphp
+
+<div class="mb-6 border-b border-gray-200 pb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Request Information</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="block text-sm font-bold text-gray-700">Request Type *</label>
+            <select name="request_type_id" id="request-type-select" class="w-full rounded border-gray-300" required onchange="loadTemplatePreview(this.value)">
+                <option value="">Select Request Type</option>
+                @foreach($requestTypes as $type)
+                    <option value="{{ $type->id }}" @selected((string) $selectedTypeId === (string) $type->id)>{{ $type->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-bold text-gray-700">Priority</label>
+            <div class="flex items-center mt-2">
+                <input type="checkbox" name="priority" value="1" class="rounded border-gray-300" @checked(old('priority', $grantRequest?->is_priority))>
+                <label class="ml-2 text-sm text-gray-700">Mark as High Priority</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Preview Section -->
+    <div id="template-preview-section" class="hidden mb-6 border-b border-gray-200 pb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Template Preview</h3>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- PDF Preview -->
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2">Blank Form Preview</h4>
+                <div class="border border-gray-300 rounded-lg bg-gray-50" style="height: 400px;">
+                    <iframe id="template-preview-iframe" src="" class="w-full h-full rounded" style="border: none;"></iframe>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">This is the blank form that will be filled with your information</p>
+            </div>
+            
+            <!-- Auto-fill Preview -->
+            <div>
+                <h4 class="text-md font-medium text-gray-800 mb-2">Auto-fill Information</h4>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h5 class="font-semibold text-blue-800 mb-3">Information that will be auto-filled:</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Name:</strong> <span id="preview-name">{{ $user->name }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Staff ID:</strong> <span id="preview-staff-id">{{ $user->staff_id ?? 'Not set' }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Designation:</strong> <span id="preview-designation">{{ $user->designation ?? 'Not set' }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Department:</strong> <span id="preview-department">{{ $user->department ?? 'Not set' }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Phone:</strong> <span id="preview-phone">{{ $user->phone ?? 'Not set' }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Employee Level:</strong> <span id="preview-employee-level">{{ $user->employee_level ?? 'Not set' }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Email:</strong> <span id="preview-email">{{ $user->email }}</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Request Type:</strong> <span id="preview-request-type">Will be set based on selection</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>VOT Items:</strong> <span id="preview-vot">Items you add below</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">✓</span>
+                            <span><strong>Total Amount:</strong> <span id="preview-total">Calculated from VOT items</span></span>
+                        </li>
+                    </ul>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Your digital signature will also be included</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-bold text-gray-700">Deadline</label>
+            <input type="date" name="deadline" value="{{ old('deadline', $grantRequest?->deadline?->format('Y-m-d')) }}" class="w-full rounded border-gray-300 mt-1">
+            <p class="text-xs text-gray-500 mt-1">Optional deadline for this request</p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <label class="block text-sm font-bold text-gray-700">Justification / Description *</label>
+        <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="General description for this STRG request..." required>{{ old('description', $grantRequest?->payload['description'] ?? '') }}</textarea>
+    </div>
+</div>

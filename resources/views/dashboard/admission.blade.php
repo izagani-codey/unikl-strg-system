@@ -42,16 +42,16 @@
                         <p class="text-blue-100 text-lg">{{ auth()->user()->email }}</p>
                         <div class="mt-4 flex flex-wrap gap-4">
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['total'] }}</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['total'] ?? 0 }}</div>
                                 <div class="text-sm text-blue-100">Total Requests</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['pending_verification'] }}</div>
-                                <div class="text-sm text-blue-100">Pending</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['submitted'] ?? 0 }}</div>
+                                <div class="text-sm text-blue-100">Submitted</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['approved'] }}</div>
-                                <div class="text-sm text-blue-100">Pending Dean Verification</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['dean_approved'] ?? 0 }}</div>
+                                <div class="text-sm text-blue-100">Approved</div>
                             </div>
                         </div>
                     </div>
@@ -72,8 +72,8 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Pending Verification</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['pending_verification'] }}</p>
+                            <p class="text-sm font-medium text-gray-600">Submitted</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['submitted'] ?? 0 }}</p>
                         </div>
                         <div class="bg-orange-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,8 +86,8 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">With Staff 2</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['with_staff_2'] }}</p>
+                            <p class="text-sm font-medium text-gray-600">Staff 1 Approved</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['staff1_approved'] ?? 0 }}</p>
                         </div>
                         <div class="bg-blue-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,13 +100,12 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Returned for Revision</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['returned_to_admission'] }}</p>
+                            <p class="text-sm font-medium text-gray-600">Returned</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['returned'] ?? 0 }}</p>
                         </div>
                         <div class="bg-yellow-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
                         </div>
                     </div>
@@ -115,12 +114,12 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">Pending Dean Verification</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['approved'] }}</p>
+                            <p class="text-sm font-medium text-gray-600">Dean Approved</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['dean_approved'] ?? 0 }}</p>
                         </div>
-                        <div class="bg-amber-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <div class="bg-green-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
                     </div>
