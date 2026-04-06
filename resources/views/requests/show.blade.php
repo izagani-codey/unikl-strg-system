@@ -519,14 +519,6 @@
                                     </button>
                                 @endif
                                 
-                                @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_VERIFICATION->value)
-                                    <button type="submit"
-                                        onclick="document.getElementById('status2-input').value='2'"
-                                        class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">
-                                        ⚡ Override: Send to Staff 2 Review
-                                    </button>
-                                @endif
-                                
                                 <button type="submit"
                                     onclick="document.getElementById('status2-input').value='9'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
@@ -534,65 +526,7 @@
                                 </button>
                             </div>
                         </form>
-                        <p class="text-xs text-gray-400 mt-3 italic">Primary flow: Admission → Staff 1 → Staff 2 → Dean. Staff 2 can use override when Staff 1 is unavailable.</p>
-                    @endif
-                @endcan
-
-                {{-- STAFF 2 OVERRIDE ACTIONS --}}
-                @can('override', $grantRequest)
-                    @if(auth()->user()->isStaff2() && auth()->user()->override_enabled)
-                        <div class="mt-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
-                            <h4 class="font-bold text-purple-800 mb-3 flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                                </svg>
-                                Override Actions
-                            </h4>
-                            
-                            <form action="{{ route('requests.override', $grantRequest->id) }}" method="POST" class="space-y-3">
-                                @csrf
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-purple-700">Override Action:</label>
-                                    <select name="action_type" class="w-full border-purple-300 rounded p-2 text-sm" required id="override-action-type">
-                                        <option value="">Select override action...</option>
-                                        @if($grantRequest->status_id === \App\Enums\RequestStatus::DECLINED->value)
-                                            <option value="reject_reverse">↩ Reverse Rejection</option>
-                                        @endif
-                                        @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_VERIFICATION->value)
-                                            <option value="bypass_verification">⚡ Bypass Staff 1 Verification</option>
-                                        @endif
-                                        @if(in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value], true))
-                                            <option value="approve">✓ Direct Approval</option>
-                                        @endif
-                                        <option value="priority_override">🔥 Toggle Priority</option>
-                                    </select>
-                                </div>
-
-                                <div id="reinstate-double-confirmation" class="hidden space-y-2 p-3 bg-red-50 border border-red-200 rounded">
-                                    <p class="text-xs font-semibold text-red-700">Double confirmation required for reinstatement.</p>
-                                    <label class="flex items-center gap-2 text-sm text-red-800">
-                                        <input type="checkbox" name="confirm_reinstate" value="1" class="rounded border-red-300">
-                                        I confirm this rejected request should be reinstated.
-                                    </label>
-                                    <div>
-                                        <label class="block text-sm font-medium text-red-700">Type <code>REINSTATE</code> to continue:</label>
-                                        <input type="text" name="confirmation_phrase" class="w-full border-red-300 rounded p-2 text-sm" placeholder="REINSTATE">
-                                    </div>
-                                </div>
-                                
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-purple-700">Override Reason:</label>
-                                    <textarea name="reason" rows="3" placeholder="Please provide a detailed reason for this override action (10-500 characters)..."
-                                        class="w-full border-purple-300 rounded p-2 text-sm" required minlength="10" maxlength="500"></textarea>
-                                </div>
-                                
-                                <button type="submit" 
-                                    class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700 transition-colors"
-                                    onclick="return confirm('This override action will be logged and notifications will be sent to affected staff members. Are you sure?')">
-                                    ⚡ Execute Override
-                                </button>
-                            </form>
-                        </div>
+                        <p class="text-xs text-gray-400 mt-3 italic">Primary flow: Admission → Staff 1 → Staff 2 → Dean.</p>
                     @endif
                 @endcan
 
@@ -788,22 +722,6 @@
     </div>
 
     <script>
-        const overrideActionSelect = document.getElementById('override-action-type');
-        const reinstateDoubleConfirmation = document.getElementById('reinstate-double-confirmation');
-
-        if (overrideActionSelect && reinstateDoubleConfirmation) {
-            const toggleDoubleConfirmation = () => {
-                if (overrideActionSelect.value === 'reject_reverse') {
-                    reinstateDoubleConfirmation.classList.remove('hidden');
-                } else {
-                    reinstateDoubleConfirmation.classList.add('hidden');
-                }
-            };
-
-            overrideActionSelect.addEventListener('change', toggleDoubleConfirmation);
-            toggleDoubleConfirmation();
-        }
-
         function handleFormSubmit(form, message) {
             const submitButtons = form.querySelectorAll('button[type="submit"]');
             submitButtons.forEach((btn) => {

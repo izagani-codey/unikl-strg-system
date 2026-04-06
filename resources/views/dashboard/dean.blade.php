@@ -15,7 +15,7 @@
                         <p class="text-purple-200 text-lg">Review and approve pending requests</p>
                     </div>
                     <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <div class="text-4xl font-bold text-white">{{ $dashboardStats['pending_verification'] ?? 0 }}</div>
+                        <div class="text-4xl font-bold text-white">{{ $dashboardStats['pending_dean_approval'] ?? 0 }}</div>
                         <div class="text-purple-200 text-sm">Pending Dean Approval</div>
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-purple-600 truncate">Pending Approval</dt>
-                                <dd class="mt-1 text-3xl font-bold text-purple-900">{{ $dashboardStats['pending_verification'] ?? 0 }}</dd>
+                                <dd class="mt-1 text-3xl font-bold text-purple-900">{{ $dashboardStats['pending_dean_approval'] ?? 0 }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -103,12 +103,12 @@
                                         <div class="flex items-center space-x-4">
                                             <div class="flex-shrink-0">
                                                 <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-800 font-semibold text-sm">
-                                                    {{ substr($request->reference_number, -3) }}
+                                                    {{ substr($request->ref_number, -3) }}
                                                 </span>
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <p class="text-sm font-medium text-gray-900 truncate">
-                                                    {{ $request->reference_number }}
+                                                    {{ $request->ref_number }}
                                                 </p>
                                                 <div class="flex items-center mt-1 space-x-4">
                                                     <span class="text-sm text-gray-500">{{ $request->user->name }}</span>

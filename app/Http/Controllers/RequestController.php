@@ -14,7 +14,6 @@ use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
 use App\Models\VotCode;
-use App\Services\OverrideService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
@@ -190,9 +189,17 @@ class RequestController extends Controller
             $filePath = $request->file('document')->store('requests/attachments', 'public');
         }
 
+        $allAdditionalDocuments = $this->appendSupportingDocuments(
+            $grantRequest,
+            $request->file('additional_documents', [])
+        );
+
         $grantRequest->update([
             'request_type_id'         => $request->input('request_type_id'),
-            'payload'                 => ['description' => $request->input('description')],
+            'payload'                 => [
+                'description' => $request->input('description'),
+                'additional_documents' => $allAdditionalDocuments,
+            ],
             'vot_items'               => $votItems,
             'total_amount'            => $total,
             'submitter_staff_id'      => $user->staff_id,
@@ -257,6 +264,9 @@ class RequestController extends Controller
             WorkflowTransitionService::executeTransition($grantRequest, $newStatus, [
                 'notes'            => $request->input('notes'),
                 'rejection_reason' => $request->input('rejection_reason'),
+                'staff1_signature_data' => $request->input('staff1_signature_data'),
+                'staff2_signature_data' => $request->input('staff2_signature_data'),
+                'dean_signature_data' => $request->input('dean_signature_data'),
             ]);
             return redirect()->route('requests.show', $id)->with('success', 'Status updated successfully.');
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -305,15 +315,13 @@ class RequestController extends Controller
         ]);
         
         if ($needsDean) {
-            // Check if dean has already confirmed
-            $deanConfirmed = $grantRequest->dean_confirmed_at !== null;
             $deanApprovedBy = $grantRequest->dean_approved_by !== null;
+            $deanDecisionAt = $grantRequest->dean_approved_at?->format('Y-m-d H:i:s');
             
             return response()->json([
                 'needs_dean' => true,
-                'dean_confirmed' => $deanConfirmed,
                 'dean_approved_by' => $deanApprovedBy,
-                'dean_confirmed_at' => $deanConfirmed ? $grantRequest->dean_confirmed_at->format('Y-m-d H:i:s') : null,
+                'dean_decision_at' => $deanDecisionAt,
                 'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
             ]);
         }
@@ -404,54 +412,6 @@ class RequestController extends Controller
         }
     }
 
-    // ==========================================
-    // Staff 2 Override Actions
-    // ==========================================
-
-    public function performOverride(Request $request, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('override', $grantRequest);
-
-        $request->validate([
-            'action_type' => 'required|in:approve,reject_reverse,bypass_verification,priority_override',
-            'reason' => 'required|string|min:10|max:500',
-            'confirm_reinstate' => 'nullable|accepted',
-            'confirmation_phrase' => 'nullable|string|max:20',
-        ]);
-
-        if ($request->input('action_type') === 'reject_reverse') {
-            $request->validate([
-                'confirm_reinstate' => 'required|accepted',
-                'confirmation_phrase' => 'required|in:REINSTATE',
-            ], [
-                'confirm_reinstate.required' => 'Please confirm reinstatement before proceeding.',
-                'confirmation_phrase.in' => 'Type REINSTATE to confirm this sensitive action.',
-            ]);
-        }
-
-        try {
-            OverrideService::performOverride($grantRequest, $request->input('action_type'), $request->input('reason'));
-            return redirect()->route('requests.show', $id)->with('success', 'Override action completed successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Override failed: ' . $e->getMessage());
-        }
-    }
-
-    public function toggleOverrideMode(Request $request)
-    {
-        $user = Auth::user();
-        
-        if (!$user->isStaff2()) {
-            return back()->with('error', 'Only Staff 2 can enable override mode.');
-        }
-
-        $user->toggleOverride();
-        
-        $status = $user->override_enabled ? 'enabled' : 'disabled';
-        return back()->with('success', "Override mode {$status}.");
-    }
-
     /**
      * Update request priority
      */
@@ -495,5 +455,27 @@ class RequestController extends Controller
         })->filter(function ($item) {
             return !empty($item['vot_code']) && $item['amount'] > 0;
         })->values()->all();
+    }
+
+    private function getExistingSupportingDocuments(GrantRequest $request): array
+    {
+        return collect($request->payload['additional_documents'] ?? [])
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values()
+            ->all();
+    }
+
+    private function appendSupportingDocuments(GrantRequest $request, array $uploadedFiles): array
+    {
+        $existingFiles = $this->getExistingSupportingDocuments($request);
+        $newFiles = [];
+
+        foreach ($uploadedFiles as $uploadedFile) {
+            if ($uploadedFile) {
+                $newFiles[] = $uploadedFile->store('requests/supporting-documents', 'public');
+            }
+        }
+
+        return array_values(array_merge($existingFiles, $newFiles));
     }
 }

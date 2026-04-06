@@ -4,163 +4,47 @@ namespace App\Http\Controllers;
 
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class DeanController extends Controller
 {
     public function dashboard()
     {
-        $user = Auth::user();
-        
-        // Get requests pending dean approval
-        $pendingRequests = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])
-            ->where('status_id', RequestStatus::PENDING_DEAN_APPROVAL->value)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Canonical dean dashboard is served by DashboardController at /dashboard.
+        return redirect()->route('dashboard');
+    }
 
-        // Get statistics
-        $stats = [
-            'pending_dean' => GrantRequest::where('status_id', RequestStatus::PENDING_DEAN_APPROVAL->value)->count(),
-            'approved_this_month' => GrantRequest::where('status_id', RequestStatus::APPROVED->value)
-                ->where('dean_approved_by', $user->id)
-                ->whereMonth('dean_approved_at', now()->month)
-                ->count(),
-            'declined_this_month' => GrantRequest::where('status_id', RequestStatus::DECLINED->value)
-                ->where('dean_approved_by', $user->id)
-                ->whereMonth('dean_approved_at', now()->month)
-                ->count(),
-            'total_approved' => GrantRequest::where('status_id', RequestStatus::APPROVED->value)
-                ->where('dean_approved_by', $user->id)
-                ->count(),
-        ];
-
-        return view('dean.dashboard', compact('pendingRequests', 'stats'));
+    public function requests()
+    {
+        return redirect()->route('dashboard');
     }
 
     public function show($id)
     {
-        $request = GrantRequest::with([
-            'user', 
-            'requestType', 
-            'verifiedBy', 
-            'recommendedBy',
-            'comments.user'
-        ])->findOrFail($id);
-
-        // Check if dean can view this request
-        if (!$request->canBeActionedByDean()) {
-            abort(403, 'You cannot access this request at this stage.');
-        }
-
-        return view('dean.show', compact('request'));
+        return redirect()->route('requests.show', $id);
     }
 
     public function approve(Request $httpRequest, $id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
-
-        // Check if dean can approve this request
-        if (!$grantRequest->canBeActionedByDean()) {
-            abort(403, 'You cannot approve this request at this stage.');
-        }
-
-        $notes = $httpRequest->input('notes');
-        $grantRequest->approveByDean($dean, $notes);
-
-        // Create notification for admission user
-        $grantRequest->user->notifications()->create([
-            'title' => 'Request Approved',
-            'message' => "Your request {$grantRequest->ref_number} has been approved by the Dean.",
-            'url' => route('requests.show', $grantRequest->id),
-            'type' => 'success',
-        ]);
-
-        return redirect()->route('dean.dashboard')
-            ->with('success', 'Request approved successfully!');
+        return redirect()->route('requests.show', $id)
+            ->with('error', 'Please use the main request action panel to apply dean decisions with signature.');
     }
 
     public function reject(Request $httpRequest, $id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
-
-        // Check if dean can reject this request
-        if (!$grantRequest->canBeActionedByDean()) {
-            abort(403, 'You cannot reject this request at this stage.');
-        }
-
-        $reason = $httpRequest->input('reason');
-        $grantRequest->rejectByDean($dean, $reason);
-
-        // Create notification for admission user
-        $grantRequest->user->notifications()->create([
-            'title' => 'Request Declined',
-            'message' => "Your request {$grantRequest->ref_number} has been declined by the Dean.",
-            'url' => route('requests.show', $grantRequest->id),
-            'type' => 'error',
-        ]);
-
-        return redirect()->route('dean.dashboard')
-            ->with('success', 'Request rejected successfully!');
+        return redirect()->route('requests.show', $id)
+            ->with('error', 'Please use the main request action panel to apply dean decisions with signature.');
     }
 
     public function returnToStaff1(Request $httpRequest, $id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
-
-        // Check if dean can return this request
-        if (!$grantRequest->canBeActionedByDean()) {
-            abort(403, 'You cannot return this request at this stage.');
-        }
-
-        $reason = $httpRequest->input('reason');
-        $grantRequest->returnToStaff1($dean, $reason);
-
-        // Create notification for staff1
-        $staff1Users = User::where('role', 'staff1')->get();
-        foreach ($staff1Users as $staff1) {
-            $staff1->notifications()->create([
-                'title' => 'Request Returned',
-                'message' => "Request {$grantRequest->ref_number} has been returned to Staff 1 by the Dean.",
-                'url' => route('requests.show', $grantRequest->id),
-                'type' => 'warning',
-            ]);
-        }
-
-        return redirect()->route('dean.dashboard')
-            ->with('success', 'Request returned to Staff 1 successfully!');
+        return redirect()->route('requests.show', $id)
+            ->with('error', 'Please use the main request action panel to apply dean decisions with signature.');
     }
 
     public function returnToStaff2(Request $httpRequest, $id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
-
-        // Check if dean can return this request
-        if (!$grantRequest->canBeActionedByDean()) {
-            abort(403, 'You cannot return this request at this stage.');
-        }
-
-        $reason = $httpRequest->input('reason');
-        $grantRequest->returnToStaff2($dean, $reason);
-
-        // Create notification for staff2
-        $staff2Users = User::where('role', 'staff2')->get();
-        foreach ($staff2Users as $staff2) {
-            $staff2->notifications()->create([
-                'title' => 'Request Returned',
-                'message' => "Request {$grantRequest->ref_number} has been returned to Staff 2 by the Dean.",
-                'url' => route('requests.show', $grantRequest->id),
-                'type' => 'warning',
-            ]);
-        }
-
-        return redirect()->route('dean.dashboard')
-            ->with('success', 'Request returned to Staff 2 successfully!');
+        return redirect()->route('requests.show', $id)
+            ->with('error', 'Please use the main request action panel to apply dean decisions with signature.');
     }
 }

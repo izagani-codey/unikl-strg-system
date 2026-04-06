@@ -85,12 +85,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
-    // ── Staff 2 Override Routes ─────────────────────────────────────────────────────────
-    Route::middleware('role:staff2')->group(function () {
-        Route::post('/requests/{id}/override', [RequestController::class, 'performOverride'])->name('requests.override');
-        Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
-    });
-
     // ── Request PDF Routes ──────────────────────────────────────────────────────
     Route::middleware('auth')->group(function () {
         Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');

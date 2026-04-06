@@ -5,8 +5,6 @@ namespace App\Policies;
 use App\Enums\RequestStatus;
 use App\Models\Request;
 use App\Models\User;
-use App\Services\OverrideService;
-use App\Services\WorkflowTransitionService;
 use Illuminate\Auth\Access\Response;
 
 class RequestPolicy
@@ -83,14 +81,7 @@ class RequestPolicy
         }
 
         if ($user->role === 'staff2' && !$currentStatus->canBeActionedByStaff2()) {
-            if ($currentStatus->isFinal()) {
-                return Response::deny('This request is already finalized.');
-            }
-
-            // For non-standard stages, Staff 2 must use explicit override actions.
-            if (!$user->canOverride() || !OverrideService::canOverride($request, $user)) {
-                return Response::deny('This request is outside normal Staff 2 flow. Use override mode when needed.');
-            }
+            return Response::deny('This request cannot be actioned by Staff 2 at this stage.');
         }
 
         // Dean can approve/reject requests that need dean approval
@@ -153,14 +144,4 @@ class RequestPolicy
                $request->status_id === RequestStatus::RETURNED_TO_ADMISSION->value;
     }
 
-    /**
-     * Can the user override this request decision?
-     */
-    public function override(User $user, Request $request): bool
-    {
-        // Only staff2 can override and only if override mode is enabled
-        return $user->isStaff2() && 
-               $user->canOverride() && 
-               OverrideService::canOverride($request, $user);
-    }
 }
