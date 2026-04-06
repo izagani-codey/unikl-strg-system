@@ -254,6 +254,7 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::with([
             'user', 'requestType', 'verifiedBy', 'recommendedBy',
             'comments.user', 'auditLogs.actor',
+            'templateUsages' => fn ($query) => $query->latest()->with('template'),
         ])->findOrFail($id);
         $this->authorize('view', $grantRequest);
         return view('requests.show', compact('grantRequest'));
@@ -267,6 +268,25 @@ class RequestController extends Controller
     {
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('changeStatus', $grantRequest);
+
+        if (auth()->user()?->role === 'staff2' && $request->hasFile('staff2_supporting_documents')) {
+            $existingAdditionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
+                ->filter(fn ($path) => is_string($path) && $path !== '')
+                ->values()
+                ->all();
+
+            $newFiles = [];
+            foreach ($request->file('staff2_supporting_documents') as $document) {
+                $newFiles[] = $document->store('requests/supporting-documents', 'public');
+            }
+
+            $grantRequest->update([
+                'payload' => array_merge($grantRequest->payload ?? [], [
+                    'additional_documents' => array_values(array_merge($existingAdditionalDocuments, $newFiles)),
+                ]),
+            ]);
+            $grantRequest = $grantRequest->fresh();
+        }
 
         $newStatus = RequestStatus::from($request->input('status_id'));
 
@@ -391,6 +411,7 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::with([
             'user', 'requestType', 'verifiedBy', 'recommendedBy',
             'comments.user', 'auditLogs.actor',
+            'templateUsages' => fn ($query) => $query->latest()->with('template'),
         ])->findOrFail($id);
         $this->authorize('view', $grantRequest);
         return view('requests.print', compact('grantRequest'));

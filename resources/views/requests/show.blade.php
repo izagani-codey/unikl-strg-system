@@ -244,7 +244,30 @@
                 </div>
             </div>
 
-            {{-- Uploaded Document --}}
+            {{-- General Form (Generated PDF) --}}
+            @php
+                $latestTemplateUsage = $grantRequest->templateUsages->first();
+            @endphp
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">General Form</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    This is the generated general form based on the selected template and latest request data.
+                </p>
+                @if($latestTemplateUsage && !empty($latestTemplateUsage->generated_file_path))
+                    <a href="{{ asset('storage/' . $latestTemplateUsage->generated_file_path) }}"
+                       target="_blank"
+                       class="inline-block text-blue-600 hover:underline text-sm font-semibold">
+                        ↗ Open latest generated general form
+                    </a>
+                @else
+                    <a href="{{ route('requests.downloadPdf', $grantRequest->id) }}"
+                       class="inline-block text-blue-600 hover:underline text-sm font-semibold">
+                        ↗ Generate & download general form
+                    </a>
+                @endif
+            </div>
+
+            {{-- Main Uploaded Document --}}
             @if($grantRequest->file_path)
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Uploaded Document</h3>
@@ -493,6 +516,10 @@
                         <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')" data-signature-input="staff2-signature-data">
                             @csrf
                             @method('PATCH')
+                            <input type="file" name="staff2_supporting_documents[]" multiple
+                                class="w-full border rounded p-2 text-sm"
+                                accept=".pdf,.jpg,.jpeg,.png">
+                            <p class="text-xs text-gray-500 -mt-1">Optional: add revised supporting documents (old files remain available).</p>
                             <textarea name="notes" rows="2" placeholder="Recommendation notes (optional)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
                             <textarea name="rejection_reason" rows="2"
