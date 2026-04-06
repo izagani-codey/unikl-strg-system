@@ -10,6 +10,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
+use App\Http\Controllers\RequestTypeController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\DeanController;
 
