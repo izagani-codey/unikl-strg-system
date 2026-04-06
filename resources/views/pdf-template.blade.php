@@ -46,13 +46,14 @@
         .status-declined { background: #FEE2E2; color: #991B1B; }
         
         .template-background {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
-            opacity: 0.15;
+            opacity: 1;
+            object-fit: cover;
             pointer-events: none;
         }
     </style>

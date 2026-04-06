@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\User;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -42,6 +43,7 @@ class StatisticsRepository
             'total' => (clone $base)->count(),
             'pending_verification' => (int) ($counts[RequestStatus::PENDING_VERIFICATION->value] ?? 0),
             'with_staff_2' => (int) ($counts[RequestStatus::PENDING_RECOMMENDATION->value] ?? 0),
+            'pending_dean_approval' => (int) ($counts[RequestStatus::PENDING_DEAN_APPROVAL->value] ?? 0),
             'returned_to_admission' => (int) ($counts[RequestStatus::RETURNED_TO_ADMISSION->value] ?? 0),
             'returned_to_staff_1' => (int) ($counts[RequestStatus::RETURNED_TO_STAFF_1->value] ?? 0),
             'approved' => (int) ($counts[RequestStatus::APPROVED->value] ?? 0),
@@ -164,24 +166,37 @@ class StatisticsRepository
      */
     public function clearCache(): void
     {
-        $patterns = [
-            'dashboard_stats_*',
+        $fixedKeys = [
             'system_stats',
             'request_type_stats',
             'user_role_stats',
-            'monthly_trends_*',
-            'performance_metrics'
+            'performance_metrics',
+            'staff_workload',
         ];
 
-        foreach ($patterns as $pattern) {
-            if (str_contains($pattern, '*')) {
-                // Handle wildcard patterns
-                $keys = Cache::getRedis()->keys($pattern);
-                if (!empty($keys)) {
-                    Cache::getRedis()->del($keys);
+        foreach ($fixedKeys as $key) {
+            Cache::forget($key);
+        }
+
+        $roles = ['admission', 'staff1', 'staff2', 'dean'];
+        User::query()->select('id', 'role')->chunkById(200, function ($users) use ($roles) {
+            foreach ($users as $user) {
+                $role = in_array($user->role, $roles, true) ? $user->role : null;
+                if ($role) {
+                    Cache::forget("dashboard_stats_{$user->id}_{$role}");
                 }
-            } else {
-                Cache::forget($pattern);
+            }
+        });
+
+        // Monthly trend caches are keyed by year/month and cannot be enumerated on
+        // non-Redis stores; for Redis we can safely clear wildcard patterns.
+        if (Cache::getStore() instanceof RedisStore) {
+            $redis = Cache::getRedis();
+            foreach (['monthly_trends_*', 'dashboard_stats_*'] as $pattern) {
+                $keys = $redis->keys($pattern);
+                if (!empty($keys)) {
+                    $redis->del($keys);
+                }
             }
         }
     }
@@ -192,26 +207,21 @@ class StatisticsRepository
     public function getStaffWorkload(): Collection
     {
         return Cache::remember('staff_workload', 1800, function () {
-            return GrantRequest::selectRaw('
-                    verified_by as staff_id,
-                    "staff1" as role,
-                    COUNT(*) as handled,
-                    AVG(TIMESTAMPDIFF(HOUR, created_at, verified_at)) as avg_hours
-                ')
+            $staff1 = GrantRequest::query()
+                ->selectRaw('verified_by as staff_id, "staff1" as role, COUNT(*) as handled')
+                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours')
                 ->whereNotNull('verified_by')
                 ->groupBy('verified_by')
-                ->unionAll(
-                    GrantRequest::selectRaw('
-                        recommended_by as staff_id,
-                        "staff2" as role,
-                        COUNT(*) as handled,
-                        AVG(TIMESTAMPDIFF(HOUR, created_at, recommended_at)) as avg_hours
-                    ')
-                    ->whereNotNull('recommended_by')
-                    ->groupBy('recommended_by')
-                )
-                ->with(['verifiedBy', 'recommendedBy'])
                 ->get();
+
+            $staff2 = GrantRequest::query()
+                ->selectRaw('recommended_by as staff_id, "staff2" as role, COUNT(*) as handled')
+                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours')
+                ->whereNotNull('recommended_by')
+                ->groupBy('recommended_by')
+                ->get();
+
+            return $staff1->concat($staff2)->values();
         });
     }
 }
