@@ -192,26 +192,21 @@ class StatisticsRepository
     public function getStaffWorkload(): Collection
     {
         return Cache::remember('staff_workload', 1800, function () {
-            return GrantRequest::selectRaw('
-                    verified_by as staff_id,
-                    "staff1" as role,
-                    COUNT(*) as handled,
-                    AVG(TIMESTAMPDIFF(HOUR, created_at, verified_at)) as avg_hours
-                ')
+            $staff1 = GrantRequest::query()
+                ->selectRaw('verified_by as staff_id, "staff1" as role, COUNT(*) as handled')
+                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours')
                 ->whereNotNull('verified_by')
                 ->groupBy('verified_by')
-                ->unionAll(
-                    GrantRequest::selectRaw('
-                        recommended_by as staff_id,
-                        "staff2" as role,
-                        COUNT(*) as handled,
-                        AVG(TIMESTAMPDIFF(HOUR, created_at, recommended_at)) as avg_hours
-                    ')
-                    ->whereNotNull('recommended_by')
-                    ->groupBy('recommended_by')
-                )
-                ->with(['verifiedBy', 'recommendedBy'])
                 ->get();
+
+            $staff2 = GrantRequest::query()
+                ->selectRaw('recommended_by as staff_id, "staff2" as role, COUNT(*) as handled')
+                ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours')
+                ->whereNotNull('recommended_by')
+                ->groupBy('recommended_by')
+                ->get();
+
+            return $staff1->concat($staff2)->values();
         });
     }
 }
