@@ -24,6 +24,8 @@ class UpdateStatusRequest extends FormRequest
             'notes'     => 'nullable|string',
             'rejection_reason' => 'nullable|string',
             'override_reason' => 'nullable|string',
+            'staff2_signature_data' => 'nullable|string',
+            'dean_signature_data' => 'nullable|string',
         ];
     }
 }
