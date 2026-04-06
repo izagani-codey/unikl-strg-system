@@ -112,7 +112,6 @@ Route::middleware('auth')->group(function () {
     if (config('system.features.dean_interface', false)) {
         Route::middleware('role:dean')->group(function () {
             Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
-            Route::get('/dean/requests', [DeanController::class, 'requests'])->name('dean.requests');
         });
     }
 

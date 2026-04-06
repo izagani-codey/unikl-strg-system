@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\User;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -164,24 +165,37 @@ class StatisticsRepository
      */
     public function clearCache(): void
     {
-        $patterns = [
-            'dashboard_stats_*',
+        $fixedKeys = [
             'system_stats',
             'request_type_stats',
             'user_role_stats',
-            'monthly_trends_*',
-            'performance_metrics'
+            'performance_metrics',
+            'staff_workload',
         ];
 
-        foreach ($patterns as $pattern) {
-            if (str_contains($pattern, '*')) {
-                // Handle wildcard patterns
-                $keys = Cache::getRedis()->keys($pattern);
-                if (!empty($keys)) {
-                    Cache::getRedis()->del($keys);
+        foreach ($fixedKeys as $key) {
+            Cache::forget($key);
+        }
+
+        $roles = ['admission', 'staff1', 'staff2', 'dean'];
+        User::query()->select('id', 'role')->chunkById(200, function ($users) use ($roles) {
+            foreach ($users as $user) {
+                $role = in_array($user->role, $roles, true) ? $user->role : null;
+                if ($role) {
+                    Cache::forget("dashboard_stats_{$user->id}_{$role}");
                 }
-            } else {
-                Cache::forget($pattern);
+            }
+        });
+
+        // Monthly trend caches are keyed by year/month and cannot be enumerated on
+        // non-Redis stores; for Redis we can safely clear wildcard patterns.
+        if (Cache::getStore() instanceof RedisStore) {
+            $redis = Cache::getRedis();
+            foreach (['monthly_trends_*', 'dashboard_stats_*'] as $pattern) {
+                $keys = $redis->keys($pattern);
+                if (!empty($keys)) {
+                    $redis->del($keys);
+                }
             }
         }
     }
