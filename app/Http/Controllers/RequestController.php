@@ -190,9 +190,26 @@ class RequestController extends Controller
             $filePath = $request->file('document')->store('requests/attachments', 'public');
         }
 
+        $existingAdditionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values()
+            ->all();
+        $newAdditionalDocuments = [];
+        if ($request->hasFile('additional_documents')) {
+            foreach ($request->file('additional_documents') as $document) {
+                $newAdditionalDocuments[] = $document->store('requests/supporting-documents', 'public');
+            }
+        }
+        $allAdditionalDocuments = array_values(array_merge($existingAdditionalDocuments, $newAdditionalDocuments));
+
+        $payload = array_merge($grantRequest->payload ?? [], [
+            'description' => $request->input('description'),
+            'additional_documents' => $allAdditionalDocuments,
+        ]);
+
         $grantRequest->update([
             'request_type_id'         => $request->input('request_type_id'),
-            'payload'                 => ['description' => $request->input('description')],
+            'payload'                 => $payload,
             'vot_items'               => $votItems,
             'total_amount'            => $total,
             'submitter_staff_id'      => $user->staff_id,

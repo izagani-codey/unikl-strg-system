@@ -268,6 +268,28 @@
             </div>
             @endif
 
+            @php
+                $additionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
+                    ->filter(fn ($path) => is_string($path) && $path !== '')
+                    ->values();
+            @endphp
+            @if($additionalDocuments->isNotEmpty())
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Additional Supporting Documents</h3>
+                <ul class="space-y-2 text-sm">
+                    @foreach($additionalDocuments as $documentPath)
+                        <li>
+                            <a href="{{ asset('storage/' . $documentPath) }}"
+                               target="_blank"
+                               class="text-blue-600 hover:underline font-semibold">
+                                ↗ {{ basename($documentPath) }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
             {{-- Rejection Reason (visible to admission) --}}
             @if($grantRequest->rejection_reason)
             <div class="bg-red-50 border border-red-200 rounded-lg p-4">
