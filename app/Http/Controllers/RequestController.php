@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateRequestRequest;
 use App\Http\Requests\UpdateStatusRequest;
 use App\Models\AuditLog;
 use App\Models\Comment;
+use App\Models\FormTemplate;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
@@ -146,7 +147,11 @@ class RequestController extends Controller
 
         // Generate filled PDF and attach it
         try {
-            $pdfPath = RequestPdfService::generate($grantRequest);
+            // Get default template for this request type
+            $requestType = RequestType::find($request->input('request_type_id'));
+            $template = $requestType?->defaultTemplate;
+            
+            $pdfPath = RequestPdfService::generate($grantRequest, $template);
             $grantRequest->update(['file_path' => $filePath ?? $pdfPath]);
         } catch (\Exception $e) {
             // PDF generation failure should not block submission

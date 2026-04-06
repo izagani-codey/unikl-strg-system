@@ -44,9 +44,24 @@
         .status-pending { background: #FEF3C7; color: #92400E; }
         .status-approved { background: #D1FAE5; color: #065F46; }
         .status-declined { background: #FEE2E2; color: #991B1B; }
+        
+        .template-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+    @if(isset($background_image))
+        <img src="{{ $background_image }}" class="template-background" alt="Template Background">
+    @endif
+    
     <!-- Header -->
     <div class="header">
         <div class="logo-text">UNIVERSITI KUALA LUMPUR (UniKL)</div>
@@ -204,6 +219,53 @@
                     Name: ____________________________<br>
                     Designation: ____________________________<br>
                     Date: ____________________________
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff 2 and Dean Signatures -->
+        <div class="signature-grid" style="margin-top: 20px;">
+            <div class="sig-col">
+                <strong style="font-size:10px; display:block; margin-bottom:4px;">STAFF 2 SIGNATURE</strong>
+                <div class="sig-box">
+                    @if($request->staff2_signature_data)
+                        <img src="{{ $request->staff2_signature_data }}" class="sig-img" alt="Staff 2 Signature"/>
+                    @else
+                        <span style="color:#aaa; font-size:9px; line-height:65px;">Pending signature</span>
+                    @endif
+                </div>
+                <div class="sig-label">
+                    @if($request->recommendedBy)
+                        {{ $request->recommendedBy->name }}<br>
+                        {{ $request->recommendedBy->designation ?? '' }}<br>
+                        Signed: {{ $request->staff2_signed_at?->format('d/m/Y H:i') ?? '—' }}
+                    @else
+                        Pending Staff 2 Review<br>
+                        Designation: —<br>
+                        Signed: —
+                    @endif
+                </div>
+            </div>
+
+            <div class="sig-col">
+                <strong style="font-size:10px; display:block; margin-bottom:4px;">DEAN SIGNATURE</strong>
+                <div class="sig-box">
+                    @if($request->dean_signature_data)
+                        <img src="{{ $request->dean_signature_data }}" class="sig-img" alt="Dean Signature"/>
+                    @else
+                        <span style="color:#aaa; font-size:9px; line-height:65px;">Pending signature</span>
+                    @endif
+                </div>
+                <div class="sig-label">
+                    @if($request->dean_approved_by)
+                        {{ $request->deanApprovedBy->name }}<br>
+                        Dean<br>
+                        Signed: {{ $request->dean_signed_at?->format('d/m/Y H:i') ?? '—' }}
+                    @else
+                        Pending Dean Review<br>
+                        Designation: Dean<br>
+                        Signed: —
+                    @endif
                 </div>
             </div>
         </div>

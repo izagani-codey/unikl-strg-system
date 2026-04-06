@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Request;
 use Closure;
 use Illuminate\Http\Request as HttpRequest;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 class AutoPriorityMiddleware
 {

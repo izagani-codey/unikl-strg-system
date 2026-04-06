@@ -78,10 +78,13 @@ class Staff2AdminController extends Controller
     {
         $requestTypes = RequestType::query()
             ->withCount('requests')
+            ->with('defaultTemplate')
             ->latest('created_at')
             ->paginate(20);
 
-        return view('staff2.admin-request-types', compact('requestTypes'));
+        $formTemplates = FormTemplate::where('is_active', true)->get();
+
+        return view('staff2.admin-request-types', compact('requestTypes', 'formTemplates'));
     }
 
     public function storeRequestType()
@@ -112,6 +115,7 @@ class Staff2AdminController extends Controller
             $validated = request()->validate([
                 'name' => 'required|string|max:255|unique:request_types,name,' . $id,
                 'description' => 'nullable|string',
+                'default_template_id' => 'nullable|exists:form_templates,id',
             ]);
 
             // Update slug if name changed

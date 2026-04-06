@@ -63,7 +63,7 @@ class RequestService
         $newStatus = RequestStatus::from($statusId);
 
         // Validate transition
-        if (!$this->workflowService->canTransition($user->role, $oldStatus, $newStatus)) {
+        if (!$this->workflowService->canTransition($request, $newStatus, $user)) {
             throw new \InvalidArgumentException('Invalid status transition');
         }
 
@@ -269,9 +269,9 @@ class RequestService
         // Staff can update based on workflow rules
         if (in_array($user->role, ['staff1', 'staff2'])) {
             return $this->workflowService->canTransition(
-                $user->role, 
-                $request->status_id, 
-                RequestStatus::from($request->status_id)
+                $request, 
+                RequestStatus::from($request->status_id), 
+                $user
             );
         }
 

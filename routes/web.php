@@ -76,6 +76,9 @@ Route::middleware('auth')->group(function () {
     // ── All roles — view requests ─────────────────────────────────────────────
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+    
+    // ── Template Preview Route ─────────────────────────────────────────────
+    Route::get('/request-types/{id}/template', [RequestTypeController::class, 'getTemplate'])->name('request-types.template');
 
     // ── Notifications ─────────────────────────────────────────────────────────
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -89,11 +92,6 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Request PDF Routes ──────────────────────────────────────────────────────
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
     Route::middleware('auth')->group(function () {
         Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
         Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
@@ -101,54 +99,21 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
-    // Commented out - Dean interface hidden for now
-    /*
     Route::middleware('role:dean')->group(function () {
-        Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
         Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
         Route::post('/dean/requests/{id}/approve', [DeanController::class, 'approve'])->name('dean.requests.approve');
         Route::post('/dean/requests/{id}/reject', [DeanController::class, 'reject'])->name('dean.requests.reject');
         Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
         Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
     });
-    */
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-    Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
-    Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
-    Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
 
     // ── Dean Routes (feature-flagged) ─────────────────────────────────────────
     if (config('system.features.dean_interface', false)) {
         Route::middleware('role:dean')->group(function () {
             Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
-            Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
-            Route::post('/dean/requests/{id}/approve', [DeanController::class, 'approve'])->name('dean.requests.approve');
-            Route::post('/dean/requests/{id}/reject', [DeanController::class, 'reject'])->name('dean.requests.reject');
-            Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
-            Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
+            Route::get('/dean/requests', [DeanController::class, 'requests'])->name('dean.requests');
         });
     }
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 
     // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────
     Route::middleware('role:staff2')->group(function () {

@@ -30,7 +30,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Request Type *</label>
-                                <select name="request_type_id" class="w-full rounded border-gray-300" required>
+                                <select name="request_type_id" id="request-type-select" class="w-full rounded border-gray-300" required onchange="loadTemplatePreview(this.value)">
                                     <option value="">Select Request Type</option>
                                     @foreach($requestTypes as $type)
                                         <option value="{{ $type->id }}" @selected((string) old('request_type_id') === (string) $type->id)>{{ $type->name }}</option>
@@ -43,6 +43,73 @@
                                 <div class="flex items-center mt-2">
                                     <input type="checkbox" name="priority" value="1" class="rounded border-gray-300" @checked(old('priority'))>
                                     <label class="ml-2 text-sm text-gray-700">Mark as High Priority</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template Preview Section -->
+                        <div id="template-preview-section" class="hidden mb-6 border-b border-gray-200 pb-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Template Preview</h3>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- PDF Preview -->
+                                <div>
+                                    <h4 class="text-md font-medium text-gray-800 mb-2">Blank Form Preview</h4>
+                                    <div class="border border-gray-300 rounded-lg bg-gray-50" style="height: 400px;">
+                                        <iframe id="template-preview-iframe" src="" class="w-full h-full rounded" style="border: none;"></iframe>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">This is the blank form that will be filled with your information</p>
+                                </div>
+                                
+                                <!-- Auto-fill Preview -->
+                                <div>
+                                    <h4 class="text-md font-medium text-gray-800 mb-2">Auto-fill Information</h4>
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <h5 class="font-semibold text-blue-800 mb-3">Information that will be auto-filled:</h5>
+                                        <ul class="space-y-2 text-sm">
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Name:</strong> <span id="preview-name">{{ auth()->user()->name }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Staff ID:</strong> <span id="preview-staff-id">{{ auth()->user()->staff_id ?? 'Not set' }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Designation:</strong> <span id="preview-designation">{{ auth()->user()->designation ?? 'Not set' }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Department:</strong> <span id="preview-department">{{ auth()->user()->department ?? 'Not set' }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Phone:</strong> <span id="preview-phone">{{ auth()->user()->phone ?? 'Not set' }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Employee Level:</strong> <span id="preview-employee-level">{{ auth()->user()->employee_level ?? 'Not set' }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Email:</strong> <span id="preview-email">{{ auth()->user()->email }}</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Request Type:</strong> <span id="preview-request-type">Will be set based on selection</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>VOT Items:</strong> <span id="preview-vot">Items you add below</span></span>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <span class="text-blue-600 mr-2">✓</span>
+                                                <span><strong>Total Amount:</strong> <span id="preview-total">Calculated from VOT items</span></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">Your digital signature will also be included</p>
                                 </div>
                             </div>
                         </div>
@@ -389,6 +456,123 @@
                 submitBtn.disabled = false;
                 isSubmitting = false;
             }, 5000);
+        });
+
+        // Template preview functionality
+        let pdfjsLoaded = false;
+
+        function loadPDFJS() {
+            if (pdfjsLoaded) return Promise.resolve();
+            
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                script.onload = () => {
+                    pdfjsLoaded = true;
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadTemplatePreview(requestTypeId) {
+            const previewSection = document.getElementById('template-preview-section');
+            const iframe = document.getElementById('template-preview-iframe');
+            
+            if (!requestTypeId) {
+                previewSection.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/request-types/${requestTypeId}/template`);
+                if (!response.ok) {
+                    previewSection.classList.add('hidden');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const fileType = blob.type;
+
+                if (fileType === 'application/pdf') {
+                    await loadPDFJS();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    const page = await pdf.getPage(1);
+                    const scale = 1.5;
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: context, viewport }).promise;
+
+                    const dataUrl = canvas.toDataURL();
+                    iframe.src = dataUrl;
+                } else {
+                    // For image files
+                    const dataUrl = URL.createObjectURL(blob);
+                    iframe.src = dataUrl;
+                }
+
+                previewSection.classList.remove('hidden');
+                
+                // Update preview with selected request type name
+                const select = document.getElementById('request-type-select');
+                const selectedOption = select.options[select.selectedIndex];
+                document.getElementById('preview-request-type').textContent = selectedOption.text;
+                
+            } catch (error) {
+                console.error('Error loading template preview:', error);
+                previewSection.classList.add('hidden');
+            }
+        }
+
+        // Update VOT preview when items change
+        function updateVOTPreview() {
+            const votItems = document.querySelectorAll('.vot-item-row');
+            let itemCount = 0;
+            let hasItems = false;
+            
+            votItems.forEach(row => {
+                const codeSelect = row.querySelector('.vot-code-select');
+                const amountInput = row.querySelector('.vot-amount-input');
+                
+                if (codeSelect && codeSelect.value && amountInput && amountInput.value) {
+                    itemCount++;
+                    hasItems = true;
+                }
+            });
+            
+            if (hasItems) {
+                document.getElementById('preview-vot').textContent = `${itemCount} item${itemCount > 1 ? 's' : ''} will be included`;
+            } else {
+                document.getElementById('preview-vot').textContent = 'Items you add below';
+            }
+            
+            // Update total preview
+            const totalElement = document.getElementById('total-amount');
+            if (totalElement) {
+                const total = totalElement.textContent;
+                document.getElementById('preview-total').textContent = total || 'Calculated from VOT items';
+            }
+        }
+
+        // Listen for VOT changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update preview when VOT items change
+            const votContainer = document.getElementById('vot-items-container');
+            if (votContainer) {
+                const observer = new MutationObserver(updateVOTPreview);
+                observer.observe(votContainer, { childList: true, subtree: true });
+                
+                // Initial update
+                updateVOTPreview();
+            }
         });
     </script>
 </x-app-layout>

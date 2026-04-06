@@ -107,6 +107,7 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default Template</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requests</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -133,6 +134,23 @@
                                             {{ $type->description ?: 'No description' }}
                                         </div>
                                     </td>
+                                    <td class="px-6 py-4">
+                                        @if($type->defaultTemplate)
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8 bg-blue-100 rounded flex items-center justify-center">
+                                                    <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <div class="text-sm font-medium text-gray-900">{{ $type->defaultTemplate->name }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $type->defaultTemplate->template_type }}</div>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400 italic">No template assigned</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <span class="text-lg font-bold text-green-600">{{ $type->requests_count }}</span>
@@ -150,7 +168,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2">
-                                            <button onclick="editType({{ $type->id }}, '{{ $type->name }}', '{{ $type->description ?? '' }}')" 
+                                            <button onclick="editType({{ $type->id }}, '{{ $type->name }}', '{{ $type->description ?? '' }}', {{ $type->default_template_id ?? 'null' }})" 
                                                     class="text-green-600 hover:text-green-900 font-medium">
                                                 Edit
                                             </button>
@@ -227,6 +245,18 @@
                             <textarea id="edit-description" name="description" rows="3"
                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"></textarea>
                         </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Default Template</label>
+                            <select id="edit-template" name="default_template_id" 
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="">No template</option>
+                                @foreach($formTemplates ?? [] as $template)
+                                    <option value="{{ $template->id }}">{{ $template->name }} ({{ $template->template_type }})</option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Template that will be auto-filled for this request type</p>
+                        </div>
                     </div>
                     
                     <div class="flex justify-end space-x-3 mt-6">
@@ -245,10 +275,11 @@
     </div>
 
     <script>
-        function editType(id, name, description) {
+        function editType(id, name, description, defaultTemplateId) {
             document.getElementById('edit-id').value = id;
             document.getElementById('edit-name').value = name;
             document.getElementById('edit-description').value = description;
+            document.getElementById('edit-template').value = defaultTemplateId || '';
             document.getElementById('edit-form').action = '/staff2/admin/request-types/' + id;
             document.getElementById('edit-modal').classList.remove('hidden');
         }

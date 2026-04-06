@@ -1,8 +1,16 @@
-@extends('layouts.app')
-
-@section('title', 'Request Review - Dean')
-
-@section('content')
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Request Review</h1>
+                <p class="text-gray-600 mt-1">Reference: {{ $request->ref_number }}</p>
+            </div>
+            <a href="{{ route('dean.dashboard') }}" 
+               class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                Back to Dashboard
+            </a>
+        </div>
+    </x-slot>
 <div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->

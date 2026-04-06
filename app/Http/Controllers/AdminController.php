@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\BaseController;
+use App\Models\User;
 use App\Repositories\RequestTypeRepository;
 use App\Repositories\StatisticsRepository;
 use App\Repositories\UserRepository;

@@ -98,6 +98,9 @@ class WorkflowTransitionService
         // Update verification/recommendation tracking
         self::updateTrackingFields($request, $newStatus, $user);
 
+        // Save stage signatures if provided
+        self::saveStageSignatures($request, $user, $data);
+
         // Dispatch notifications (best-effort; must not block transition success)
         try {
             self::dispatchNotifications($request, $oldStatus, $newStatus);
@@ -108,6 +111,20 @@ class WorkflowTransitionService
                 'to_status' => $newStatus->value,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        // Regenerate PDF if signature was added
+        if (self::hasSignatureData($user->role, $data)) {
+            try {
+                $template = $request->requestType->defaultTemplate;
+                RequestPdfService::generate($request, $template);
+            } catch (\Throwable $e) {
+                \Log::warning('PDF regeneration failed after signature', [
+                    'request_id' => $request->id,
+                    'user_role' => $user->role,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $request->fresh();
@@ -196,60 +213,8 @@ class WorkflowTransitionService
         $users = \App\Models\User::where('role', $role)->get();
         $url = route('requests.show', $request->id);
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    private static function notifyDean(Request $request): void
-    {
-        $deanUsers = \App\Models\User::where('role', 'dean')->get();
-        
-        foreach ($deanUsers as $user) {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_pending_dean_approval',
-                'Request Pending Dean Approval',
-                "Request {$request->ref_number} is ready for your final approval.",
-                route('requests.show', $request->id),
-                ['request_id' => $request->id]
-            );
-        }
-    }
-
-    private static function notifyStaff1(Request $request): void
-    {
-        $staff1Users = \App\Models\User::where('role', 'staff1')->get();
-        
-        foreach ($staff1Users as $user) {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_returned_for_verification',
-                'Request Returned for Verification',
-                "Request {$request->ref_number} has been returned for additional verification.",
-                route('requests.show', $request->id),
-                ['request_id' => $request->id]
-            );
-=======
         foreach ($users as $user) {
             self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
->>>>>>> theirs
-=======
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
->>>>>>> theirs
-=======
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
->>>>>>> theirs
-=======
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
->>>>>>> theirs
-=======
-        foreach ($users as $user) {
-            self::notifyUser($user->id, $type, $title, $message, $url, $request->id);
->>>>>>> theirs
         }
     }
 
@@ -281,5 +246,47 @@ class WorkflowTransitionService
             $url,
             ['request_id' => $requestId]
         );
+    }
+
+    /**
+     * Save stage signatures based on user role
+     */
+    private static function saveStageSignatures(Request $request, User $user, array $data): void
+    {
+        $signatureField = match ($user->role) {
+            'staff1' => 'staff1_signature_data',
+            'staff2' => 'staff2_signature_data',
+            'dean' => 'dean_signature_data',
+            default => null,
+        };
+
+        $timestampField = match ($user->role) {
+            'staff1' => 'staff1_signed_at',
+            'staff2' => 'staff2_signed_at',
+            'dean' => 'dean_signed_at',
+            default => null,
+        };
+
+        if ($signatureField && $timestampField && isset($data[$signatureField])) {
+            $request->update([
+                $signatureField => $data[$signatureField],
+                $timestampField => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Check if signature data is present for the user role
+     */
+    private static function hasSignatureData(string $role, array $data): bool
+    {
+        $signatureField = match ($role) {
+            'staff1' => 'staff1_signature_data',
+            'staff2' => 'staff2_signature_data',
+            'dean' => 'dean_signature_data',
+            default => null,
+        };
+
+        return $signatureField && !empty($data[$signatureField]);
     }
 }

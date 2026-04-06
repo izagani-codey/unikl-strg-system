@@ -303,8 +303,8 @@
                                     <option value="">All Statuses</option>
                                     <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Pending Verification</option>
                                     <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>With Staff 2</option>
-                                    <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Approved</option>
-                                    <option value="6" {{ request('status') == '6' ? 'selected' : '' }}>Declined</option>
+                                    <option value="8" {{ request('status') == '8' ? 'selected' : '' }}>Approved</option>
+                                    <option value="9" {{ request('status') == '9' ? 'selected' : '' }}>Declined</option>
                                 </select>
                                 <select name="type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
                                     <option value="">All Types</option>

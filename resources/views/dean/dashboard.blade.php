@@ -1,8 +1,12 @@
-@extends('layouts.app')
-
-@section('title', 'Dean Dashboard')
-
-@section('content')
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Dean Dashboard</h1>
+                <p class="text-gray-600 mt-1">Review and approve pending requests</p>
+            </div>
+        </div>
+    </x-slot>
 <div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->

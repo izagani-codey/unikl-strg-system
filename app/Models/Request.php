@@ -19,6 +19,9 @@ class Request extends Model
         'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
         'revision_count', 'deadline', 'is_priority',
         'is_overridden', 'overridden_by', 'override_reason', 'overridden_at',
+        'staff1_signature_data', 'staff1_signed_at',
+        'staff2_signature_data', 'staff2_signed_at',
+        'dean_signature_data', 'dean_signed_at',
     ];
 
     protected $casts = [
@@ -32,6 +35,9 @@ class Request extends Model
         'dean_approved_at' => 'datetime',
         'overridden_at' => 'datetime',
         'total_amount' => 'decimal:2',
+        'staff1_signed_at' => 'datetime',
+        'staff2_signed_at' => 'datetime',
+        'dean_signed_at' => 'datetime',
     ];
 
     // ==========================================

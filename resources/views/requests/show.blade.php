@@ -442,6 +442,20 @@
                             <textarea name="rejection_reason" rows="2"
                                 placeholder="Reason for returning or rejecting (visible to admission)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
+                            
+                            <!-- Staff 1 Signature -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-blue-700">Staff 1 Signature:</label>
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50">
+                                    <canvas id="staff1-signature-canvas" width="400" height="150" class="w-full border border-gray-300 rounded bg-white cursor-crosshair"></canvas>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="clearStaff1Signature()" class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Clear Signature</button>
+                                    <span class="text-xs text-gray-500">Sign above before submitting</span>
+                                </div>
+                                <input type="hidden" name="staff1_signature_data" id="staff1-signature-data">
+                            </div>
+                            
                             <input type="hidden" name="status_id" value="2" id="s1-status">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
@@ -475,6 +489,20 @@
                             <textarea name="rejection_reason" rows="2"
                                 placeholder="Reason (required for Decline or Return)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
+                            
+                            <!-- Staff 2 Signature -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-green-700">Staff 2 Signature:</label>
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50">
+                                    <canvas id="staff2-signature-canvas" width="400" height="150" class="w-full border border-gray-300 rounded bg-white cursor-crosshair"></canvas>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="clearStaff2Signature()" class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Clear Signature</button>
+                                    <span class="text-xs text-gray-500">Sign above before submitting</span>
+                                </div>
+                                <input type="hidden" name="staff2_signature_data" id="staff2-signature-data">
+                            </div>
+                            
                             <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value }}" id="status2-input">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
@@ -581,6 +609,19 @@
                         <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
                             @csrf
                             @method('PATCH')
+                            
+                            <!-- Dean Signature -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-purple-700">Dean Signature:</label>
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50">
+                                    <canvas id="dean-signature-canvas" width="400" height="150" class="w-full border border-gray-300 rounded bg-white cursor-crosshair"></canvas>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="clearDeanSignature()" class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Clear Signature</button>
+                                    <span class="text-xs text-gray-500">Sign above before submitting</span>
+                                </div>
+                                <input type="hidden" name="dean_signature_data" id="dean-signature-data">
+                            </div>
                             
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium text-purple-700">Dean Decision:</label>
@@ -779,6 +820,143 @@
             }
 
             return true;
+        }
+
+        // Signature handling
+        class SignaturePad {
+            constructor(canvasId, hiddenInputId) {
+                this.canvas = document.getElementById(canvasId);
+                this.hiddenInput = document.getElementById(hiddenInputId);
+                this.isDrawing = false;
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.setupCanvas();
+                this.bindEvents();
+            }
+
+            setupCanvas() {
+                // Set canvas size
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                
+                // Set drawing styles
+                this.ctx.strokeStyle = '#000';
+                this.ctx.lineWidth = 2;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                // Fill with white background
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            bindEvents() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+                this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+                this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+                this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+            }
+
+            startDrawing(e) {
+                this.isDrawing = true;
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+            }
+
+            draw(e) {
+                if (!this.isDrawing) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                this.ctx.lineTo(x, y);
+                this.ctx.stroke();
+            }
+
+            stopDrawing() {
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    this.saveSignature();
+                }
+            }
+
+            saveSignature() {
+                const dataURL = this.canvas.toDataURL('image/png');
+                this.hiddenInput.value = dataURL;
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.hiddenInput.value = '';
+            }
+        }
+
+        // Initialize signature pads
+        let staff1SignaturePad, staff2SignaturePad, deanSignaturePad;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Staff 1 signature
+            if (document.getElementById('staff1-signature-canvas')) {
+                staff1SignaturePad = new SignaturePad('staff1-signature-canvas', 'staff1-signature-data');
+            }
+
+            // Staff 2 signature
+            if (document.getElementById('staff2-signature-canvas')) {
+                staff2SignaturePad = new SignaturePad('staff2-signature-canvas', 'staff2-signature-data');
+            }
+
+            // Dean signature
+            if (document.getElementById('dean-signature-canvas')) {
+                deanSignaturePad = new SignaturePad('dean-signature-canvas', 'dean-signature-data');
+            }
+        });
+
+        function clearStaff1Signature() {
+            if (staff1SignaturePad) staff1SignaturePad.clear();
+        }
+
+        function clearStaff2Signature() {
+            if (staff2SignaturePad) staff2SignaturePad.clear();
+        }
+
+        function clearDeanSignature() {
+            if (deanSignaturePad) deanSignaturePad.clear();
         }
     </script>
 </x-app-layout>

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class FormTemplate extends Model
 {
     protected $fillable = [
-        'name',
         'title',
         'template_type',
         'file_path',
