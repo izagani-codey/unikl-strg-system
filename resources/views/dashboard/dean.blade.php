@@ -103,12 +103,12 @@
                                         <div class="flex items-center space-x-4">
                                             <div class="flex-shrink-0">
                                                 <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-800 font-semibold text-sm">
-                                                    {{ substr($request->reference_number, -3) }}
+                                                    {{ substr($request->ref_number, -3) }}
                                                 </span>
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <p class="text-sm font-medium text-gray-900 truncate">
-                                                    {{ $request->reference_number }}
+                                                    {{ $request->ref_number }}
                                                 </p>
                                                 <div class="flex items-center mt-1 space-x-4">
                                                     <span class="text-sm text-gray-500">{{ $request->user->name }}</span>

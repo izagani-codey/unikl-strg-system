@@ -10,6 +10,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
+use App\Http\Controllers\RequestTypeController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\DeanController;
 
@@ -76,6 +77,8 @@ Route::middleware('auth')->group(function () {
     // ── All roles — view requests ─────────────────────────────────────────────
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+    // Backward-compatible alias for older view references.
+    Route::get('/requests/{id}/download-pdf', [RequestController::class, 'downloadPdf'])->name('requests.downloadPdf');
     
     // ── Template Preview Route ─────────────────────────────────────────────
     Route::get('/request-types/{id}/template', [RequestTypeController::class, 'getTemplate'])->name('request-types.template');
@@ -92,11 +95,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Request PDF Routes ──────────────────────────────────────────────────────
-    Route::middleware('auth')->group(function () {
-        Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
-        Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
-        Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
-    });
+    Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
+    Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
+    Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
     Route::middleware('role:dean')->group(function () {
@@ -111,7 +112,6 @@ Route::middleware('auth')->group(function () {
     if (config('system.features.dean_interface', false)) {
         Route::middleware('role:dean')->group(function () {
             Route::get('/dean/dashboard', [DeanController::class, 'dashboard'])->name('dean.dashboard');
-            Route::get('/dean/requests', [DeanController::class, 'requests'])->name('dean.requests');
         });
     }
 
