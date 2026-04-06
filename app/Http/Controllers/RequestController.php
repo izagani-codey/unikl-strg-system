@@ -204,7 +204,7 @@ class RequestController extends Controller
             'signed_at'               => $request->input('signature_data') ? now() : $grantRequest->signed_at,
             'file_path'               => $filePath,
             'deadline'                => $request->input('deadline'),
-            'is_priority'             => $request->boolean('priority', false),
+            'is_priority'             => false, // Admission edits should never set priority
             'revision_count'          => $grantRequest->revision_count + 1,
         ]);
 
@@ -257,6 +257,8 @@ class RequestController extends Controller
             WorkflowTransitionService::executeTransition($grantRequest, $newStatus, [
                 'notes'            => $request->input('notes'),
                 'rejection_reason' => $request->input('rejection_reason'),
+                'staff2_signature_data' => $request->input('staff2_signature_data'),
+                'dean_signature_data' => $request->input('dean_signature_data'),
             ]);
             return redirect()->route('requests.show', $id)->with('success', 'Status updated successfully.');
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -305,15 +307,13 @@ class RequestController extends Controller
         ]);
         
         if ($needsDean) {
-            // Check if dean has already confirmed
-            $deanConfirmed = $grantRequest->dean_confirmed_at !== null;
             $deanApprovedBy = $grantRequest->dean_approved_by !== null;
+            $deanDecisionAt = $grantRequest->dean_approved_at?->format('Y-m-d H:i:s');
             
             return response()->json([
                 'needs_dean' => true,
-                'dean_confirmed' => $deanConfirmed,
                 'dean_approved_by' => $deanApprovedBy,
-                'dean_confirmed_at' => $deanConfirmed ? $grantRequest->dean_confirmed_at->format('Y-m-d H:i:s') : null,
+                'dean_decision_at' => $deanDecisionAt,
                 'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
             ]);
         }
@@ -338,6 +338,7 @@ class RequestController extends Controller
             'user_id'     => auth()->id(),
             'content'     => $request->input('content'),
             'is_internal' => true,
+            'created_at'  => now(),
         ]);
 
         return redirect()->back()->with('success', 'Comment added successfully.');
