@@ -536,4 +536,26 @@ class RequestController extends Controller
             return !empty($item['vot_code']) && $item['amount'] > 0;
         })->values()->all();
     }
+
+    private function getExistingSupportingDocuments(GrantRequest $request): array
+    {
+        return collect($request->payload['additional_documents'] ?? [])
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values()
+            ->all();
+    }
+
+    private function appendSupportingDocuments(GrantRequest $request, array $uploadedFiles): array
+    {
+        $existingFiles = $this->getExistingSupportingDocuments($request);
+        $newFiles = [];
+
+        foreach ($uploadedFiles as $uploadedFile) {
+            if ($uploadedFile) {
+                $newFiles[] = $uploadedFile->store('requests/supporting-documents', 'public');
+            }
+        }
+
+        return array_values(array_merge($existingFiles, $newFiles));
+    }
 }

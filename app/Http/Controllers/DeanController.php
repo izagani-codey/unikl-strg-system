@@ -17,7 +17,7 @@ class DeanController extends Controller
         return redirect()->route('dashboard');
     }
 
-    public function show($id)
+    public function requests()
     {
         return redirect()->route('requests.show', $id);
     }
