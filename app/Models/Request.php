@@ -183,50 +183,6 @@ class Request extends Model
     }
 
     // ==========================================
-    // Dean approval helpers
-    // ==========================================
-
-    public function approveByDean(User $dean, ?string $notes = null): void
-    {
-        $this->dean_approved_by = $dean->id;
-        $this->dean_approved_at = now();
-        $this->dean_notes = $notes;
-        $this->dean_rejection_reason = null;
-        $this->status_id = RequestStatus::APPROVED->value;
-        $this->save();
-    }
-
-    public function rejectByDean(User $dean, string $reason): void
-    {
-        $this->dean_approved_by = $dean->id;
-        $this->dean_approved_at = now();
-        $this->dean_rejection_reason = $reason;
-        $this->dean_notes = null;
-        $this->status_id = RequestStatus::DECLINED->value;
-        $this->save();
-    }
-
-    public function returnToStaff1(User $dean, string $reason): void
-    {
-        $this->dean_approved_by = $dean->id;
-        $this->dean_approved_at = now();
-        $this->dean_notes = $reason;
-        $this->dean_rejection_reason = null;
-        $this->status_id = RequestStatus::RETURNED_TO_STAFF_1->value;
-        $this->save();
-    }
-
-    public function returnToStaff2(User $dean, string $reason): void
-    {
-        $this->dean_approved_by = $dean->id;
-        $this->dean_approved_at = now();
-        $this->dean_notes = $reason;
-        $this->dean_rejection_reason = null;
-        $this->status_id = RequestStatus::RETURNED_TO_STAFF_2->value;
-        $this->save();
-    }
-
-    // ==========================================
     // Scopes
     // ==========================================
 

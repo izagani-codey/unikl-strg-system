@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\User;
+use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class DeanController extends Controller
 {
@@ -33,7 +33,12 @@ class DeanController extends Controller
         }
 
         $notes = $httpRequest->input('notes');
-        $grantRequest->approveByDean($dean, $notes);
+        
+        WorkflowTransitionService::executeTransition(
+            $grantRequest,
+            RequestStatus::APPROVED,
+            ['notes' => $notes]
+        );
 
         // Create notification for admission user
         $grantRequest->user->notifications()->create([
@@ -58,7 +63,12 @@ class DeanController extends Controller
         }
 
         $reason = $httpRequest->input('reason');
-        $grantRequest->rejectByDean($dean, $reason);
+        
+        WorkflowTransitionService::executeTransition(
+            $grantRequest,
+            RequestStatus::DECLINED,
+            ['rejection_reason' => $reason]
+        );
 
         // Create notification for admission user
         $grantRequest->user->notifications()->create([
@@ -83,7 +93,12 @@ class DeanController extends Controller
         }
 
         $reason = $httpRequest->input('reason');
-        $grantRequest->returnToStaff1($dean, $reason);
+        
+        WorkflowTransitionService::executeTransition(
+            $grantRequest,
+            RequestStatus::RETURNED_TO_STAFF_1,
+            ['notes' => $reason]
+        );
 
         // Create notification for staff1
         $staff1Users = User::where('role', 'staff1')->get();
@@ -111,7 +126,12 @@ class DeanController extends Controller
         }
 
         $reason = $httpRequest->input('reason');
-        $grantRequest->returnToStaff2($dean, $reason);
+        
+        WorkflowTransitionService::executeTransition(
+            $grantRequest,
+            RequestStatus::RETURNED_TO_STAFF_2,
+            ['notes' => $reason]
+        );
 
         // Create notification for staff2
         $staff2Users = User::where('role', 'staff2')->get();

@@ -9,6 +9,7 @@ use App\Repositories\RequestRepository;
 use App\Repositories\StatisticsRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
@@ -19,19 +20,24 @@ class DashboardService
     ) {}
 
     /**
-     * Get complete dashboard data for user.
+     * Get complete dashboard data for user with caching.
      */
     public function getDashboardData(User $user, array $filters = []): array
     {
-        return [
-            'displayRequests' => $this->requestRepository->getFilteredRequests($filters, $user),
-            'dashboardStats' => $this->statisticsRepository->getDashboardStats($user),
-            'requestTypes' => $this->getRequestTypes(),
-            'formTemplates' => $this->getFormTemplates(),
-            'urgentRequests' => $this->requestRepository->getUrgentRequests($user),
-            'user' => $user,
-            'filters' => $filters,
-        ];
+        $cacheKey = "dashboard_{$user->id}_" . md5(serialize($filters));
+        $cacheDuration = config('system.settings.cache_duration_minutes', 60);
+
+        return Cache::remember($cacheKey, $cacheDuration, function () use ($user, $filters) {
+            return [
+                'displayRequests' => $this->requestRepository->getFilteredRequests($filters, $user),
+                'dashboardStats' => $this->statisticsRepository->getDashboardStats($user),
+                'requestTypes' => $this->getCachedRequestTypes(),
+                'formTemplates' => $this->getCachedFormTemplates(),
+                'urgentRequests' => $this->requestRepository->getUrgentRequests($user),
+                'user' => $user,
+                'filters' => $filters,
+            ];
+        });
     }
 
     /**
@@ -52,21 +58,61 @@ class DashboardService
     }
 
     /**
-     * Get request types with caching.
+     * Get cached request types.
      */
-    private function getRequestTypes(): Collection
+    private function getCachedRequestTypes(): Collection
     {
-        return RequestType::orderBy('name')->get();
+        return Cache::remember('request_types_active', 3600, function () {
+            return RequestType::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'description']);
+        });
     }
 
     /**
-     * Get form templates with caching.
+     * Get cached form templates.
+     */
+    private function getCachedFormTemplates(): Collection
+    {
+        return Cache::remember('form_templates_active', 3600, function () {
+            return FormTemplate::with('uploader')
+                ->where('is_active', true)
+                ->latest('created_at')
+                ->get(['id', 'title', 'file_path', 'uploaded_by', 'created_at']);
+        });
+    }
+
+    /**
+     * Clear dashboard cache for user.
+     */
+    public function clearUserCache(User $user): void
+    {
+        Cache::forget("dashboard_{$user->id}_*");
+    }
+
+    /**
+     * Clear system-wide caches.
+     */
+    public function clearSystemCache(): void
+    {
+        Cache::forget('request_types_active');
+        Cache::forget('form_templates_active');
+    }
+
+    /**
+     * Get request types (legacy - use getCachedRequestTypes).
+     */
+    private function getRequestTypes(): Collection
+    {
+        return $this->getCachedRequestTypes();
+    }
+
+    /**
+     * Get form templates (legacy - use getCachedFormTemplates).
      */
     private function getFormTemplates(): Collection
     {
-        return FormTemplate::with('uploader')
-            ->latest('created_at')
-            ->get();
+        return $this->getCachedFormTemplates();
     }
 
     /**
