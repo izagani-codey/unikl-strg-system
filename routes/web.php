@@ -93,11 +93,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Request PDF Routes ──────────────────────────────────────────────────────
-    Route::middleware('auth')->group(function () {
-        Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
-        Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
-        Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
-    });
+    Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
+    Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
+    Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
     Route::middleware('role:dean')->group(function () {
