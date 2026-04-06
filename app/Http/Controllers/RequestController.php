@@ -190,9 +190,19 @@ class RequestController extends Controller
             $filePath = $request->file('document')->store('requests/attachments', 'public');
         }
 
+        $allAdditionalDocuments = $this->appendSupportingDocuments(
+            $grantRequest,
+            $request->file('additional_documents', [])
+        );
+
+        $payload = array_merge($grantRequest->payload ?? [], [
+            'description' => $request->input('description'),
+            'additional_documents' => $allAdditionalDocuments,
+        ]);
+
         $grantRequest->update([
             'request_type_id'         => $request->input('request_type_id'),
-            'payload'                 => ['description' => $request->input('description')],
+            'payload'                 => $payload,
             'vot_items'               => $votItems,
             'total_amount'            => $total,
             'submitter_staff_id'      => $user->staff_id,
@@ -204,7 +214,7 @@ class RequestController extends Controller
             'signed_at'               => $request->input('signature_data') ? now() : $grantRequest->signed_at,
             'file_path'               => $filePath,
             'deadline'                => $request->input('deadline'),
-            'is_priority'             => $request->boolean('priority', false),
+            'is_priority'             => false, // Admission edits should never set priority
             'revision_count'          => $grantRequest->revision_count + 1,
         ]);
 
@@ -237,6 +247,7 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::with([
             'user', 'requestType', 'verifiedBy', 'recommendedBy',
             'comments.user', 'auditLogs.actor',
+            'templateUsages' => fn ($query) => $query->latest()->with('template'),
         ])->findOrFail($id);
         $this->authorize('view', $grantRequest);
         return view('requests.show', compact('grantRequest'));
@@ -251,12 +262,27 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('changeStatus', $grantRequest);
 
+        if (auth()->user()?->role === 'staff2' && $request->hasFile('staff2_supporting_documents')) {
+            $grantRequest->update([
+                'payload' => array_merge($grantRequest->payload ?? [], [
+                    'additional_documents' => $this->appendSupportingDocuments(
+                        $grantRequest,
+                        $request->file('staff2_supporting_documents', [])
+                    ),
+                ]),
+            ]);
+            $grantRequest = $grantRequest->fresh();
+        }
+
         $newStatus = RequestStatus::from($request->input('status_id'));
 
         try {
             WorkflowTransitionService::executeTransition($grantRequest, $newStatus, [
                 'notes'            => $request->input('notes'),
                 'rejection_reason' => $request->input('rejection_reason'),
+                'staff1_signature_data' => $request->input('staff1_signature_data'),
+                'staff2_signature_data' => $request->input('staff2_signature_data'),
+                'dean_signature_data' => $request->input('dean_signature_data'),
             ]);
             return redirect()->route('requests.show', $id)->with('success', 'Status updated successfully.');
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -305,15 +331,13 @@ class RequestController extends Controller
         ]);
         
         if ($needsDean) {
-            // Check if dean has already confirmed
-            $deanConfirmed = $grantRequest->dean_confirmed_at !== null;
             $deanApprovedBy = $grantRequest->dean_approved_by !== null;
+            $deanDecisionAt = $grantRequest->dean_approved_at?->format('Y-m-d H:i:s');
             
             return response()->json([
                 'needs_dean' => true,
-                'dean_confirmed' => $deanConfirmed,
                 'dean_approved_by' => $deanApprovedBy,
-                'dean_confirmed_at' => $deanConfirmed ? $grantRequest->dean_confirmed_at->format('Y-m-d H:i:s') : null,
+                'dean_decision_at' => $deanDecisionAt,
                 'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
             ]);
         }
@@ -338,6 +362,7 @@ class RequestController extends Controller
             'user_id'     => auth()->id(),
             'content'     => $request->input('content'),
             'is_internal' => true,
+            'created_at'  => now(),
         ]);
 
         return redirect()->back()->with('success', 'Comment added successfully.');
@@ -372,6 +397,7 @@ class RequestController extends Controller
         $grantRequest = GrantRequest::with([
             'user', 'requestType', 'verifiedBy', 'recommendedBy',
             'comments.user', 'auditLogs.actor',
+            'templateUsages' => fn ($query) => $query->latest()->with('template'),
         ])->findOrFail($id);
         $this->authorize('view', $grantRequest);
         return view('requests.print', compact('grantRequest'));
@@ -495,5 +521,27 @@ class RequestController extends Controller
         })->filter(function ($item) {
             return !empty($item['vot_code']) && $item['amount'] > 0;
         })->values()->all();
+    }
+
+    private function getExistingSupportingDocuments(GrantRequest $request): array
+    {
+        return collect($request->payload['additional_documents'] ?? [])
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values()
+            ->all();
+    }
+
+    private function appendSupportingDocuments(GrantRequest $request, array $uploadedFiles): array
+    {
+        $existingFiles = $this->getExistingSupportingDocuments($request);
+        $newFiles = [];
+
+        foreach ($uploadedFiles as $uploadedFile) {
+            if ($uploadedFile) {
+                $newFiles[] = $uploadedFile->store('requests/supporting-documents', 'public');
+            }
+        }
+
+        return array_values(array_merge($existingFiles, $newFiles));
     }
 }

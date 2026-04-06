@@ -14,7 +14,7 @@ class AdminUserSeeder extends Seeder
         // Test Users
         User::create([
             'name'     => 'Admission Student',
-            'email'    => 'admission@unikl.edu.my',
+            'email'    => 'admissions@unikl.edu.my',
             'password' => Hash::make('password'),
             'role'     => 'admission',
         ]);

@@ -110,7 +110,7 @@
                     </div>
                     @endif
 
-                    {{-- New Document Upload --}}
+                    {{-- Main Document Upload --}}
                     <div class="mb-6 p-4 border-2 border-dashed border-blue-200 rounded-lg bg-blue-50">
                         <label class="block text-sm font-bold text-blue-700 mb-2">
                             Replace Document (optional)
@@ -125,6 +125,50 @@
                                       hover:file:bg-blue-700">
                         <p class="text-xs text-gray-500 mt-2 italic">
                             Leave empty to keep current document. PDF, JPG, PNG (Max 5MB)
+                        </p>
+                    </div>
+
+                    {{-- Additional Supporting Documents --}}
+                    @php
+                        $additionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
+                            ->filter(fn ($path) => is_string($path) && $path !== '')
+                            ->values();
+                    @endphp
+                    <div class="mb-6 p-4 border-2 border-dashed border-emerald-200 rounded-lg bg-emerald-50">
+                        <h3 class="text-sm font-bold text-emerald-700 mb-2">Additional Supporting Documents</h3>
+                        <p class="text-xs text-emerald-700 mb-3">
+                            You can add new supporting documents here. Existing uploaded documents are kept and cannot be removed in Edit &amp; Resubmit.
+                        </p>
+
+                        @if($additionalDocuments->isNotEmpty())
+                            <div class="mb-4 rounded border border-emerald-100 bg-white p-3">
+                                <p class="text-xs font-semibold text-gray-600 mb-2">Previously uploaded supporting documents</p>
+                                <ul class="space-y-1 text-sm">
+                                    @foreach($additionalDocuments as $documentPath)
+                                        <li>
+                                            <a href="{{ asset('storage/' . $documentPath) }}"
+                                               target="_blank"
+                                               class="text-emerald-700 hover:underline">
+                                                ↗ {{ basename($documentPath) }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <label class="block text-sm font-bold text-emerald-700 mb-2">Upload additional files (optional)</label>
+                        <input type="file"
+                               name="additional_documents[]"
+                               multiple
+                               class="w-full text-sm text-gray-500
+                                      file:mr-4 file:py-2 file:px-4
+                                      file:rounded-full file:border-0
+                                      file:text-sm file:font-semibold
+                                      file:bg-emerald-600 file:text-white
+                                      hover:file:bg-emerald-700">
+                        <p class="text-xs text-gray-500 mt-2 italic">
+                            PDF, JPG, PNG (Max 5MB each)
                         </p>
                     </div>
 
