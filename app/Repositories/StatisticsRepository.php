@@ -43,6 +43,7 @@ class StatisticsRepository
             'total' => (clone $base)->count(),
             'pending_verification' => (int) ($counts[RequestStatus::PENDING_VERIFICATION->value] ?? 0),
             'with_staff_2' => (int) ($counts[RequestStatus::PENDING_RECOMMENDATION->value] ?? 0),
+            'pending_dean_approval' => (int) ($counts[RequestStatus::PENDING_DEAN_APPROVAL->value] ?? 0),
             'returned_to_admission' => (int) ($counts[RequestStatus::RETURNED_TO_ADMISSION->value] ?? 0),
             'returned_to_staff_1' => (int) ($counts[RequestStatus::RETURNED_TO_STAFF_1->value] ?? 0),
             'approved' => (int) ($counts[RequestStatus::APPROVED->value] ?? 0),

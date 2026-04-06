@@ -31,4 +31,19 @@ class UpdateStatusRequest extends FormRequest
             'staff2_supporting_documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $role = $this->user()?->role;
+
+            if ($role === 'staff2' && empty($this->input('staff2_signature_data'))) {
+                $validator->errors()->add('staff2_signature_data', 'Staff 2 signature is required.');
+            }
+
+            if ($role === 'dean' && empty($this->input('dean_signature_data'))) {
+                $validator->errors()->add('dean_signature_data', 'Dean signature is required.');
+            }
+        });
+    }
 }

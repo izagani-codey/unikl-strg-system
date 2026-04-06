@@ -555,14 +555,6 @@
                                     </button>
                                 @endif
                                 
-                                @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_VERIFICATION->value)
-                                    <button type="submit"
-                                        onclick="document.getElementById('status2-input').value='2'"
-                                        class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">
-                                        ⚡ Override: Send to Staff 2 Review
-                                    </button>
-                                @endif
-                                
                                 <button type="submit"
                                     onclick="document.getElementById('status2-input').value='9'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
