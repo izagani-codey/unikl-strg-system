@@ -35,6 +35,13 @@ class UpdateRequestRequest extends FormRequest
                 'mimetypes:application/pdf,image/jpeg,image/png',
                 'max:5120',
             ],
+            'additional_documents' => 'nullable|array',
+            'additional_documents.*' => [
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'mimetypes:application/pdf,image/jpeg,image/png',
+                'max:5120',
+            ],
             'deadline'    => 'nullable|date',
             'signature_data' => 'nullable|string',
         ];
