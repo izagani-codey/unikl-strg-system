@@ -11,6 +11,10 @@ class TestController extends Controller
     public function testAuth()
     {
         $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
         $request = GrantRequest::first();
         
         if (!$request) {

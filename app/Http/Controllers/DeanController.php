@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\RequestStatus;
-use App\Models\Request as GrantRequest;
 use Illuminate\Http\Request;
 
 class DeanController extends Controller

@@ -18,7 +18,6 @@ use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class RequestController extends Controller
 {
