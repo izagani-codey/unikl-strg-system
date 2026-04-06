@@ -27,8 +27,6 @@ class UpdateStatusRequest extends FormRequest
             'staff1_signature_data' => 'nullable|string',
             'staff2_signature_data' => 'nullable|string',
             'dean_signature_data' => 'nullable|string',
-            'staff2_supporting_documents' => 'nullable|array',
-            'staff2_supporting_documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
 }
