@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Enums\RequestStatus;
 use App\Models\Request;
 use App\Models\User;
-use App\Services\OverrideService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Auth\Access\Response;
 
@@ -144,16 +143,5 @@ class RequestPolicy
         return $user->role === 'admission' &&
                $user->id === $request->user_id &&
                $request->status_id === RequestStatus::RETURNED_TO_ADMISSION->value;
-    }
-
-    /**
-     * Can the user override this request decision?
-     */
-    public function override(User $user, Request $request): bool
-    {
-        // Only staff2 can override and only if override mode is enabled
-        return $user->isStaff2() && 
-               $user->canOverride() && 
-               OverrideService::canOverride($request, $user);
     }
 }

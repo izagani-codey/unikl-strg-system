@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'staff_id', 'designation', 'department', 'phone', 'employee_level', 'signature_data', 'override_enabled', 'override_enabled_at'])]
+#[Fillable(['name', 'email', 'password', 'role', 'staff_id', 'designation', 'department', 'phone', 'employee_level', 'signature_data'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -19,8 +19,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
-            'override_enabled' => 'boolean',
-            'override_enabled_at' => 'datetime',
         ];
     }
 
@@ -49,38 +47,6 @@ class User extends Authenticatable
     public function displayName(): string
     {
         return $this->name . ($this->staff_id ? ' (' . $this->staff_id . ')' : '');
-    }
-
-    // ==========================================
-    // Override helpers
-    // ==========================================
-
-    public function canOverride(): bool
-    {
-        return $this->isStaff2() && $this->override_enabled;
-    }
-
-    public function enableOverride(): void
-    {
-        $this->override_enabled = true;
-        $this->override_enabled_at = now();
-        $this->save();
-    }
-
-    public function disableOverride(): void
-    {
-        $this->override_enabled = false;
-        $this->override_enabled_at = null;
-        $this->save();
-    }
-
-    public function toggleOverride(): void
-    {
-        if ($this->override_enabled) {
-            $this->disableOverride();
-        } else {
-            $this->enableOverride();
-        }
     }
 
     // ==========================================

@@ -18,7 +18,6 @@ class Request extends Model
         'verified_by', 'recommended_by',
         'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
         'revision_count', 'deadline', 'is_priority',
-        'is_overridden', 'overridden_by', 'override_reason', 'overridden_at',
         'staff1_signature_data', 'staff1_signed_at',
         'staff2_signature_data', 'staff2_signed_at',
         'dean_signature_data', 'dean_signed_at',
@@ -28,12 +27,10 @@ class Request extends Model
         'payload'     => 'array',
         'vot_items'   => 'array',
         'is_priority' => 'boolean',
-        'is_overridden' => 'boolean',
         'deadline'    => 'date',
         'signed_at'   => 'datetime',
         'submitted_at' => 'datetime',
         'dean_approved_at' => 'datetime',
-        'overridden_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'staff1_signed_at' => 'datetime',
         'staff2_signed_at' => 'datetime',
@@ -49,12 +46,10 @@ class Request extends Model
     public function verifiedBy()   { return $this->belongsTo(User::class, 'verified_by'); }
     public function recommendedBy(){ return $this->belongsTo(User::class, 'recommended_by'); }
     public function deanApprovedBy(){ return $this->belongsTo(User::class, 'dean_approved_by'); }
-    public function overriddenBy() { return $this->belongsTo(User::class, 'overridden_by'); }
     public function comments()     { return $this->hasMany(Comment::class); }
     public function auditLogs()    { return $this->hasMany(AuditLog::class); }
     public function documents()    { return $this->hasMany(Document::class); }
     public function templateUsages(){ return $this->hasMany(TemplateUsage::class, 'request_id'); }
-    public function overrideLogs() { return $this->hasMany(OverrideLog::class); }
 
     // ==========================================
     // VOT helpers
@@ -87,7 +82,6 @@ class Request extends Model
     public function canBeActionedByStaff1(): bool     { return $this->getStatus()->canBeActionedByStaff1(); }
     public function canBeActionedByStaff2(): bool     { return $this->getStatus()->canBeActionedByStaff2(); }
     public function canBeActionedByDean(): bool       { return $this->getStatus()->canBeActionedByDean(); }
-    public function canBeOverridden(): bool           { return $this->isFinal(); }
 
     // ==========================================
     // Priority / deadline helpers
@@ -153,33 +147,6 @@ class Request extends Model
     public function daysUntilDeadline(): ?int
     {
         return $this->deadline?->diffInDays(now());
-    }
-
-    // ==========================================
-    // Override helpers
-    // ==========================================
-
-    public function isOverridden(): bool
-    {
-        return $this->is_overridden && $this->overridden_by && $this->overridden_at;
-    }
-
-    public function markAsOverridden(User $overriddenBy, string $reason): void
-    {
-        $this->is_overridden = true;
-        $this->overridden_by = $overriddenBy->id;
-        $this->override_reason = $reason;
-        $this->overridden_at = now();
-        $this->save();
-    }
-
-    public function clearOverride(): void
-    {
-        $this->is_overridden = false;
-        $this->overridden_by = null;
-        $this->override_reason = null;
-        $this->overridden_at = null;
-        $this->save();
     }
 
     // ==========================================

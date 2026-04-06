@@ -14,7 +14,6 @@ use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
 use App\Models\VotCode;
-use App\Services\OverrideService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
@@ -127,7 +126,10 @@ class RequestController extends Controller
             'request_type_id'         => $request->input('request_type_id'),
             'ref_number'              => $this->generateReferenceNumber(),
             'status_id'               => RequestStatus::PENDING_VERIFICATION->value,
-            'payload'                 => ['description' => $request->input('description')],
+            'payload'                 => [
+                'description' => $request->input('description'),
+                'dynamic_fields' => $request->input('dynamic_fields', []),
+            ],
             'vot_items'               => $votItems,
             'total_amount'            => $total,
             // Snapshot submitter profile at submission time
@@ -305,64 +307,6 @@ class RequestController extends Controller
     }
 
     // ==========================================
-    // PDF FORM FILLER
-    // ==========================================
-    
-    public function fillPdfForm(Request $request, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $templates = FormTemplate::where('is_active', true)->get();
-        
-        $this->authorize('view', $grantRequest);
-        
-        return view('requests.fill-pdf-form', compact('grantRequest', 'templates'));
-    }
-
-    public function processFillPdfForm(Request $request, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('view', $grantRequest);
-        
-        // Handle the form submission (same logic as fillPdfForm)
-        $templates = FormTemplate::where('is_active', true)->get();
-        
-        return view('requests.fill-pdf-form', compact('grantRequest', 'templates'));
-    }
-
-    // ==========================================
-    // DEAN CHECK
-    // ==========================================
-    
-    public function checkDeanApproval(Request $request, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('view', $grantRequest);
-        
-        // Check if request needs dean approval
-        $needsDean = in_array($grantRequest->status_id, [
-            RequestStatus::PENDING_DEAN_VERIFICATION->value,
-            RequestStatus::PENDING_DEAN_APPROVAL->value,
-        ]);
-        
-        if ($needsDean) {
-            $deanApprovedBy = $grantRequest->dean_approved_by !== null;
-            $deanDecisionAt = $grantRequest->dean_approved_at?->format('Y-m-d H:i:s');
-            
-            return response()->json([
-                'needs_dean' => true,
-                'dean_approved_by' => $deanApprovedBy,
-                'dean_decision_at' => $deanDecisionAt,
-                'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
-            ]);
-        }
-        
-        return response()->json([
-            'needs_dean' => false,
-            'message' => 'Request does not require dean approval',
-        ]);
-    }
-
-    // ==========================================
     // STAFF — Add internal comment
     // ==========================================
 
@@ -403,21 +347,6 @@ class RequestController extends Controller
     }
 
     // ==========================================
-    // Print summary
-    // ==========================================
-
-    public function printSummary($id)
-    {
-        $grantRequest = GrantRequest::with([
-            'user', 'requestType', 'verifiedBy', 'recommendedBy',
-            'comments.user', 'auditLogs.actor',
-            'templateUsages' => fn ($query) => $query->latest()->with('template'),
-        ])->findOrFail($id);
-        $this->authorize('view', $grantRequest);
-        return view('requests.print', compact('grantRequest'));
-    }
-
-    // ==========================================
     // Download generated PDF
     // ==========================================
 
@@ -444,54 +373,6 @@ class RequestController extends Controller
         }
     }
 
-    // ==========================================
-    // Staff 2 Override Actions
-    // ==========================================
-
-    public function performOverride(Request $request, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('override', $grantRequest);
-
-        $request->validate([
-            'action_type' => 'required|in:approve,reject_reverse,bypass_verification,priority_override',
-            'reason' => 'required|string|min:10|max:500',
-            'confirm_reinstate' => 'nullable|accepted',
-            'confirmation_phrase' => 'nullable|string|max:20',
-        ]);
-
-        if ($request->input('action_type') === 'reject_reverse') {
-            $request->validate([
-                'confirm_reinstate' => 'required|accepted',
-                'confirmation_phrase' => 'required|in:REINSTATE',
-            ], [
-                'confirm_reinstate.required' => 'Please confirm reinstatement before proceeding.',
-                'confirmation_phrase.in' => 'Type REINSTATE to confirm this sensitive action.',
-            ]);
-        }
-
-        try {
-            OverrideService::performOverride($grantRequest, $request->input('action_type'), $request->input('reason'));
-            return redirect()->route('requests.show', $id)->with('success', 'Override action completed successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Override failed: ' . $e->getMessage());
-        }
-    }
-
-    public function toggleOverrideMode(Request $request)
-    {
-        $user = Auth::user();
-        
-        if (!$user->isStaff2()) {
-            return back()->with('error', 'Only Staff 2 can enable override mode.');
-        }
-
-        $user->toggleOverride();
-        
-        $status = $user->override_enabled ? 'enabled' : 'disabled';
-        return back()->with('success', "Override mode {$status}.");
-    }
-
     /**
      * Update request priority
      */
@@ -510,6 +391,29 @@ class RequestController extends Controller
 
         $action = $request->boolean('is_priority') ? 'set to high priority' : 'removed from high priority';
         return back()->with('success', "Request priority {$action}.");
+    }
+
+    /**
+     * Get dynamic form fields HTML for request type
+     */
+    public function getDynamicFields(Request $request, $typeId)
+    {
+        $requestType = RequestType::findOrFail($typeId);
+        
+        if (!$requestType->field_schema || empty($requestType->field_schema)) {
+            return response()->json(['html' => null, 'fields' => []]);
+        }
+
+        $html = view('components.dynamic-form-fields', [
+            'fields' => $requestType->field_schema,
+            'prefix' => 'dynamic_fields',
+            'values' => [],
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'fields' => $requestType->field_schema,
+        ]);
     }
 
     // ==========================================

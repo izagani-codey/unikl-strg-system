@@ -103,6 +103,9 @@ class WorkflowTransitionService
             throw new AuthorizationException('You are not authorized to perform this status transition.');
         }
 
+        // Validate signature requirement for Staff2 and Dean
+        self::validateSignatureRequirement($user, $newStatus, $data);
+
         $oldStatus = RequestStatus::from($request->status_id);
         
         // Create audit log
@@ -290,6 +293,41 @@ class WorkflowTransitionService
                 $signatureField => $data[$signatureField],
                 $timestampField => now(),
             ]);
+        }
+    }
+
+    /**
+     * Validate that Staff2 and Dean provide signatures for approval/decline actions
+     */
+    private static function validateSignatureRequirement(User $user, RequestStatus $newStatus, array $data): void
+    {
+        // Only enforce for Staff2 and Dean roles
+        if (!in_array($user->role, ['staff2', 'dean'], true)) {
+            return;
+        }
+
+        // Require signature for final actions (APPROVED, DECLINED)
+        $requiresSignature = in_array($newStatus, [
+            RequestStatus::APPROVED,
+            RequestStatus::DECLINED,
+        ], true);
+
+        if (!$requiresSignature) {
+            return;
+        }
+
+        // Check if signature data is provided based on role
+        $signatureField = match ($user->role) {
+            'staff2' => 'staff2_signature_data',
+            'dean' => 'dean_signature_data',
+            default => null,
+        };
+
+        if (!$signatureField || empty($data[$signatureField])) {
+            $roleLabel = $user->role === 'staff2' ? 'Staff 2' : 'Dean';
+            throw new AuthorizationException(
+                "{$roleLabel} signature is required to " . strtolower($newStatus->getLabel()) . " this request."
+            );
         }
     }
 

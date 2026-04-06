@@ -11,7 +11,6 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
 use App\Http\Controllers\RequestTypeController;
-use App\Http\Controllers\TestController;
 use App\Http\Controllers\DeanController;
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
@@ -36,11 +35,6 @@ if (app()->environment('local')) {
         
         return redirect()->intended('dashboard');
     })->name('dev.login');
-}
-
-// ─── Development Routes ───────────────────────────────────────────────────────
-if (app()->environment('local')) {
-    Route::get('/test-auth', [TestController::class, 'testAuth'])->middleware('auth');
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -83,21 +77,13 @@ Route::middleware('auth')->group(function () {
     // ── Template Preview Route ─────────────────────────────────────────────
     Route::get('/request-types/{id}/template', [RequestTypeController::class, 'getTemplate'])->name('request-types.template');
 
+    // ── API Routes for Dynamic Form Fields ─────────────────────────────────
+    Route::get('/api/request-types/{id}/fields', [RequestController::class, 'getDynamicFields'])->name('api.request-types.fields');
+
     // ── Notifications ─────────────────────────────────────────────────────────
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
-
-    // ── Staff 2 Override Routes ─────────────────────────────────────────────────────────
-    Route::middleware('role:staff2')->group(function () {
-        Route::post('/requests/{id}/override', [RequestController::class, 'performOverride'])->name('requests.override');
-        Route::post('/override/toggle', [RequestController::class, 'toggleOverrideMode'])->name('override.toggle');
-    });
-
-    // ── Request PDF Routes ──────────────────────────────────────────────────────
-    Route::get('/requests/{id}/fill-pdf-form', [RequestController::class, 'fillPdfForm'])->name('requests.fill-pdf-form');
-    Route::post('/requests/{id}/fill-pdf-form', [RequestController::class, 'processFillPdfForm'])->name('requests.process-fill-pdf-form');
-    Route::get('/requests/{id}/dean-check', [RequestController::class, 'checkDeanApproval'])->name('requests.dean.check');
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
     Route::middleware('role:dean')->group(function () {

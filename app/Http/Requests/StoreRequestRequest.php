@@ -13,17 +13,17 @@ class StoreRequestRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'request_type_id'         => 'required|exists:request_types,id',
             'description'             => 'required|string',
+            'dynamic_fields'          => 'nullable|array',
             'vot_items'               => 'required|array|min:1',
             'vot_items.*.vot_code'    => 'required|string|exists:vot_codes,code',
             'vot_items.*.description' => 'required|string|max:255',
             'vot_items.*.amount'      => 'required|numeric|min:0',
-            'signature_data'          => 'required|string', // base64 PNG from signature pad
+            'signature_data'          => 'required|string',
             'deadline'                => 'nullable|date|after:today',
             'priority'                => 'nullable|boolean',
-            // Optional file attachment (no longer required — PDF generated automatically)
             'document'                => [
                 'nullable', 'file',
                 'mimes:pdf,jpg,jpeg,png',
@@ -31,6 +31,47 @@ class StoreRequestRequest extends FormRequest
                 'max:5120',
             ],
         ];
+
+        // Add dynamic field validation based on request type
+        $requestTypeId = $this->input('request_type_id');
+        if ($requestTypeId) {
+            $requestType = \App\Models\RequestType::find($requestTypeId);
+            if ($requestType && $requestType->field_schema) {
+                foreach ($requestType->field_schema as $field) {
+                    $fieldName = "dynamic_fields.{$field['name']}";
+                    $isRequired = $field['required'] ?? false;
+                    
+                    switch ($field['type']) {
+                        case 'text':
+                        case 'textarea':
+                            $rules[$fieldName] = $isRequired ? 'required|string' : 'nullable|string';
+                            break;
+                        case 'number':
+                            $rules[$fieldName] = $isRequired ? 'required|numeric' : 'nullable|numeric';
+                            break;
+                        case 'select':
+                            $rules[$fieldName] = $isRequired ? 'required|string' : 'nullable|string';
+                            break;
+                        case 'date':
+                            $rules[$fieldName] = $isRequired ? 'required|date' : 'nullable|date';
+                            break;
+                        case 'checkbox':
+                            $rules[$fieldName] = 'nullable|boolean';
+                            break;
+                        case 'date_range':
+                            if (isset($field['fields'])) {
+                                foreach ($field['fields'] as $rangeField) {
+                                    $rangeFieldName = "dynamic_fields.{$rangeField}";
+                                    $rules[$rangeFieldName] = $isRequired ? 'required|date' : 'nullable|date';
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+
+        return $rules;
     }
 
     public function messages(): array

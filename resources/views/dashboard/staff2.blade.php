@@ -6,18 +6,6 @@
                 <p class="text-gray-600 mt-1">Review and approve grant applications</p>
             </div>
             <div class="flex items-center space-x-3">
-                {{-- Override Mode Toggle --}}
-                <form method="POST" action="{{ route('override.toggle') }}" class="inline">
-                    @csrf
-                    <button type="submit" 
-                            class="inline-flex items-center px-4 py-2 {{ auth()->user()->override_enabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700' }} text-white text-sm font-semibold rounded-lg transition-colors shadow-lg">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                        Override Mode {{ auth()->user()->override_enabled ? 'ON' : 'OFF' }}
-                    </button>
-                </form>
-                
                 <a href="{{ route('staff2.admin') }}" 
                    class="inline-flex items-center px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-gray-900 transition-colors shadow-lg">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,27 +37,6 @@
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
                     {{ session('success') }}
-                </div>
-            @endif
-
-            {{-- Override Mode Indicator --}}
-            @if(auth()->user()->override_enabled)
-                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border-l-4 border-purple-500 p-4 rounded-lg shadow-md">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-purple-800">
-                                ⚡ Override Mode Active
-                            </h3>
-                            <div class="mt-1 text-sm text-purple-700">
-                                You can bypass Staff 1 verification, directly approve requests, and reverse rejections. All override actions will be logged and notifications sent to affected staff members.
-                            </div>
-                        </div>
-                    </div>
                 </div>
             @endif
 

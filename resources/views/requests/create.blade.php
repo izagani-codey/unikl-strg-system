@@ -124,7 +124,28 @@
 
                         <div class="mt-4">
                             <label class="block text-sm font-bold text-gray-700">Justification / Description *</label>
-                            <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="Describe the purpose and justification for this STRG request..." required>{{ old('description') }}</textarea>
+                            <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="General description for this STRG request..." required>{{ old('description') }}</textarea>
+                        </div>
+                    </div>
+
+                    {{-- Dynamic Form Fields Section --}}
+                    <div id="dynamic-fields-section" class="mb-6 border-b border-gray-200 pb-6 {{ old('request_type_id') ? '' : 'hidden' }}">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Request Details</h3>
+                        <p class="text-sm text-gray-600 mb-4">Please provide the specific information required for this request type.</p>
+                        
+                        <div id="dynamic-fields-container">
+                            @if(old('request_type_id'))
+                                @php
+                                    $selectedType = $requestTypes->firstWhere('id', old('request_type_id'));
+                                @endphp
+                                @if($selectedType && $selectedType->field_schema)
+                                    <x-dynamic-form-fields 
+                                        :fields="$selectedType->field_schema" 
+                                        prefix="dynamic_fields" 
+                                        :values="old('dynamic_fields', [])" 
+                                    />
+                                @endif
+                            @endif
                         </div>
                     </div>
 
@@ -240,6 +261,7 @@
             const requestTypeSelect = document.getElementById('request-type-select');
             if (requestTypeSelect && requestTypeSelect.value) {
                 loadTemplatePreview(requestTypeSelect.value);
+                loadDynamicFields(requestTypeSelect.value);
             }
 
             const votContainer = document.getElementById('vot-items-container');
@@ -248,6 +270,41 @@
                 votContainer.addEventListener('change', updateVOTPreview);
             }
         });
+
+        async function loadDynamicFields(requestTypeId) {
+            const container = document.getElementById('dynamic-fields-container');
+            const section = document.getElementById('dynamic-fields-section');
+            
+            if (!requestTypeId) {
+                section.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/request-types/${requestTypeId}/fields`);
+                if (!response.ok) {
+                    section.classList.add('hidden');
+                    return;
+                }
+
+                const data = await response.json();
+                
+                if (data.fields && data.fields.length > 0) {
+                    // Render fields using the server-rendered component approach
+                    // For now, we'll reload the page section or use a simpler approach
+                    section.classList.remove('hidden');
+                    
+                    // Store the selected type ID for form submission
+                    container.dataset.typeId = requestTypeId;
+                } else {
+                    section.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading dynamic fields:', error);
+                section.classList.add('hidden');
+            }
+        }
 
         function initializeVotItems() {
             if (Array.isArray(oldVotItems) && oldVotItems.length > 0) {
@@ -429,12 +486,33 @@
         async function loadTemplatePreview(requestTypeId) {
             const previewSection = document.getElementById('template-preview-section');
             const iframe = document.getElementById('template-preview-iframe');
+            const dynamicSection = document.getElementById('dynamic-fields-section');
+            const dynamicContainer = document.getElementById('dynamic-fields-container');
 
             if (!requestTypeId) {
                 previewSection.classList.add('hidden');
+                dynamicSection.classList.add('hidden');
                 return;
             }
 
+            // Load dynamic fields via AJAX
+            try {
+                const fieldsResponse = await fetch(`/api/request-types/${requestTypeId}/fields`);
+                if (fieldsResponse.ok) {
+                    const fieldsData = await fieldsResponse.json();
+                    if (fieldsData.html) {
+                        dynamicContainer.innerHTML = fieldsData.html;
+                        dynamicSection.classList.remove('hidden');
+                    } else {
+                        dynamicSection.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dynamic fields:', error);
+                dynamicSection.classList.add('hidden');
+            }
+
+            // Continue with template preview loading
             try {
                 const response = await fetch(`/request-types/${requestTypeId}/template`);
                 if (!response.ok) {
