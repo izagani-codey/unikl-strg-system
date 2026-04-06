@@ -7,7 +7,6 @@ use App\Models\FormTemplate;
 use App\Models\User;
 use Illuminate\Support\Str;
 use setasign\Fpdi\Fpdi;
-use setasign\Fpdi\PdfParser;
 
 class PdfFormFillerService
 {
@@ -25,38 +24,37 @@ class PdfFormFillerService
 
         // Create new PDF from template
         $fpdi = new Fpdi();
-        $fpdi->setSourceFile($templatePath);
-        
-        // Get page count
-        $pageCount = $fpdi->getPageCount();
-        $templatePdf = new PdfParser($templatePath);
+        $pageCount = $fpdi->setSourceFile($templatePath);
         
         // Get user and request data
         $user = $request->user;
         $mappedFields = $template->getMappedFields();
         
-        // Create a new PDF for the filled form
-        $newPdf = new Fpdi();
-        
         // Process each page
         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $newPdf->AddPage();
-            $fpdi->useTemplatePage($templatePdf, $pageNo);
+            $templateId = $fpdi->importPage($pageNo);
+            $templateSize = $fpdi->getTemplateSize($templateId);
+
+            $fpdi->AddPage(
+                $templateSize['orientation'],
+                [$templateSize['width'], $templateSize['height']]
+            );
+            $fpdi->useTemplate($templateId);
             
             // Fill fields based on mappings
             foreach ($mappedFields as $field => $pdfField) {
                 $value = $this->getFieldValue($field, $request, $user);
                 if ($value !== null) {
-                    $newPdf->SetFont('Arial', '', 10);
-                    $newPdf->SetTextColor(0, 0, 0);
-                    $newPdf->SetXY($pdfField['x'] ?? 50, $pdfField['y'] ?? 50);
-                    $newPdf->Write($value);
+                    $fpdi->SetFont('Arial', '', 10);
+                    $fpdi->SetTextColor(0, 0, 0);
+                    $fpdi->SetXY($pdfField['x'] ?? 50, $pdfField['y'] ?? 50);
+                    $fpdi->Write(5, (string) $value);
                 }
             }
             
             // Add VOT items if it's a VOT form
             if ($template->template_type === 'vot_form') {
-                $this->addVotItemsToPdf($newPdf, $request);
+                $this->addVotItemsToPdf($fpdi, $request);
             }
         }
         
@@ -70,7 +68,7 @@ class PdfFormFillerService
             mkdir($directory, 0755, true);
         }
         
-        $newPdf->Output($fullPath, 'F');
+        $fpdi->Output('F', $fullPath);
         
         return $outputPath;
     }
@@ -92,7 +90,7 @@ class PdfFormFillerService
             'request.ref_number' => $request->ref_number,
             'request.request_type' => $request->requestType->name ?? '',
             'request.total_amount' => number_format($request->total_amount, 2),
-            'request.deadline' => $request->deadline?->format('Y-m-d') : '',
+            'request.deadline' => $request->deadline?->format('Y-m-d') ?? '',
             'request.description' => $request->description,
             'request.submitted_at' => $request->submitted_at->format('Y-m-d H:i:s'),
             'vot_items' => $this->formatVotItems($request),

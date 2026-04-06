@@ -204,7 +204,7 @@ class RequestController extends Controller
             'signed_at'               => $request->input('signature_data') ? now() : $grantRequest->signed_at,
             'file_path'               => $filePath,
             'deadline'                => $request->input('deadline'),
-            'is_priority'             => $request->boolean('priority', false),
+            'is_priority'             => false, // Admission edits should never set priority
             'revision_count'          => $grantRequest->revision_count + 1,
         ]);
 
