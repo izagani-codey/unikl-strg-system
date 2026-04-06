@@ -53,6 +53,7 @@ class Request extends Model
     public function comments()     { return $this->hasMany(Comment::class); }
     public function auditLogs()    { return $this->hasMany(AuditLog::class); }
     public function documents()    { return $this->hasMany(Document::class); }
+    public function templateUsages(){ return $this->hasMany(TemplateUsage::class, 'request_id'); }
     public function overrideLogs() { return $this->hasMany(OverrideLog::class); }
 
     // ==========================================
