@@ -305,15 +305,13 @@ class RequestController extends Controller
         ]);
         
         if ($needsDean) {
-            // Check if dean has already confirmed
-            $deanConfirmed = $grantRequest->dean_confirmed_at !== null;
             $deanApprovedBy = $grantRequest->dean_approved_by !== null;
+            $deanDecisionAt = $grantRequest->dean_approved_at?->format('Y-m-d H:i:s');
             
             return response()->json([
                 'needs_dean' => true,
-                'dean_confirmed' => $deanConfirmed,
                 'dean_approved_by' => $deanApprovedBy,
-                'dean_confirmed_at' => $deanConfirmed ? $grantRequest->dean_confirmed_at->format('Y-m-d H:i:s') : null,
+                'dean_decision_at' => $deanDecisionAt,
                 'message' => $deanApprovedBy ? 'Request has been approved by dean' : 'Request is pending dean approval',
             ]);
         }

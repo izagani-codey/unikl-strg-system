@@ -125,24 +125,24 @@ class PdfFormFillerService
         // Add VOT header
         $fpdi->SetFont('Arial', 'B', 12);
         $fpdi->SetXY(50, $yPosition);
-        $fpdi->Write('VOT Budget Breakdown:');
+        $fpdi->Write(5, 'VOT Budget Breakdown:');
         $yPosition += 20;
         
         // Add each VOT item
         foreach ($votItems as $index => $item) {
             $fpdi->SetFont('Arial', '', 10);
             $fpdi->SetXY(60, $yPosition);
-            $fpdi->Write(($index + 1) . '. ' . $item['vot_code'] . ' - ' . $item['description']);
+            $fpdi->Write(5, ($index + 1) . '. ' . $item['vot_code'] . ' - ' . $item['description']);
             $yPosition += 10;
             
             $fpdi->SetXY(70, $yPosition);
-            $fpdi->Write('Amount: RM ' . number_format($item['amount'], 2));
+            $fpdi->Write(5, 'Amount: RM ' . number_format($item['amount'], 2));
             $yPosition += 20;
         }
         
         // Add total
         $fpdi->SetFont('Arial', 'B', 12);
         $fpdi->SetXY(50, $yPosition);
-        $fpdi->Write('Total Amount: RM ' . number_format($request->total_amount, 2));
+        $fpdi->Write(5, 'Total Amount: RM ' . number_format($request->total_amount, 2));
     }
 }
