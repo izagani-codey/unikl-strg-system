@@ -513,7 +513,7 @@
                 {{-- STAFF 2: Approve, Return to Staff 1, or Decline --}}
                 @can('changeStatus', $grantRequest)
                     @if(auth()->user()->role === 'staff2')
-                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')" data-signature-input="staff2-signature-data">
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')" data-signature-input="staff2-signature-data">
                             @csrf
                             @method('PATCH')
                             <input type="file" name="staff2_supporting_documents[]" multiple
