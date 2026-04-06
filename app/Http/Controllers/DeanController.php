@@ -19,20 +19,7 @@ class DeanController extends Controller
 
     public function show($id)
     {
-        $request = GrantRequest::with([
-            'user', 
-            'requestType', 
-            'verifiedBy', 
-            'recommendedBy',
-            'comments.user'
-        ])->findOrFail($id);
-
-        // Check if dean can view this request
-        if (!$request->canBeActionedByDean()) {
-            abort(403, 'You cannot access this request at this stage.');
-        }
-
-        return view('dean.show', compact('request'));
+        return redirect()->route('requests.show', $id);
     }
 
     public function approve(Request $httpRequest, $id)

@@ -83,14 +83,7 @@ class RequestPolicy
         }
 
         if ($user->role === 'staff2' && !$currentStatus->canBeActionedByStaff2()) {
-            if ($currentStatus->isFinal()) {
-                return Response::deny('This request is already finalized.');
-            }
-
-            // For non-standard stages, Staff 2 must use explicit override actions.
-            if (!$user->canOverride() || !OverrideService::canOverride($request, $user)) {
-                return Response::deny('This request is outside normal Staff 2 flow. Use override mode when needed.');
-            }
+            return Response::deny('This request cannot be actioned by Staff 2 at this stage.');
         }
 
         // Dean can approve/reject requests that need dean approval
