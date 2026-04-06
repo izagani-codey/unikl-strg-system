@@ -77,6 +77,8 @@ Route::middleware('auth')->group(function () {
     // ── All roles — view requests ─────────────────────────────────────────────
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+    // Backward-compatible alias for older view references.
+    Route::get('/requests/{id}/download-pdf', [RequestController::class, 'downloadPdf'])->name('requests.downloadPdf');
     
     // ── Template Preview Route ─────────────────────────────────────────────
     Route::get('/request-types/{id}/template', [RequestTypeController::class, 'getTemplate'])->name('request-types.template');
