@@ -214,9 +214,9 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition-colors shadow-md">
+                    <x-loading-button type="primary" class="w-full">
                         Submit Request for Verification
-                    </button>
+                    </x-loading-button>
                 </form>
 
             </div>
@@ -224,17 +224,29 @@
     </div>
 
     <script>
-        let signatureState = {
-            isDrawing: false,
-            hasSignature: false,
-        };
+        let signatureState = { isDrawing: false, hasSignature: false };
         let votItemCount = 0;
+        let pdfjsLoaded = false;
+        let previewObjectUrl = null;
+
         const oldVotItems = @json(old('vot_items', []));
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeSignaturePad();
             initializeVotItems();
             calculateTotal();
+            updateVOTPreview();
+
+            const requestTypeSelect = document.getElementById('request-type-select');
+            if (requestTypeSelect && requestTypeSelect.value) {
+                loadTemplatePreview(requestTypeSelect.value);
+            }
+
+            const votContainer = document.getElementById('vot-items-container');
+            if (votContainer) {
+                votContainer.addEventListener('input', updateVOTPreview);
+                votContainer.addEventListener('change', updateVOTPreview);
+            }
         });
 
         function initializeVotItems() {
@@ -245,71 +257,7 @@
             addVotItemRow();
         }
 
-        function addVotItemRow() {
-            const initialData = arguments.length > 0 ? arguments[0] : {};
-            const container = document.getElementById('vot-items-container');
-            const template = document.getElementById('vot-item-template');
-            const clone = template.content.cloneNode(true);
-            const row = clone.querySelector('.vot-item-row');
-
-            const select = row.querySelector('.vot-code-select');
-            const codeInput = row.querySelector('.vot-code-input');
-            const descInput = row.querySelector('.vot-description-input');
-            const amountInput = row.querySelector('.vot-amount-input');
-
-            select.name = '';
-            codeInput.name = `vot_items[${votItemCount}][vot_code]`;
-            descInput.name = `vot_items[${votItemCount}][description]`;
-            amountInput.name = `vot_items[${votItemCount}][amount]`;
-            codeInput.required = true;
-            descInput.required = false;
-
-            if (initialData?.vot_code) {
-                select.value = initialData.vot_code;
-                codeInput.value = initialData.vot_code;
-                const selectedOption = select.options[select.selectedIndex];
-                const description = selectedOption?.dataset?.description || initialData.description || '';
-                descInput.value = description;
-                row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
-            }
-
-            if (initialData?.amount !== undefined && initialData?.amount !== null) {
-                amountInput.value = initialData.amount;
-            }
-
-            select.addEventListener('change', function () {
-                handleVotSelection(this);
-            });
-            amountInput.addEventListener('input', calculateTotal);
-
-            // Initialize total calculation
-            addVotItemRow();
-            calculateTotal();
-        }
-
-        function removeVotItemRow(button) {
-            const totalRows = document.querySelectorAll('.vot-item-row').length;
-            if (totalRows <= 1) {
-                alert('At least one VOT item is required.');
-                return;
-            }
-            const row = button.closest('.vot-item-row');
-            row.remove();
-            calculateTotal();
-        }
-
-        function handleVotSelection(selectElement) {
-            const row = selectElement.closest('.vot-item-row');
-            const selectedOption = selectElement.options[selectElement.selectedIndex];
-            const code = selectedOption.value || '';
-            const description = selectedOption.dataset.description || '';
-
-            row.querySelector('.vot-code-input').value = code;
-            row.querySelector('.vot-description-input').value = description;
-            row.querySelector('.vot-desc-preview').textContent = description ? `Description: ${description}` : '';
-        }
-
-        function addVotItemRow() {
+        function addVotItemRow(initialData = {}) {
             const container = document.getElementById('vot-items-container');
             const template = document.getElementById('vot-item-template');
             const clone = template.content.cloneNode(true);
@@ -327,14 +275,40 @@
             codeInput.required = true;
             descInput.required = true;
 
+            if (initialData.vot_code) {
+                select.value = initialData.vot_code;
+                handleVotSelection(select);
+            }
+
+            if (initialData.amount !== undefined && initialData.amount !== null) {
+                amountInput.value = initialData.amount;
+            }
+
+            select.addEventListener('change', function () {
+                handleVotSelection(this);
+                updateVOTPreview();
+            });
+            amountInput.addEventListener('input', () => {
+                calculateTotal();
+                updateVOTPreview();
+            });
+
             container.appendChild(clone);
             votItemCount++;
+            calculateTotal();
+            updateVOTPreview();
         }
 
         function removeVotItemRow(button) {
+            const totalRows = document.querySelectorAll('.vot-item-row').length;
+            if (totalRows <= 1) {
+                alert('At least one VOT item is required.');
+                return;
+            }
             const row = button.closest('.vot-item-row');
             row.remove();
             calculateTotal();
+            updateVOTPreview();
         }
 
         function handleVotSelection(selectElement) {
@@ -351,12 +325,11 @@
         function calculateTotal() {
             const votInputs = document.querySelectorAll('.vot-amount-input');
             let total = 0;
-            
-            votInputs.forEach(input => {
-                const value = parseFloat(input.value) || 0;
-                total += value;
+
+            votInputs.forEach((input) => {
+                total += parseFloat(input.value) || 0;
             });
-            
+
             document.getElementById('total-amount').textContent = total.toFixed(2);
         }
 
@@ -395,9 +368,7 @@
             };
 
             const stopDraw = (event) => {
-                if (event) {
-                    event.preventDefault();
-                }
+                if (event) event.preventDefault();
                 signatureState.isDrawing = false;
             };
 
@@ -418,23 +389,12 @@
             document.getElementById('signature_data').value = '';
         }
 
-        document.getElementById('request-form').addEventListener('submit', function(e) {
+        const requestForm = document.getElementById('request-form');
+        let isSubmitting = false;
+        requestForm.addEventListener('submit', function(e) {
             if (!signatureState.hasSignature) {
                 e.preventDefault();
                 alert('Please provide your digital signature before submitting.');
-                return false;
-            }
-            
-            const signatureCanvas = document.getElementById('signature-canvas');
-            const signatureData = signatureCanvas.toDataURL('image/png');
-            document.getElementById('signature_data').value = signatureData;
-            
-            return true;
-        });
-
-        let isSubmitting = false;
-        document.getElementById('request-form').addEventListener('submit', function(e) {
-            if (e.defaultPrevented) {
                 return false;
             }
 
@@ -443,27 +403,16 @@
                 return false;
             }
             isSubmitting = true;
-            
-            // Show loading state
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Submitting...';
-            submitBtn.disabled = true;
-            
-            // Reset after 5 seconds (in case of errors)
-            setTimeout(() => {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-                isSubmitting = false;
-            }, 5000);
-        });
 
-        // Template preview functionality
-        let pdfjsLoaded = false;
+            const signatureCanvas = document.getElementById('signature-canvas');
+            document.getElementById('signature_data').value = signatureCanvas.toDataURL('image/png');
+
+            return true;
+        });
 
         function loadPDFJS() {
             if (pdfjsLoaded) return Promise.resolve();
-            
+
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
@@ -480,7 +429,7 @@
         async function loadTemplatePreview(requestTypeId) {
             const previewSection = document.getElementById('template-preview-section');
             const iframe = document.getElementById('template-preview-iframe');
-            
+
             if (!requestTypeId) {
                 previewSection.classList.add('hidden');
                 return;
@@ -496,83 +445,59 @@
                 const blob = await response.blob();
                 const fileType = blob.type;
 
+                if (previewObjectUrl) {
+                    URL.revokeObjectURL(previewObjectUrl);
+                    previewObjectUrl = null;
+                }
+
                 if (fileType === 'application/pdf') {
                     await loadPDFJS();
                     const arrayBuffer = await blob.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     const page = await pdf.getPage(1);
-                    const scale = 1.5;
-                    const viewport = page.getViewport({ scale });
+                    const viewport = page.getViewport({ scale: 1.2 });
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
-
                     await page.render({ canvasContext: context, viewport }).promise;
 
-                    const dataUrl = canvas.toDataURL();
-                    iframe.src = dataUrl;
+                    iframe.src = canvas.toDataURL('image/png');
                 } else {
-                    // For image files
-                    const dataUrl = URL.createObjectURL(blob);
-                    iframe.src = dataUrl;
+                    previewObjectUrl = URL.createObjectURL(blob);
+                    iframe.src = previewObjectUrl;
                 }
 
                 previewSection.classList.remove('hidden');
-                
-                // Update preview with selected request type name
+
                 const select = document.getElementById('request-type-select');
                 const selectedOption = select.options[select.selectedIndex];
                 document.getElementById('preview-request-type').textContent = selectedOption.text;
-                
             } catch (error) {
                 console.error('Error loading template preview:', error);
                 previewSection.classList.add('hidden');
             }
         }
 
-        // Update VOT preview when items change
         function updateVOTPreview() {
             const votItems = document.querySelectorAll('.vot-item-row');
             let itemCount = 0;
-            let hasItems = false;
-            
-            votItems.forEach(row => {
+
+            votItems.forEach((row) => {
                 const codeSelect = row.querySelector('.vot-code-select');
                 const amountInput = row.querySelector('.vot-amount-input');
-                
-                if (codeSelect && codeSelect.value && amountInput && amountInput.value) {
+                if (codeSelect?.value && amountInput?.value) {
                     itemCount++;
-                    hasItems = true;
                 }
             });
-            
-            if (hasItems) {
-                document.getElementById('preview-vot').textContent = `${itemCount} item${itemCount > 1 ? 's' : ''} will be included`;
-            } else {
-                document.getElementById('preview-vot').textContent = 'Items you add below';
-            }
-            
-            // Update total preview
-            const totalElement = document.getElementById('total-amount');
-            if (totalElement) {
-                const total = totalElement.textContent;
-                document.getElementById('preview-total').textContent = total || 'Calculated from VOT items';
-            }
-        }
 
-        // Listen for VOT changes
-        document.addEventListener('DOMContentLoaded', function() {
-            // Update preview when VOT items change
-            const votContainer = document.getElementById('vot-items-container');
-            if (votContainer) {
-                const observer = new MutationObserver(updateVOTPreview);
-                observer.observe(votContainer, { childList: true, subtree: true });
-                
-                // Initial update
-                updateVOTPreview();
-            }
-        });
+            document.getElementById('preview-vot').textContent = itemCount > 0
+                ? `${itemCount} item${itemCount > 1 ? 's' : ''} will be included`
+                : 'Items you add below';
+
+            const total = document.getElementById('total-amount').textContent || '0.00';
+            document.getElementById('preview-total').textContent = `RM ${total}`;
+        }
     </script>
 </x-app-layout>

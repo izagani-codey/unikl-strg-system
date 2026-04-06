@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         App\Providers\AuthServiceProvider::class,
+        App\Providers\AppServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'auto.priority' => \App\Http\Middleware\AutoPriorityMiddleware::class,
+            'performance.monitor' => \App\Http\Middleware\PerformanceMonitoring::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

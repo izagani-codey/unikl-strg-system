@@ -244,7 +244,30 @@
                 </div>
             </div>
 
-            {{-- Uploaded Document --}}
+            {{-- General Form (Generated PDF) --}}
+            @php
+                $latestTemplateUsage = $grantRequest->templateUsages->first();
+            @endphp
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">General Form</h3>
+                <p class="text-sm text-gray-600 mb-3">
+                    This is the generated general form based on the selected template and latest request data.
+                </p>
+                @if($latestTemplateUsage && !empty($latestTemplateUsage->generated_file_path))
+                    <a href="{{ asset('storage/' . $latestTemplateUsage->generated_file_path) }}"
+                       target="_blank"
+                       class="inline-block text-blue-600 hover:underline text-sm font-semibold">
+                        ↗ Open latest generated general form
+                    </a>
+                @else
+                    <a href="{{ route('requests.downloadPdf', $grantRequest->id) }}"
+                       class="inline-block text-blue-600 hover:underline text-sm font-semibold">
+                        ↗ Generate & download general form
+                    </a>
+                @endif
+            </div>
+
+            {{-- Main Uploaded Document --}}
             @if($grantRequest->file_path)
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Uploaded Document</h3>
@@ -265,6 +288,28 @@
                    class="mt-3 inline-block text-blue-600 hover:underline text-sm font-semibold">
                     ↗ Open in new tab
                 </a>
+            </div>
+            @endif
+
+            @php
+                $additionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
+                    ->filter(fn ($path) => is_string($path) && $path !== '')
+                    ->values();
+            @endphp
+            @if($additionalDocuments->isNotEmpty())
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Additional Supporting Documents</h3>
+                <ul class="space-y-2 text-sm">
+                    @foreach($additionalDocuments as $documentPath)
+                        <li>
+                            <a href="{{ asset('storage/' . $documentPath) }}"
+                               target="_blank"
+                               class="text-blue-600 hover:underline font-semibold">
+                                ↗ {{ basename($documentPath) }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
             </div>
             @endif
 
@@ -443,36 +488,17 @@
                                 placeholder="Reason for returning or rejecting (visible to admission)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
                             
-                            <!-- Staff 1 Signature -->
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium text-blue-700">Staff 1 Signature:</label>
-                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50">
-                                    <canvas id="staff1-signature-canvas" width="400" height="150" class="w-full border border-gray-300 rounded bg-white cursor-crosshair"></canvas>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button type="button" onclick="clearStaff1Signature()" class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Clear Signature</button>
-                                    <span class="text-xs text-gray-500">Sign above before submitting</span>
-                                </div>
-                                <input type="hidden" name="staff1_signature_data" id="staff1-signature-data">
-                            </div>
-                            
                             <input type="hidden" name="status_id" value="2" id="s1-status">
                             <div class="flex gap-3 flex-wrap">
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='2'"
-                                    class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
+                                <x-loading-button type="primary" onclick="document.getElementById('s1-status').value='2'">
                                     ✓ Verify & Send to Staff 2
-                                </button>
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='5'"
-                                    class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
+                                </x-loading-button>
+                                <x-loading-button type="secondary" onclick="document.getElementById('s1-status').value='5'">
                                     ↩ Return to Admission
-                                </button>
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='9'"
-                                    class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
+                                </x-loading-button>
+                                <x-loading-button type="danger" onclick="document.getElementById('s1-status').value='9'">
                                     ✕ Reject
-                                </button>
+                                </x-loading-button>
                             </div>
                         </form>
                     @endif
@@ -481,9 +507,13 @@
                 {{-- STAFF 2: Approve, Return to Staff 1, or Decline --}}
                 @can('changeStatus', $grantRequest)
                     @if(auth()->user()->role === 'staff2')
-                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')">
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')" data-signature-input="staff2-signature-data">
                             @csrf
                             @method('PATCH')
+                            <input type="file" name="staff2_supporting_documents[]" multiple
+                                class="w-full border rounded p-2 text-sm"
+                                accept=".pdf,.jpg,.jpeg,.png">
+                            <p class="text-xs text-gray-500 -mt-1">Optional: add revised supporting documents (old files remain available).</p>
                             <textarea name="notes" rows="2" placeholder="Recommendation notes (optional)"
                                 class="w-full border rounded p-2 text-sm"></textarea>
                             <textarea name="rejection_reason" rows="2"
@@ -606,7 +636,7 @@
                             Dean Approval Actions
                         </h4>
                         
-                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3">
+                        <form action="{{ route('requests.updateStatus', $grantRequest->id) }}" method="POST" class="space-y-3" onsubmit="return handleFormSubmit(this, 'Submitting...')" data-signature-input="dean-signature-data">
                             @csrf
                             @method('PATCH')
                             
@@ -805,6 +835,15 @@
         }
 
         function handleFormSubmit(form, message) {
+            const requiredSignatureInput = form.dataset.signatureInput;
+            if (requiredSignatureInput) {
+                const signatureValue = document.getElementById(requiredSignatureInput)?.value;
+                if (!signatureValue) {
+                    alert('Please provide your signature before submitting.');
+                    return false;
+                }
+            }
+
             const submitButtons = form.querySelectorAll('button[type="submit"]');
             submitButtons.forEach((btn) => {
                 btn.disabled = true;
@@ -928,14 +967,9 @@
         }
 
         // Initialize signature pads
-        let staff1SignaturePad, staff2SignaturePad, deanSignaturePad;
+        let staff2SignaturePad, deanSignaturePad;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Staff 1 signature
-            if (document.getElementById('staff1-signature-canvas')) {
-                staff1SignaturePad = new SignaturePad('staff1-signature-canvas', 'staff1-signature-data');
-            }
-
             // Staff 2 signature
             if (document.getElementById('staff2-signature-canvas')) {
                 staff2SignaturePad = new SignaturePad('staff2-signature-canvas', 'staff2-signature-data');
@@ -946,10 +980,6 @@
                 deanSignaturePad = new SignaturePad('dean-signature-canvas', 'dean-signature-data');
             }
         });
-
-        function clearStaff1Signature() {
-            if (staff1SignaturePad) staff1SignaturePad.clear();
-        }
 
         function clearStaff2Signature() {
             if (staff2SignaturePad) staff2SignaturePad.clear();

@@ -15,7 +15,7 @@ class WorkflowTransitionService
      */
     public static function getAllowedTransitions(): array
     {
-        return [
+        $transitions = [
             'staff1' => [
                 RequestStatus::PENDING_VERIFICATION->value => [
                     RequestStatus::PENDING_RECOMMENDATION->value,
@@ -30,22 +30,14 @@ class WorkflowTransitionService
             ],
             'staff2' => [
                 RequestStatus::PENDING_RECOMMENDATION->value => [
-                    RequestStatus::PENDING_DEAN_APPROVAL->value,
+                    RequestStatus::APPROVED->value, // Direct approval when dean interface is disabled
                     RequestStatus::RETURNED_TO_STAFF_1->value,
                     RequestStatus::RETURNED_TO_STAFF_2->value,
                     RequestStatus::DECLINED->value,
                 ],
                 RequestStatus::RETURNED_TO_STAFF_2->value => [
-                    RequestStatus::PENDING_DEAN_APPROVAL->value,
+                    RequestStatus::APPROVED->value, // Direct approval when dean interface is disabled
                     RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::DECLINED->value,
-                ],
-            ],
-            'dean' => [
-                RequestStatus::PENDING_DEAN_APPROVAL->value => [
-                    RequestStatus::APPROVED->value,
-                    RequestStatus::RETURNED_TO_STAFF_1->value,
-                    RequestStatus::RETURNED_TO_STAFF_2->value,
                     RequestStatus::DECLINED->value,
                 ],
             ],
@@ -55,6 +47,34 @@ class WorkflowTransitionService
                 ],
             ],
         ];
+
+        // Add dean transitions only when feature flag is enabled
+        if (config('system.features.dean_interface', false)) {
+            $transitions['dean'] = [
+                RequestStatus::PENDING_DEAN_APPROVAL->value => [
+                    RequestStatus::APPROVED->value,
+                    RequestStatus::RETURNED_TO_STAFF_1->value,
+                    RequestStatus::RETURNED_TO_STAFF_2->value,
+                    RequestStatus::DECLINED->value,
+                ],
+            ];
+            
+            // Update staff2 transitions to go through dean when enabled
+            $transitions['staff2'][RequestStatus::PENDING_RECOMMENDATION->value] = [
+                RequestStatus::PENDING_DEAN_APPROVAL->value,
+                RequestStatus::RETURNED_TO_STAFF_1->value,
+                RequestStatus::RETURNED_TO_STAFF_2->value,
+                RequestStatus::DECLINED->value,
+            ];
+            
+            $transitions['staff2'][RequestStatus::RETURNED_TO_STAFF_2->value] = [
+                RequestStatus::PENDING_DEAN_APPROVAL->value,
+                RequestStatus::RETURNED_TO_STAFF_1->value,
+                RequestStatus::DECLINED->value,
+            ];
+        }
+
+        return $transitions;
     }
 
     /**
@@ -254,14 +274,12 @@ class WorkflowTransitionService
     private static function saveStageSignatures(Request $request, User $user, array $data): void
     {
         $signatureField = match ($user->role) {
-            'staff1' => 'staff1_signature_data',
             'staff2' => 'staff2_signature_data',
             'dean' => 'dean_signature_data',
             default => null,
         };
 
         $timestampField = match ($user->role) {
-            'staff1' => 'staff1_signed_at',
             'staff2' => 'staff2_signed_at',
             'dean' => 'dean_signed_at',
             default => null,
@@ -281,7 +299,6 @@ class WorkflowTransitionService
     private static function hasSignatureData(string $role, array $data): bool
     {
         $signatureField = match ($role) {
-            'staff1' => 'staff1_signature_data',
             'staff2' => 'staff2_signature_data',
             'dean' => 'dean_signature_data',
             default => null,
