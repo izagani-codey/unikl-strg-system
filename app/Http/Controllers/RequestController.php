@@ -339,6 +339,7 @@ class RequestController extends Controller
             'user_id'     => auth()->id(),
             'content'     => $request->input('content'),
             'is_internal' => true,
+            'created_at'  => now(),
         ]);
 
         return redirect()->back()->with('success', 'Comment added successfully.');
