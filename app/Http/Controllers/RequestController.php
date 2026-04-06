@@ -257,6 +257,9 @@ class RequestController extends Controller
             WorkflowTransitionService::executeTransition($grantRequest, $newStatus, [
                 'notes'            => $request->input('notes'),
                 'rejection_reason' => $request->input('rejection_reason'),
+                'staff1_signature_data' => $request->input('staff1_signature_data'),
+                'staff2_signature_data' => $request->input('staff2_signature_data'),
+                'dean_signature_data' => $request->input('dean_signature_data'),
             ]);
             return redirect()->route('requests.show', $id)->with('success', 'Status updated successfully.');
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
