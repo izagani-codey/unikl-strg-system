@@ -490,21 +490,15 @@
                             
                             <input type="hidden" name="status_id" value="2" id="s1-status">
                             <div class="flex gap-3 flex-wrap">
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='2'"
-                                    class="bg-blue-600 text-white px-5 py-2 rounded font-bold hover:bg-blue-700">
+                                <x-loading-button type="primary" onclick="document.getElementById('s1-status').value='2'">
                                     ✓ Verify & Send to Staff 2
-                                </button>
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='5'"
-                                    class="bg-yellow-500 text-white px-5 py-2 rounded font-bold hover:bg-yellow-600">
+                                </x-loading-button>
+                                <x-loading-button type="secondary" onclick="document.getElementById('s1-status').value='5'">
                                     ↩ Return to Admission
-                                </button>
-                                <button type="submit"
-                                    onclick="document.getElementById('s1-status').value='9'"
-                                    class="bg-red-600 text-white px-5 py-2 rounded font-bold hover:bg-red-700">
+                                </x-loading-button>
+                                <x-loading-button type="danger" onclick="document.getElementById('s1-status').value='9'">
                                     ✕ Reject
-                                </button>
+                                </x-loading-button>
                             </div>
                         </form>
                     @endif

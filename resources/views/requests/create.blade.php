@@ -214,9 +214,9 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition-colors shadow-md">
+                    <x-loading-button type="primary" class="w-full">
                         Submit Request for Verification
-                    </button>
+                    </x-loading-button>
                 </form>
 
             </div>
@@ -406,17 +406,6 @@
 
             const signatureCanvas = document.getElementById('signature-canvas');
             document.getElementById('signature_data').value = signatureCanvas.toDataURL('image/png');
-
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Submitting...';
-            submitBtn.disabled = true;
-
-            setTimeout(() => {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-                isSubmitting = false;
-            }, 5000);
 
             return true;
         });
