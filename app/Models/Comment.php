@@ -17,6 +17,15 @@ class Comment extends Model
         'created_at',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $comment) {
+            if (empty($comment->created_at)) {
+                $comment->created_at = now();
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

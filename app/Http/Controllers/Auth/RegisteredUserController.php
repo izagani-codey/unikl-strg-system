@@ -58,6 +58,11 @@ class RegisteredUserController extends Controller
                     }
                 },
             ],
+            'staff_id' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'designation' => ['required', 'string', 'max:255'],
+            'department' => ['required', 'string', 'max:255'],
+            'employee_level' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -66,6 +71,11 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'admission',
+            'staff_id' => $request->staff_id,
+            'phone' => $request->phone,
+            'designation' => $request->designation,
+            'department' => $request->department,
+            'employee_level' => $request->employee_level,
         ]);
 
         event(new Registered($user));

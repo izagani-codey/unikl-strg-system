@@ -13,49 +13,18 @@ class DeanController extends Controller
 {
     public function dashboard()
     {
-        $user = Auth::user();
-        
-        // Get requests pending dean approval
-        $pendingRequests = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy'])
-            ->where('status_id', RequestStatus::PENDING_DEAN_APPROVAL->value)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Canonical dean dashboard is served by DashboardController at /dashboard.
+        return redirect()->route('dashboard');
+    }
 
-        // Get statistics
-        $stats = [
-            'pending_dean' => GrantRequest::where('status_id', RequestStatus::PENDING_DEAN_APPROVAL->value)->count(),
-            'approved_this_month' => GrantRequest::where('status_id', RequestStatus::APPROVED->value)
-                ->where('dean_approved_by', $user->id)
-                ->whereMonth('dean_approved_at', now()->month)
-                ->count(),
-            'declined_this_month' => GrantRequest::where('status_id', RequestStatus::DECLINED->value)
-                ->where('dean_approved_by', $user->id)
-                ->whereMonth('dean_approved_at', now()->month)
-                ->count(),
-            'total_approved' => GrantRequest::where('status_id', RequestStatus::APPROVED->value)
-                ->where('dean_approved_by', $user->id)
-                ->count(),
-        ];
-
-        return view('dean.dashboard', compact('pendingRequests', 'stats'));
+    public function requests()
+    {
+        return redirect()->route('dashboard');
     }
 
     public function show($id)
     {
-        $request = GrantRequest::with([
-            'user', 
-            'requestType', 
-            'verifiedBy', 
-            'recommendedBy',
-            'comments.user'
-        ])->findOrFail($id);
-
-        // Check if dean can view this request
-        if (!$request->canBeActionedByDean()) {
-            abort(403, 'You cannot access this request at this stage.');
-        }
-
-        return view('dean.show', compact('request'));
+        return redirect()->route('requests.show', $id);
     }
 
     public function approve(Request $httpRequest, $id)
