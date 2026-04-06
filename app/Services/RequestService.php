@@ -73,12 +73,10 @@ class RequestService
         // Add staff assignments
         if ($user->role === 'staff1' && $newStatus === RequestStatus::PENDING_RECOMMENDATION) {
             $updateData['verified_by'] = $user->id;
-            $updateData['verified_at'] = now();
         }
 
         if ($user->role === 'staff2' && in_array($newStatus, [RequestStatus::APPROVED, RequestStatus::DECLINED])) {
             $updateData['recommended_by'] = $user->id;
-            $updateData['recommended_at'] = now();
         }
 
         // Add notes and rejection reason
