@@ -9,12 +9,17 @@ $getValue = function($fieldName, $default = null) use ($prefix, $values) {
     return old("{$prefix}.{$fieldName}", $values[$fieldName] ?? $default);
 };
 
-$hasError = function($fieldName) use ($prefix) {
-    return $errors->has("{$prefix}.{$fieldName}");
+$errorBag = session('errors');
+if (!$errorBag instanceof \Illuminate\Support\ViewErrorBag) {
+    $errorBag = new \Illuminate\Support\ViewErrorBag();
+}
+
+$hasError = function($fieldName) use ($prefix, $errorBag) {
+    return $errorBag->has("{$prefix}.{$fieldName}");
 };
 
-$getError = function($fieldName) use ($prefix) {
-    return $errors->first("{$prefix}.{$fieldName}");
+$getError = function($fieldName) use ($prefix, $errorBag) {
+    return $errorBag->first("{$prefix}.{$fieldName}");
 };
 @endphp
 
