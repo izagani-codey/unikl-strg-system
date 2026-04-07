@@ -7,18 +7,13 @@ use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\StoreRequestRequest;
 use App\Http\Requests\UpdateRequestRequest;
 use App\Http\Requests\UpdateStatusRequest;
-use App\Models\AuditLog;
 use App\Models\Comment;
-use App\Models\FormTemplate;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
-use App\Models\User;
-use App\Models\VotCode;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 
 class RequestController extends Controller
 {
@@ -28,6 +23,8 @@ class RequestController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', GrantRequest::class);
+
         $user = Auth::user();
         
         // Get base query based on user role
@@ -446,27 +443,5 @@ class RequestController extends Controller
         })->filter(function ($item) {
             return !empty($item['vot_code']) && $item['amount'] > 0;
         })->values()->all();
-    }
-
-    private function getExistingSupportingDocuments(GrantRequest $request): array
-    {
-        return collect($request->payload['additional_documents'] ?? [])
-            ->filter(fn ($path) => is_string($path) && $path !== '')
-            ->values()
-            ->all();
-    }
-
-    private function appendSupportingDocuments(GrantRequest $request, array $uploadedFiles): array
-    {
-        $existingFiles = $this->getExistingSupportingDocuments($request);
-        $newFiles = [];
-
-        foreach ($uploadedFiles as $uploadedFile) {
-            if ($uploadedFile) {
-                $newFiles[] = $uploadedFile->store('requests/supporting-documents', 'public');
-            }
-        }
-
-        return array_values(array_merge($existingFiles, $newFiles));
     }
 }

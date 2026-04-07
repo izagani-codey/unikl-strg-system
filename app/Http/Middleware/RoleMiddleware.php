@@ -13,7 +13,7 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        if (!in_array(auth()->user()->role, $roles)) {
+        if (!in_array(auth()->user()->role, $roles, true)) {
             abort(403, 'Unauthorized — you do not have access to this page.');
         }
 

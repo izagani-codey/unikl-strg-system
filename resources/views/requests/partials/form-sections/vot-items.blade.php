@@ -60,7 +60,8 @@ $existingVotItems = old('vot_items', $grantRequest?->vot_items ?? []);
             <div>
                 <label class="block text-sm font-bold text-gray-700">Amount (RM)</label>
                 <input type="number" class="w-full rounded border-gray-300 mt-1 vot-amount-input"
-                       placeholder="0.00" step="0.01" min="0" onchange="calculateTotal()" required>
+                       placeholder="0.00" step="0.01" min="0"
+                       oninput="updateVOTPreview()" onchange="calculateTotal(); updateVOTPreview();" required>
             </div>
             <div class="flex items-end">
                 <button type="button" onclick="removeVotItemRow(this)" class="px-3 py-2 rounded bg-red-100 text-red-700 text-sm font-semibold hover:bg-red-200 w-full">
