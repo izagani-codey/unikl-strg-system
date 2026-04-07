@@ -1,11 +1,16 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+declare(strict_types=1);
 
-$app = require_once __DIR__ . '/../bootstrap/app.php';
+$basePath = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
+$vendorAutoloadPath = $basePath . '/vendor/autoload.php';
+$databaseFile = $basePath . '/database/database.sqlite';
+$storagePath = $basePath . '/storage';
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+if (file_exists($vendorAutoloadPath)) {
+    require $vendorAutoloadPath;
+    require_once $basePath . '/bootstrap/app.php';
+}
 
 echo "🔍 UNIKL STRG PRODUCTION READINESS CHECK\n";
 echo "==========================================\n\n";
@@ -16,7 +21,7 @@ $warnings = [];
 
 // 1. Database Connection Check
 try {
-    $pdo = new PDO('sqlite:' . database_path('database.sqlite'));
+    $pdo = new PDO('sqlite:' . $databaseFile);
     $checks['database'] = '✅ PASS';
 } catch (Exception $e) {
     $checks['database'] = '❌ FAIL';
@@ -24,9 +29,9 @@ try {
 }
 
 // 2. Environment Check
-$envFile = file_exists(__DIR__ . '/../.env');
+$envFile = file_exists($basePath . '/.env');
 if ($envFile) {
-    $envContent = file_get_contents(__DIR__ . '/../.env');
+    $envContent = file_get_contents($basePath . '/.env');
     if (strpos($envContent, 'APP_ENV=production') !== false) {
         $checks['environment'] = '✅ PRODUCTION';
     } elseif (strpos($envContent, 'APP_ENV=local') !== false) {
@@ -41,9 +46,13 @@ if ($envFile) {
     $errors[] = '.env file not found';
 }
 
+if (!file_exists($vendorAutoloadPath)) {
+    $warnings[] = 'vendor/autoload.php missing; dependency-powered checks were skipped.';
+}
+
 // 3. Storage Check
 try {
-    $testFile = storage_path('app/test-readiness.txt');
+    $testFile = $storagePath . '/app/test-readiness.txt';
     file_put_contents($testFile, 'production check');
     $content = file_get_contents($testFile);
     if ($content === 'production check') {
@@ -76,7 +85,6 @@ if ($foundDebugFiles === 0) {
 }
 
 // 5. File Permissions Check
-$storagePath = storage_path();
 if (is_writable($storagePath)) {
     $checks['file_permissions'] = '✅ PASS';
 } else {
