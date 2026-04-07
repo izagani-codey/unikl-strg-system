@@ -66,7 +66,7 @@
 
             {{-- Welcome Section with Stats --}}
             @php
-                $myQueue = ($dashboardStats['pending_verification'] ?? 0) + ($dashboardStats['returned_to_staff_1'] ?? 0);
+                $myQueue = ($dashboardStats['submitted'] ?? 0) + ($dashboardStats['returned'] ?? 0);
             @endphp
             <div class="bg-gradient-to-br from-purple-600 via-pink-600 to-red-600 rounded-2xl p-8 text-white shadow-2xl">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -79,11 +79,11 @@
                                 <div class="text-sm text-purple-100">Needs My Action</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['with_staff_2'] }}</div>
-                                <div class="text-sm text-purple-100">With Staff 2</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['staff1_approved'] }}</div>
+                                <div class="text-sm text-purple-100">Staff 2 Approved</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['approved'] }}</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['dean_approved'] }}</div>
                                 <div class="text-sm text-purple-100">Approved</div>
                             </div>
                         </div>
@@ -96,7 +96,7 @@
                             </div>
                         @else
                             <div class="bg-green-400 text-green-900 px-4 py-2 rounded-lg font-bold">
-                                All caught up! 🎉
+                                No items pending review
                             </div>
                         @endif
                     </div>
@@ -109,7 +109,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Pending Verification</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['pending_verification'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['submitted'] }}</p>
                         </div>
                         <div class="bg-orange-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,11 +123,11 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Returned to Me</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['returned_to_staff_1'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['returned'] }}</p>
                         </div>
                         <div class="bg-purple-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
                         </div>
                     </div>
@@ -136,8 +136,8 @@
                 <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-600">With Staff 2</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['with_staff_2'] }}</p>
+                            <p class="text-sm font-medium text-gray-600">Staff 2 Approved</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['staff1_approved'] }}</p>
                         </div>
                         <div class="bg-blue-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Approved</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['approved'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['dean_approved'] }}</p>
                         </div>
                         <div class="bg-green-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

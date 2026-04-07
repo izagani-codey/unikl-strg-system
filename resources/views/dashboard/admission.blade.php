@@ -42,16 +42,16 @@
                         <p class="text-blue-100 text-lg">{{ auth()->user()->email }}</p>
                         <div class="mt-4 flex flex-wrap gap-4">
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['total'] ?? 0 }}</div>
-                                <div class="text-sm text-blue-100">Total Requests</div>
-                            </div>
-                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                                 <div class="text-2xl font-bold">{{ $dashboardStats['submitted'] ?? 0 }}</div>
                                 <div class="text-sm text-blue-100">Submitted</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                                <div class="text-2xl font-bold">{{ $dashboardStats['staff1_approved'] ?? 0 }}</div>
+                                <div class="text-sm text-blue-100">Staff 1 Approved</div>
+                            </div>
+                            <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                                 <div class="text-2xl font-bold">{{ $dashboardStats['dean_approved'] ?? 0 }}</div>
-                                <div class="text-sm text-blue-100">Approved</div>
+                                <div class="text-sm text-blue-100">Dean Approved</div>
                             </div>
                         </div>
                     </div>

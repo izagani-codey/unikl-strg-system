@@ -62,7 +62,7 @@ class RequestPolicy
         // Only admission can delete their own pending requests
         return $user->role === 'admission' && 
                $user->id === $request->user_id && 
-               $request->status_id === RequestStatus::PENDING_VERIFICATION->value;
+               $request->status_id === RequestStatus::SUBMITTED->value;
     }
 
     /**
@@ -142,6 +142,6 @@ class RequestPolicy
     {
         return $user->role === 'admission' &&
                $user->id === $request->user_id &&
-               $request->status_id === RequestStatus::RETURNED_TO_ADMISSION->value;
+               $request->status_id === RequestStatus::RETURNED->value;
     }
 }

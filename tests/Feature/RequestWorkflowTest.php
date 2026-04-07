@@ -41,7 +41,7 @@ class RequestWorkflowTest extends TestCase
         $response->assertRedirect(route('dashboard'));
         $this->assertDatabaseHas('requests', [
             'request_type_id' => $requestType->id,
-            'status_id' => RequestStatus::PENDING_VERIFICATION->value,
+            'status_id' => RequestStatus::SUBMITTED->value,
             'user_id' => $admission->id,
         ]);
 
@@ -49,18 +49,18 @@ class RequestWorkflowTest extends TestCase
         $this->assertNotNull($grantRequest->file_path);
 
         $response = $this->actingAs($staff1)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::PENDING_RECOMMENDATION->value,
+            'status_id' => RequestStatus::STAFF1_APPROVED->value,
             'notes' => 'Verified and forwarded to staff 2',
             'rejection_reason' => '',
         ]);
 
         $response->assertRedirect(route('requests.show', $grantRequest->id));
         $grantRequest->refresh();
-        $this->assertSame(RequestStatus::PENDING_RECOMMENDATION->value, $grantRequest->status_id);
+        $this->assertSame(RequestStatus::STAFF1_APPROVED->value, $grantRequest->status_id);
 
         $response = $this->actingAs($staff2)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::PENDING_DEAN_APPROVAL->value,
-            'notes' => 'Recommended and sent to Dean',
+            'status_id' => RequestStatus::STAFF2_APPROVED->value,
+            'notes' => 'Staff 2 direct approval',
             'rejection_reason' => '',
         ]);
 
@@ -79,20 +79,20 @@ class RequestWorkflowTest extends TestCase
             'user_id' => $admission->id,
             'request_type_id' => $requestType->id,
             'ref_number' => 'REQ-INVALID',
-            'status_id' => RequestStatus::PENDING_VERIFICATION->value,
+            'status_id' => RequestStatus::SUBMITTED->value,
             'payload' => ['amount' => 0, 'description' => 'Test invalid transition', 'email' => $admission->email],
             'file_path' => null,
         ]);
 
         $response = $this->actingAs($staff2)->patch(route('requests.updateStatus', $grantRequest->id), [
-            'status_id' => RequestStatus::RETURNED_TO_STAFF_1->value,
+            'status_id' => RequestStatus::RETURNED->value,
             'notes' => 'Invalid return',
             'rejection_reason' => 'Not ready yet',
         ]);
 
         $response->assertForbidden();
         $grantRequest->refresh();
-        $this->assertSame(RequestStatus::PENDING_VERIFICATION->value, $grantRequest->status_id);
+        $this->assertSame(RequestStatus::SUBMITTED->value, $grantRequest->status_id);
     }
 
     public function test_staff2_can_override_approved_request_to_declined(): void
@@ -105,15 +105,12 @@ class RequestWorkflowTest extends TestCase
             'user_id' => $admission->id,
             'request_type_id' => $requestType->id,
             'ref_number' => 'REQ-APPROVED',
-            'status_id' => RequestStatus::APPROVED->value,
+            'status_id' => RequestStatus::DEAN_APPROVED->value,
             'payload' => ['amount' => 0, 'description' => 'Approved request', 'email' => $admission->email],
             'file_path' => null,
         ]);
 
-        $response = $this->actingAs($staff2)->post(route('requests.override', $grantRequest->id), [
-            'action_type' => 'reject_reverse',
-            'reason' => 'Override workflow recovery for approved record',
-        ]);
+        $response = $this->actingAs($staff2)->get(route('requests.override', $grantRequest->id));
 
         $response->assertForbidden();
     }
@@ -128,7 +125,7 @@ class RequestWorkflowTest extends TestCase
             'user_id' => $admission->id,
             'request_type_id' => $requestType->id,
             'ref_number' => 'REQ-DECLINED',
-            'status_id' => RequestStatus::DECLINED->value,
+            'status_id' => RequestStatus::REJECTED->value,
             'payload' => ['amount' => 0, 'description' => 'Declined request', 'email' => $admission->email],
             'file_path' => null,
         ]);
@@ -141,7 +138,7 @@ class RequestWorkflowTest extends TestCase
 
         $response->assertRedirect(route('requests.show', $grantRequest->id));
         $grantRequest->refresh();
-        $this->assertSame(RequestStatus::PENDING_VERIFICATION->value, $grantRequest->status_id);
+        $this->assertSame(RequestStatus::SUBMITTED->value, $grantRequest->status_id);
     }
 
     public function test_file_upload_validation_rejects_invalid_document_type(): void
@@ -170,16 +167,16 @@ class RequestWorkflowTest extends TestCase
     public function test_request_status_enum_methods(): void
     {
         // Test enum methods
-        $pending = RequestStatus::PENDING_VERIFICATION;
-        $approved = RequestStatus::APPROVED;
-        $declined = RequestStatus::DECLINED;
+        $pending = RequestStatus::SUBMITTED;
+        $approved = RequestStatus::DEAN_APPROVED;
+        $rejected = RequestStatus::REJECTED;
 
-        $this->assertEquals('Pending Verification', $pending->getLabel());
-        $this->assertEquals('Approved', $approved->getLabel());
-        $this->assertEquals('Declined', $declined->getLabel());
+        $this->assertEquals('Submitted', $pending->getLabel());
+        $this->assertEquals('Dean Approved', $approved->getLabel());
+        $this->assertEquals('Rejected', $rejected->getLabel());
 
         $this->assertTrue($approved->isFinal());
-        $this->assertTrue($declined->isFinal());
+        $this->assertTrue($rejected->isFinal());
         $this->assertFalse($pending->isFinal());
 
         $this->assertFalse($pending->canBeEditedByAdmission());

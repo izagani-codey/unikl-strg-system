@@ -4,19 +4,31 @@ namespace App\View\Components;
 
 use App\Enums\RequestStatus;
 use App\Models\RequestType;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
 class DashboardFilters extends Component
 {
+    public string $role = 'admission';
+    public Collection $requestTypes;
+    public string $title = 'Filter Requests';
+    public string $description = 'Find specific requests quickly';
+    public string $colorTheme = 'indigo';
+
     public function __construct(
-        public string $role = 'admission',
-        public Collection|array $requestTypes = [],
-        public string $title = 'Filter Requests',
-        public string $description = 'Find specific requests quickly',
-        public string $colorTheme = 'indigo'
-    ) {}
+        string $role = 'admission',
+        Collection $requestTypes = null,
+        string $title = 'Filter Requests',
+        string $description = 'Find specific requests quickly',
+        string $colorTheme = 'indigo'
+    ) {
+        $this->role = $role;
+        $this->requestTypes = $requestTypes ?: new Collection();
+        $this->title = $title;
+        $this->description = $description;
+        $this->colorTheme = $colorTheme;
+    }
 
     public function render(): View
     {
@@ -26,6 +38,7 @@ class DashboardFilters extends Component
         return view('components.dashboard-filters', [
             'statuses' => $statuses,
             'colorClasses' => $colorClasses,
+            'requestTypes' => $this->requestTypes,
         ]);
     }
 
@@ -33,32 +46,32 @@ class DashboardFilters extends Component
     {
         if ($this->role === 'admission') {
             return [
-                RequestStatus::PENDING_VERIFICATION->value => 'Pending Verification',
-                RequestStatus::PENDING_RECOMMENDATION->value => 'With Staff 2',
-                RequestStatus::RETURNED_TO_ADMISSION->value => 'Returned to Me',
-                RequestStatus::RETURNED_TO_STAFF_1->value => 'Returned to Staff 1',
-                RequestStatus::APPROVED->value => 'Approved',
-                RequestStatus::DECLINED->value => 'Declined',
+                RequestStatus::SUBMITTED->value => 'Pending Verification',
+                RequestStatus::STAFF1_APPROVED->value => 'With Staff 2',
+                RequestStatus::STAFF2_APPROVED->value => 'With Dean',
+                RequestStatus::RETURNED->value => 'Returned to Me',
+                RequestStatus::DEAN_APPROVED->value => 'Approved',
+                RequestStatus::REJECTED->value => 'Rejected',
             ];
         }
         
         if ($this->role === 'staff1') {
             return [
-                RequestStatus::PENDING_VERIFICATION->value => 'Pending Verification',
-                RequestStatus::PENDING_RECOMMENDATION->value => 'With Staff 2',
-                RequestStatus::RETURNED_TO_STAFF_1->value => 'Returned to Me',
-                RequestStatus::APPROVED->value => 'Approved',
-                RequestStatus::DECLINED->value => 'Declined',
+                RequestStatus::SUBMITTED->value => 'Pending Verification',
+                RequestStatus::STAFF1_APPROVED->value => 'With Staff 2',
+                RequestStatus::RETURNED->value => 'Returned to Me',
+                RequestStatus::DEAN_APPROVED->value => 'Approved',
+                RequestStatus::REJECTED->value => 'Rejected',
             ];
         }
         
         if ($this->role === 'staff2') {
             return [
-                RequestStatus::PENDING_RECOMMENDATION->value => 'Awaiting Review',
-                RequestStatus::APPROVED->value => 'Approved',
-                RequestStatus::DECLINED->value => 'Declined',
-                RequestStatus::PENDING_VERIFICATION->value => 'Pending Verification',
-                RequestStatus::RETURNED_TO_STAFF_1->value => 'Returned to Staff 1',
+                RequestStatus::STAFF1_APPROVED->value => 'Awaiting Review',
+                RequestStatus::DEAN_APPROVED->value => 'Approved',
+                RequestStatus::REJECTED->value => 'Rejected',
+                RequestStatus::SUBMITTED->value => 'Pending Verification',
+                RequestStatus::RETURNED->value => 'Returned to Staff 1',
             ];
         }
         

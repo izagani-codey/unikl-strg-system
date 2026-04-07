@@ -39,8 +39,8 @@ class RequestController extends Controller
         } elseif ($user->isStaff1()) {
             // Staff 1 can see requests that need verification
             $query->whereIn('status_id', [
-                RequestStatus::PENDING_VERIFICATION->value, 
-                RequestStatus::RETURNED_TO_STAFF_1->value
+                RequestStatus::SUBMITTED->value, 
+                RequestStatus::RETURNED->value
             ]);
         } elseif ($user->isStaff2()) {
             // Staff 2 can see all requests
@@ -125,7 +125,7 @@ class RequestController extends Controller
             'user_id'                 => $user->id,
             'request_type_id'         => $request->input('request_type_id'),
             'ref_number'              => $this->generateReferenceNumber(),
-            'status_id'               => RequestStatus::PENDING_VERIFICATION->value,
+            'status_id'               => RequestStatus::SUBMITTED->value,
             'payload'                 => [
                 'description' => $request->input('description'),
                 'dynamic_fields' => $request->input('dynamic_fields', []),
@@ -227,10 +227,10 @@ class RequestController extends Controller
             'revision_count'          => $grantRequest->revision_count + 1,
         ]);
 
-        if ($grantRequest->status_id === RequestStatus::RETURNED_TO_ADMISSION->value) {
+        if ($grantRequest->status_id === RequestStatus::RETURNED->value) {
             WorkflowTransitionService::executeTransition(
                 $grantRequest,
-                RequestStatus::PENDING_VERIFICATION,
+                RequestStatus::SUBMITTED,
                 ['notes' => 'Resubmitted after revision']
             );
         }

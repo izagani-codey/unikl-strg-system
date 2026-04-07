@@ -13,11 +13,19 @@ use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
+    private RequestRepository $requestRepository;
+    private StatisticsRepository $statisticsRepository;
+    private UserRepository $userRepository;
+
     public function __construct(
-        private RequestRepository $requestRepository,
-        private StatisticsRepository $statisticsRepository,
-        private UserRepository $userRepository
-    ) {}
+        ?RequestRepository $requestRepository = null,
+        ?StatisticsRepository $statisticsRepository = null,
+        ?UserRepository $userRepository = null
+    ) {
+        $this->requestRepository = $requestRepository ?: app(RequestRepository::class);
+        $this->statisticsRepository = $statisticsRepository ?: app(StatisticsRepository::class);
+        $this->userRepository = $userRepository ?: app(UserRepository::class);
+    }
 
     /**
      * Get complete dashboard data for user with caching.
@@ -62,20 +70,10 @@ class DashboardService
      */
     private function getCachedRequestTypes(): Collection
     {
-        $cached = Cache::get('request_types_active');
-        
-        if ($cached) {
-            return collect($cached);
-        }
-        
-        $types = RequestType::where('is_active', true)
+        // Always get fresh data to avoid serialization issues
+        return RequestType::where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'description']);
-        
-        $arrayData = $types->toArray();
-        Cache::put('request_types_active', $arrayData, 3600);
-        
-        return collect($arrayData);
+            ->get();
     }
 
     /**

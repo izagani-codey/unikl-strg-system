@@ -16,7 +16,7 @@ class UpdateRequestRequest extends FormRequest
             && $this->user()
             && $this->user()->role === 'admission'
             && (int) $grantRequest->user_id === (int) $this->user()->id
-            && (int) $grantRequest->status_id === RequestStatus::RETURNED_TO_ADMISSION->value;
+            && (int) $grantRequest->status_id === RequestStatus::RETURNED->value;
     }
 
     public function rules(): array

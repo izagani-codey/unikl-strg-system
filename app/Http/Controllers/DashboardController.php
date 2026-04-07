@@ -9,8 +9,10 @@ use Illuminate\Http\Request;
 class DashboardController extends BaseController
 {
     public function __construct(
-        private DashboardService $dashboardService
-    ) {}
+        DashboardService $dashboardService
+    ) {
+        $this->dashboardService = $dashboardService;
+    }
 
     public function index(Request $request)
     {

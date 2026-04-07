@@ -29,28 +29,28 @@ class RequestTimeline extends Component
         return [
             [
                 'id' => 'submitted',
-                'status' => RequestStatus::PENDING_VERIFICATION,
+                'status' => RequestStatus::SUBMITTED,
                 'label' => 'Submitted',
                 'description' => 'Request submitted by applicant',
-                'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                'icon' => 'M9 12h6m-6 0 01-2.5 2.5 0 01H4a2 2 0 012.5 0 01v6a2 2 0 012.5 0 01z',
             ],
             [
                 'id' => 'verified',
-                'status' => RequestStatus::PENDING_RECOMMENDATION,
+                'status' => RequestStatus::STAFF1_APPROVED,
                 'label' => 'Staff 1 Verification',
                 'description' => 'Request verified by Staff 1',
                 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
             ],
             [
                 'id' => 'recommended',
-                'status' => RequestStatus::APPROVED,
+                'status' => RequestStatus::STAFF2_APPROVED,
                 'label' => 'Staff 2 Recommendation',
                 'description' => 'Request reviewed and recommended by Staff 2',
                 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
             ],
             [
                 'id' => 'completed',
-                'status' => RequestStatus::APPROVED,
+                'status' => RequestStatus::DEAN_APPROVED,
                 'label' => 'Completed',
                 'description' => 'Request approved and completed',
                 'icon' => 'M5 13l4 4L19 7',

@@ -80,28 +80,28 @@
                         <p class="text-green-100 text-lg">{{ auth()->user()->email }}</p>
                         <div class="mt-4 flex flex-wrap gap-4">
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['with_staff_2'] }}</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['staff1_approved'] }}</div>
                                 <div class="text-sm text-green-100">Awaiting Review</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['approved'] }}</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['dean_approved'] }}</div>
                                 <div class="text-sm text-green-100">Approved</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                                <div class="text-2xl font-bold">{{ $dashboardStats['declined'] }}</div>
-                                <div class="text-sm text-green-100">Declined</div>
+                                <div class="text-2xl font-bold">{{ $dashboardStats['rejected'] }}</div>
+                                <div class="text-sm text-green-100">Rejected</div>
                             </div>
                         </div>
                     </div>
                     <div>
                         <div class="text-sm text-green-100 mb-2">Queue Status</div>
-                        @if($dashboardStats['with_staff_2'] > 0)
+                        @if($dashboardStats['staff1_approved'] > 0)
                             <div class="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg font-bold">
-                                {{ $dashboardStats['with_staff_2'] }} pending review
+                                {{ $dashboardStats['staff1_approved'] }} pending
                             </div>
                         @else
                             <div class="bg-green-400 text-green-900 px-4 py-2 rounded-lg font-bold">
-                                All caught up! 🎉
+                                No pending reviews
                             </div>
                         @endif
                     </div>
@@ -114,11 +114,11 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Awaiting Review</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['with_staff_2'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['staff1_approved'] }}</p>
                         </div>
                         <div class="bg-blue-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
                     </div>
@@ -128,7 +128,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Approved</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['approved'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['dean_approved'] }}</p>
                         </div>
                         <div class="bg-green-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Declined</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['declined'] }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['rejected'] }}</p>
                         </div>
                         <div class="bg-red-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,11 +156,11 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600">Total Processed</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ ($dashboardStats['approved'] ?? 0) + ($dashboardStats['declined'] ?? 0) }}</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ ($dashboardStats['dean_approved'] ?? 0) + ($dashboardStats['rejected'] ?? 0) }}</p>
                         </div>
                         <div class="bg-purple-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0H4v2h16v-2H4z"/>
                             </svg>
                         </div>
                     </div>
@@ -347,7 +347,7 @@
                     <h3 class="text-xl font-bold text-gray-900">Recommendation Queue</h3>
                     <div class="flex items-center space-x-2 text-sm text-gray-600">
                         <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span>{{ $dashboardStats['with_staff_2'] }} pending</span>
+                        <span>{{ $dashboardStats['staff1_approved'] }} pending</span>
                     </div>
                 </div>
                 <div class="overflow-x-auto">

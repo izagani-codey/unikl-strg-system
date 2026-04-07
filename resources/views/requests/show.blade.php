@@ -525,24 +525,24 @@
                                 <input type="hidden" name="staff2_signature_data" id="staff2-signature-data">
                             </div>
                             
-                            <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value }}" id="status2-input">
+                            <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL }}" id="status2-input">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='3'"
+                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value }}'"
                                     class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700">
                                     ✓ Send to Dean
                                 </button>
                                 
                                 @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)
                                     <button type="submit"
-                                        onclick="document.getElementById('status2-input').value='6'"
+                                        onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value }}'"
                                         class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
                                         ↩ Return to Staff 1
                                     </button>
                                 @endif
                                 
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='9'"
+                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::DECLINED->value }}'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
                                     ✕ Decline
                                 </button>
@@ -553,7 +553,7 @@
                 @endcan
 
                 {{-- DEAN ACTIONS --}}
-                @if(auth()->user()->role === 'dean' && $grantRequest->status_id === \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value)
+                @if(auth()->user()->role === 'dean' && $grantRequest->status_id === \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL)
                     <div class="mt-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
                         <h4 class="font-bold text-purple-800 mb-3 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

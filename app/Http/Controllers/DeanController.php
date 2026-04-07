@@ -17,7 +17,7 @@ class DeanController extends Controller
 
     public function requests()
     {
-        return redirect()->route('requests.show', $id);
+        return redirect()->route('dashboard');
     }
 
     public function approve(Request $httpRequest, $id)
