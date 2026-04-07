@@ -28,6 +28,8 @@ class RequestController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', GrantRequest::class);
+
         $user = Auth::user();
         
         // Get base query based on user role
