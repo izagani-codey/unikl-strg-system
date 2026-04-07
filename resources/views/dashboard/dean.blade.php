@@ -15,7 +15,7 @@
                         <p class="text-purple-200 text-lg">Review and approve pending requests</p>
                     </div>
                     <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <div class="text-4xl font-bold text-white">{{ $dashboardStats['pending_dean_approval'] ?? 0 }}</div>
+                        <div class="text-4xl font-bold text-white">{{ $dashboardStats['staff2_approved'] ?? 0 }}</div>
                         <div class="text-purple-200 text-sm">Pending Dean Approval</div>
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-purple-600 truncate">Pending Approval</dt>
-                                <dd class="mt-1 text-3xl font-bold text-purple-900">{{ $dashboardStats['pending_dean_approval'] ?? 0 }}</dd>
+                                <dd class="mt-1 text-3xl font-bold text-purple-900">{{ $dashboardStats['staff2_approved'] ?? 0 }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -49,7 +49,7 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-green-600 truncate">Approved Today</dt>
-                                <dd class="mt-1 text-3xl font-bold text-green-900">{{ $dashboardStats['approved'] ?? 0 }}</dd>
+                                <dd class="mt-1 text-3xl font-bold text-green-900">{{ $dashboardStats['dean_approved'] ?? 0 }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -65,7 +65,7 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-amber-600 truncate">Returned</dt>
-                                <dd class="mt-1 text-3xl font-bold text-amber-900">{{ $dashboardStats['returned_to_admission'] ?? 0 }}</dd>
+                                <dd class="mt-1 text-3xl font-bold text-amber-900">{{ $dashboardStats['returned'] ?? 0 }}</dd>
                             </dl>
                         </div>
                     </div>

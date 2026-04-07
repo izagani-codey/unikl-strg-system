@@ -268,10 +268,10 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
                                     <option value="">All Statuses</option>
-                                    <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Pending Verification</option>
-                                    <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>With Staff 2</option>
-                                    <option value="8" {{ request('status') == '8' ? 'selected' : '' }}>Approved</option>
-                                    <option value="9" {{ request('status') == '9' ? 'selected' : '' }}>Declined</option>
+                                    <option value="2" {{ request('status') == '2' ? 'selected' : '' }}>Submitted</option>
+                                    <option value="3" {{ request('status') == '3' ? 'selected' : '' }}>Staff 1 Approved</option>
+                                    <option value="5" {{ request('status') == '5' ? 'selected' : '' }}>Dean Approved</option>
+                                    <option value="7" {{ request('status') == '7' ? 'selected' : '' }}>Rejected</option>
                                 </select>
                                 <select name="type" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500">
                                     <option value="">All Types</option>
@@ -408,7 +408,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('requests.show', $request->id) }}" 
                                            class="text-green-600 hover:text-green-900 transition-colors">
-                                            {{ $request->status_id === \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value ? 'Review Request' : 'View Details' }}
+                                            {{ $request->status_id === \App\Enums\RequestStatus::STAFF1_APPROVED->value ? 'Review Request' : 'View Details' }}
                                         </a>
                                     </td>
                                 </tr>

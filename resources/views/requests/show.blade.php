@@ -1,20 +1,19 @@
 <x-app-layout>
     @php
-        $isFinalStatus = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::APPROVED->value, \App\Enums\RequestStatus::DECLINED->value], true);
-        $staff1Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value], true);
+        $isFinalStatus = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::DEAN_APPROVED->value, \App\Enums\RequestStatus::REJECTED->value], true);
+        $staff1Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::SUBMITTED->value, \App\Enums\RequestStatus::RETURNED->value], true);
         $staff1Completed = in_array($grantRequest->status_id, [
-            \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value,
-            \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value,
-            \App\Enums\RequestStatus::RETURNED_TO_ADMISSION->value,
-            \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value,
-            \App\Enums\RequestStatus::APPROVED->value,
-            \App\Enums\RequestStatus::DECLINED->value,
+            \App\Enums\RequestStatus::STAFF1_APPROVED->value,
+            \App\Enums\RequestStatus::STAFF2_APPROVED->value,
+            \App\Enums\RequestStatus::RETURNED->value,
+            \App\Enums\RequestStatus::DEAN_APPROVED->value,
+            \App\Enums\RequestStatus::REJECTED->value,
         ], true);
-        $staff2Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_RECOMMENDATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value], true);
+        $staff2Active = in_array($grantRequest->status_id, [\App\Enums\RequestStatus::STAFF1_APPROVED->value, \App\Enums\RequestStatus::RETURNED->value], true);
         $staff2Completed = in_array($grantRequest->status_id, [
-            \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value,
-            \App\Enums\RequestStatus::APPROVED->value,
-            \App\Enums\RequestStatus::DECLINED->value,
+            \App\Enums\RequestStatus::STAFF2_APPROVED->value,
+            \App\Enums\RequestStatus::DEAN_APPROVED->value,
+            \App\Enums\RequestStatus::REJECTED->value,
         ], true);
     @endphp
 
@@ -212,11 +211,11 @@
                                     </div>
                                 @endif
                                 
-                                <!-- Show rejection info if declined -->
-                                @if($grantRequest->status_id === \App\Enums\RequestStatus::DECLINED->value)
+                                <!-- Show rejection info if rejected -->
+                                @if($grantRequest->status_id === \App\Enums\RequestStatus::REJECTED->value)
                                     <div class="mt-2 p-2 bg-red-50 rounded border border-red-200">
                                         <p class="text-sm text-red-800">
-                                            <span class="font-medium">Declined:</span> 
+                                            <span class="font-medium">Rejected:</span> 
                                             @if($grantRequest->rejection_reason)
                                                 {{ $grantRequest->rejection_reason }}
                                             @else
@@ -525,26 +524,26 @@
                                 <input type="hidden" name="staff2_signature_data" id="staff2-signature-data">
                             </div>
                             
-                            <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL }}" id="status2-input">
+                            <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::STAFF2_APPROVED }}" id="status2-input">
                             <div class="flex gap-3 flex-wrap">
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL->value }}'"
+                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::STAFF2_APPROVED->value }}'"
                                     class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700">
                                     ✓ Send to Dean
                                 </button>
                                 
-                                @if($grantRequest->status_id === \App\Enums\RequestStatus::PENDING_RECOMMENDATION->value)
+                                @if($grantRequest->status_id === \App\Enums\RequestStatus::STAFF1_APPROVED->value)
                                     <button type="submit"
-                                        onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value }}'"
+                                        onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::RETURNED->value }}'"
                                         class="bg-yellow-500 text-white px-6 py-2 rounded font-bold hover:bg-yellow-600">
                                         ↩ Return to Staff 1
                                     </button>
                                 @endif
                                 
                                 <button type="submit"
-                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::DECLINED->value }}'"
+                                    onclick="document.getElementById('status2-input').value='{{ \App\Enums\RequestStatus::REJECTED->value }}'"
                                     class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
-                                    ✕ Decline
+                                    ✕ Reject
                                 </button>
                             </div>
                         </form>
@@ -553,7 +552,7 @@
                 @endcan
 
                 {{-- DEAN ACTIONS --}}
-                @if(auth()->user()->role === 'dean' && $grantRequest->status_id === \App\Enums\RequestStatus::PENDING_DEAN_APPROVAL)
+                @if(auth()->user()->role === 'dean' && $grantRequest->status_id === \App\Enums\RequestStatus::STAFF2_APPROVED)
                     <div class="mt-6 p-4 bg-purple-50 border-l-4 border-purple-500 rounded">
                         <h4 class="font-bold text-purple-800 mb-3 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -583,30 +582,30 @@
                                 <label class="block text-sm font-medium text-purple-700">Dean Decision:</label>
                                 <div class="flex gap-3 flex-wrap">
                                     <button type="submit"
-                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::APPROVED->value }}'"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::DEAN_APPROVED->value }}'"
                                         class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">
                                         ✓ Approve Request
                                     </button>
                                     
                                     <button type="submit"
-                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::DECLINED->value }}'"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::REJECTED->value }}'"
                                         class="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700">
                                         ✗ Reject Request
                                     </button>
                                     
                                     <button type="submit"
-                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value }}'"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED->value }}'"
                                         class="bg-orange-600 text-white px-6 py-2 rounded font-bold hover:bg-orange-700">
                                         ↩ Return to Staff 1
                                     </button>
                                     
                                     <button type="submit"
-                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED_TO_STAFF_2->value }}'"
+                                        onclick="document.getElementById('dean-status-input').value='{{ \App\Enums\RequestStatus::RETURNED->value }}'"
                                         class="bg-yellow-600 text-white px-6 py-2 rounded font-bold hover:bg-yellow-700">
                                         ↩ Return to Staff 2
                                     </button>
                                 </div>
-                                <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::APPROVED->value }}" id="dean-status-input">
+                                <input type="hidden" name="status_id" value="{{ \App\Enums\RequestStatus::DEAN_APPROVED->value }}" id="dean-status-input">
                             </div>
                             
                             <div class="space-y-2">
@@ -672,8 +671,8 @@
 
                 {{-- No actions available --}}
                 @if(
-                    (auth()->user()->role === 'admission' && $grantRequest->status_id != \App\Enums\RequestStatus::RETURNED_TO_ADMISSION->value) ||
-                    (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [\App\Enums\RequestStatus::PENDING_VERIFICATION->value, \App\Enums\RequestStatus::RETURNED_TO_STAFF_1->value], true)) ||
+                    (auth()->user()->role === 'admission' && $grantRequest->status_id != \App\Enums\RequestStatus::RETURNED->value) ||
+                    (auth()->user()->role === 'staff1' && !in_array($grantRequest->status_id, [\App\Enums\RequestStatus::SUBMITTED->value, \App\Enums\RequestStatus::RETURNED->value], true)) ||
                     (auth()->user()->role === 'staff2' && $isFinalStatus)
                 )
                     <p class="text-gray-400 italic text-sm">No actions available at this stage.</p>

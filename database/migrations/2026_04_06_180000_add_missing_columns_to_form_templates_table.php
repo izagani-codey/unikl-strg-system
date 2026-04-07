@@ -16,16 +16,22 @@ return new class extends Migration
         }
 
         Schema::table('form_templates', function (Blueprint $table) {
+            // Only add columns that don't exist
+            $columnsToAdd = [];
+            
             if (!Schema::hasColumn('form_templates', 'template_type')) {
                 $table->string('template_type')->default('general_form')->after('title');
+                $columnsToAdd[] = 'template_type';
             }
-
+            
             if (!Schema::hasColumn('form_templates', 'field_mappings')) {
                 $table->json('field_mappings')->nullable()->after('file_path');
+                $columnsToAdd[] = 'field_mappings';
             }
-
+            
             if (!Schema::hasColumn('form_templates', 'is_active')) {
                 $table->boolean('is_active')->default(true)->after('field_mappings');
+                $columnsToAdd[] = 'is_active';
             }
         });
     }
@@ -40,16 +46,22 @@ return new class extends Migration
         }
 
         Schema::table('form_templates', function (Blueprint $table) {
-            $columns = [];
-
-            foreach (['template_type', 'field_mappings', 'is_active'] as $column) {
-                if (Schema::hasColumn('form_templates', $column)) {
-                    $columns[] = $column;
-                }
+            $columnsToDrop = [];
+            
+            if (Schema::hasColumn('form_templates', 'template_type')) {
+                $columnsToDrop[] = 'template_type';
             }
-
-            if (!empty($columns)) {
-                $table->dropColumn($columns);
+            
+            if (Schema::hasColumn('form_templates', 'field_mappings')) {
+                $columnsToDrop[] = 'field_mappings';
+            }
+            
+            if (Schema::hasColumn('form_templates', 'is_active')) {
+                $columnsToDrop[] = 'is_active';
+            }
+            
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
             }
         });
     }

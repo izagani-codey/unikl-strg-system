@@ -63,11 +63,12 @@ class RequestTimeline extends Component
         $currentStatus = $this->request->getStatus();
         
         return match($currentStatus) {
-            RequestStatus::PENDING_VERIFICATION => 0,
-            RequestStatus::PENDING_RECOMMENDATION => 1,
-            RequestStatus::RETURNED_TO_ADMISSION, RequestStatus::RETURNED_TO_STAFF_1 => 1, // Back to verification
-            RequestStatus::APPROVED => 3,
-            RequestStatus::DECLINED => 2, // Declined at recommendation step
+            RequestStatus::SUBMITTED => 0,
+            RequestStatus::STAFF1_APPROVED => 1,
+            RequestStatus::RETURNED => 1, // Back to verification
+            RequestStatus::STAFF2_APPROVED => 2,
+            RequestStatus::DEAN_APPROVED => 3,
+            RequestStatus::REJECTED => 2, // Rejected at any step
             default => 0,
         };
     }

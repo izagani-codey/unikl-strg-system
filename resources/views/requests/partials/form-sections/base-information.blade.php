@@ -38,7 +38,7 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
                 <div class="border border-gray-300 rounded-lg bg-gray-50" style="height: 400px;">
                     <iframe id="template-preview-iframe" src="" class="w-full h-full rounded" style="border: none;"></iframe>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">This is the blank form that will be filled with your information</p>
+                <p class="text-xs text-gray-500 mt-2">This is blank form that will be filled with your information</p>
             </div>
             
             <!-- Auto-fill Preview -->
@@ -91,6 +91,12 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
                 </div>
                 <p class="text-xs text-gray-500 mt-2">Your digital signature will also be included</p>
             </div>
+        </div>
+        
+        <!-- Error message for missing template -->
+        <div id="template-error" class="hidden mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-4">
+            <h4 class="text-sm font-semibold text-yellow-800">No Template Available</h4>
+            <p class="text-sm text-yellow-700 mt-1">This request type doesn't have a default template assigned. You can still submit your request, but no template preview is available.</p>
         </div>
     </div>
 

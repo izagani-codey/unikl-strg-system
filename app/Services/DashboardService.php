@@ -28,24 +28,19 @@ class DashboardService
     }
 
     /**
-     * Get complete dashboard data for user with caching.
+     * Get complete dashboard data for user.
      */
     public function getDashboardData(User $user, array $filters = []): array
     {
-        $cacheKey = "dashboard_{$user->id}_" . md5(serialize($filters));
-        $cacheDuration = config('system.settings.cache_duration_minutes', 60);
-
-        return Cache::remember($cacheKey, $cacheDuration, function () use ($user, $filters) {
-            return [
-                'displayRequests' => $this->requestRepository->getFilteredRequests($filters, $user),
-                'dashboardStats' => $this->statisticsRepository->getDashboardStats($user),
-                'requestTypes' => $this->getCachedRequestTypes(),
-                'formTemplates' => $this->getCachedFormTemplates(),
-                'urgentRequests' => $this->requestRepository->getUrgentRequests($user),
-                'user' => $user,
-                'filters' => $filters,
-            ];
-        });
+        return [
+            'displayRequests' => $this->requestRepository->getFilteredRequests($filters, $user),
+            'dashboardStats' => $this->statisticsRepository->getDashboardStats($user),
+            'requestTypes' => RequestType::where('is_active', true)->orderBy('name')->get(),
+            'formTemplates' => FormTemplate::with('uploader')->where('is_active', true)->latest('created_at')->get(),
+            'urgentRequests' => $this->requestRepository->getUrgentRequests($user),
+            'user' => $user,
+            'filters' => $filters,
+        ];
     }
 
     /**
@@ -66,59 +61,41 @@ class DashboardService
     }
 
     /**
-     * Get cached request types.
+     * Get request types.
      */
-    private function getCachedRequestTypes(): Collection
+    private function getRequestTypes(): Collection
     {
-        // Always get fresh data to avoid serialization issues
         return RequestType::where('is_active', true)
             ->orderBy('name')
             ->get();
     }
 
     /**
-     * Get cached form templates.
-     */
-    private function getCachedFormTemplates(): Collection
-    {
-        $cached = Cache::get('form_templates_active');
-        
-        if ($cached) {
-            return collect($cached);
-        }
-        
-        $templates = FormTemplate::with('uploader')
-            ->where('is_active', true)
-            ->latest('created_at')
-            ->get(['id', 'title', 'file_path', 'uploaded_by', 'created_at']);
-        
-        $arrayData = $templates->toArray();
-        Cache::put('form_templates_active', $arrayData, 3600);
-        
-        return collect($arrayData);
-    }
-
-   
-    public function clearSystemCache(): void
-    {
-        Cache::forget('request_types_active');
-        Cache::forget('form_templates_active');
-    }
-
-    /**
-     * Get request types (legacy - use getCachedRequestTypes).
-     */
-    private function getRequestTypes(): Collection
-    {
-        return $this->getCachedRequestTypes();
-    }
-
-    /**
-     * Get form templates (legacy - use getCachedFormTemplates).
+     * Get form templates.
      */
     private function getFormTemplates(): Collection
     {
-        return $this->getCachedFormTemplates();
+        return FormTemplate::with('uploader')
+            ->where('is_active', true)
+            ->latest('created_at')
+            ->get(['id', 'title', 'file_path', 'uploaded_by', 'created_at']);
+    }
+
+   
+    /**
+     * Get request types (legacy - use getRequestTypes).
+     */
+    private function getCachedRequestTypes(): Collection
+    {
+        return $this->getRequestTypes();
+    }
+
+    /**
+     * Get form templates (legacy - use getFormTemplates).
+     */
+    private function getCachedFormTemplates(): Collection
+    {
+        return $this->getFormTemplates();
     }
 
     /**

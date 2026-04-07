@@ -29,8 +29,11 @@ class RequestTypeController extends Controller
         $fileContents = Storage::disk('public')->get($filePath);
         $mimeType = Storage::disk('public')->mimeType($filePath);
         
+        // Ensure proper headers for iframe display
         return response($fileContents)
             ->header('Content-Type', $mimeType)
-            ->header('Content-Disposition', 'inline; filename="' . basename($filePath) . '"');
+            ->header('Content-Disposition', 'inline; filename="' . basename($filePath) . '"')
+            ->header('X-Frame-Options', 'SAMEORIGIN') // Allow iframe embedding
+            ->header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     }
 }

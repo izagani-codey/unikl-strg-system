@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\RequestType;
 use App\Models\User;
 
 class DatabaseSeeder extends Seeder
@@ -13,25 +12,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             VotCodeSeeder::class,
+            RequestTypeSeeder::class,
         ]);
 
-        // Seed Request Types
-        $types = [
-            ['name' => 'STRG New Application',            'slug' => 'strg-new'],
-            ['name' => 'Virement',                         'slug' => 'virement'],
-            ['name' => 'Change Request',                   'slug' => 'change-request'],
-            ['name' => 'Asset Purchase',                   'slug' => 'asset-purchase'],
-            ['name' => 'Research Assistant Appointment',   'slug' => 'ra-appointment'],
-            ['name' => 'Extension Request',                'slug' => 'extension'],
-            ['name' => 'Project Completion / Final Report','slug' => 'final-report'],
-        ];
-
-        foreach ($types as $type) {
-            RequestType::updateOrCreate(['slug' => $type['slug']], $type);
-        }
-
         // Remove old admission user if exists
-        User::where('email', 'admission@unikl.edu.my')->delete();
+        User::where('email', 'admissions@unikl.edu.my')->delete();
 
         // Seed Updated Admissions Dev Account with complete profile
         User::updateOrCreate(
@@ -104,6 +89,11 @@ class DatabaseSeeder extends Seeder
                 'override_enabled_at' => null,
             ]
         );
+
+        // Create templates after users and request types are created
+        $this->call([
+            TemplateSeeder::class,
+        ]);
 
         $this->command->info('✅ Seeded updated development accounts:');
         $this->command->info('   📧 admissions@unikl.edu.my (password) - Admissions Dev User');

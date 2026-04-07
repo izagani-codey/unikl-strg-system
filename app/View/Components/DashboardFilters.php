@@ -11,20 +11,22 @@ use Illuminate\View\View;
 class DashboardFilters extends Component
 {
     public string $role = 'admission';
-    public Collection $requestTypes;
+    public \Illuminate\Support\Collection $requestTypes;
     public string $title = 'Filter Requests';
     public string $description = 'Find specific requests quickly';
     public string $colorTheme = 'indigo';
 
     public function __construct(
         string $role = 'admission',
-        Collection $requestTypes = null,
+        $requestTypes = null,
         string $title = 'Filter Requests',
         string $description = 'Find specific requests quickly',
         string $colorTheme = 'indigo'
     ) {
         $this->role = $role;
-        $this->requestTypes = $requestTypes ?: new Collection();
+        $this->requestTypes = ($requestTypes instanceof \Illuminate\Support\Collection) 
+            ? $requestTypes 
+            : new \Illuminate\Support\Collection();
         $this->title = $title;
         $this->description = $description;
         $this->colorTheme = $colorTheme;

@@ -66,7 +66,6 @@ class RequestRepository extends BaseRepository
     public function getDashboardStats(User $user): array
     {
         $base = $this->newQuery();
-        
         if ($user->role === 'admission') {
             $base->where('user_id', $user->id);
         }
@@ -78,12 +77,12 @@ class RequestRepository extends BaseRepository
 
         return [
             'total' => (clone $base)->count(),
-            'pending_verification' => (int) ($counts[RequestStatus::PENDING_VERIFICATION->value] ?? 0),
-            'with_staff_2' => (int) ($counts[RequestStatus::PENDING_RECOMMENDATION->value] ?? 0),
-            'returned_to_admission' => (int) ($counts[RequestStatus::RETURNED_TO_ADMISSION->value] ?? 0),
-            'returned_to_staff_1' => (int) ($counts[RequestStatus::RETURNED_TO_STAFF_1->value] ?? 0),
-            'approved' => (int) ($counts[RequestStatus::APPROVED->value] ?? 0),
-            'declined' => (int) ($counts[RequestStatus::DECLINED->value] ?? 0),
+            'submitted' => (int) ($counts[RequestStatus::SUBMITTED->value] ?? 0),
+            'staff1_approved' => (int) ($counts[RequestStatus::STAFF1_APPROVED->value] ?? 0),
+            'staff2_approved' => (int) ($counts[RequestStatus::STAFF2_APPROVED->value] ?? 0),
+            'dean_approved' => (int) ($counts[RequestStatus::DEAN_APPROVED->value] ?? 0),
+            'returned' => (int) ($counts[RequestStatus::RETURNED->value] ?? 0),
+            'rejected' => (int) ($counts[RequestStatus::REJECTED->value] ?? 0),
             'high_priority' => (clone $base)->where('is_priority', true)->count(),
         ];
     }
@@ -100,8 +99,8 @@ class RequestRepository extends BaseRepository
         return $this->newQuery()
             ->where('deadline', '<=', now()->addDays(3))
             ->whereNotIn('status_id', [
-                RequestStatus::APPROVED->value,
-                RequestStatus::DECLINED->value
+                RequestStatus::DEAN_APPROVED->value,
+                RequestStatus::REJECTED->value
             ])
             ->with(['requestType', 'user'])
             ->orderBy('deadline')
@@ -132,8 +131,8 @@ class RequestRepository extends BaseRepository
         return $this->newQuery()
             ->with(['requestType', 'user'])
             ->whereIn('status_id', [
-                RequestStatus::PENDING_VERIFICATION->value,
-                RequestStatus::RETURNED_TO_STAFF_1->value
+                RequestStatus::SUBMITTED->value,
+                RequestStatus::RETURNED->value
             ])
             ->latest()
             ->paginate(15);
@@ -147,8 +146,8 @@ class RequestRepository extends BaseRepository
         return $this->newQuery()
             ->with(['requestType', 'user'])
             ->whereNotIn('status_id', [
-                RequestStatus::APPROVED->value,
-                RequestStatus::DECLINED->value
+                RequestStatus::DEAN_APPROVED->value,
+                RequestStatus::REJECTED->value
             ])
             ->latest()
             ->paginate(15);
@@ -201,8 +200,8 @@ class RequestRepository extends BaseRepository
             ->where('deadline', '<=', now()->addDays($days))
             ->where('deadline', '>=', now())
             ->whereNotIn('status_id', [
-                RequestStatus::APPROVED->value,
-                RequestStatus::DECLINED->value
+                RequestStatus::DEAN_APPROVED->value,
+                RequestStatus::REJECTED->value
             ]);
 
         if ($user->role === 'admission') {

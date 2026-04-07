@@ -14,10 +14,10 @@ class Staff2AdminController extends Controller
     {
         // System Stats
         $totalRequests = GrantRequest::count();
-        $pendingVerification = GrantRequest::where('status_id', RequestStatus::PENDING_VERIFICATION->value)->count();
-        $withStaff2 = GrantRequest::where('status_id', RequestStatus::PENDING_RECOMMENDATION->value)->count();
-        $approved = GrantRequest::where('status_id', RequestStatus::APPROVED->value)->count();
-        $declined = GrantRequest::where('status_id', RequestStatus::DECLINED->value)->count();
+        $submitted = GrantRequest::where('status_id', RequestStatus::SUBMITTED->value)->count();
+        $staff1Approved = GrantRequest::where('status_id', RequestStatus::STAFF1_APPROVED->value)->count();
+        $deanApproved = GrantRequest::where('status_id', RequestStatus::DEAN_APPROVED->value)->count();
+        $rejected = GrantRequest::where('status_id', RequestStatus::REJECTED->value)->count();
 
         // Request Types Stats
         $byType = RequestType::query()
@@ -49,10 +49,10 @@ class Staff2AdminController extends Controller
 
         return view('staff2.admin-panel', compact(
             'totalRequests',
-            'pendingVerification',
-            'withStaff2',
-            'approved',
-            'declined',
+            'submitted',
+            'staff1Approved',
+            'deanApproved',
+            'rejected',
             'byType',
             'recentHighPriority',
             'totalUsers',

@@ -18,36 +18,36 @@ class WorkflowTransitionService
     public static function getAllowedTransitions(): array
     {
         return [
+            'admission' => [
+                RequestStatus::RETURNED->value => [
+                    RequestStatus::SUBMITTED->value
+                ]
+            ],
             'staff1' => [
                 RequestStatus::SUBMITTED->value => [
-                    RequestStatus::STAFF1_APPROVED->value,
-                    RequestStatus::RETURNED->value,
-                ],
+                    RequestStatus::STAFF1_APPROVED->value, 
+                    RequestStatus::RETURNED->value
+                ]
             ],
             'staff2' => [
                 RequestStatus::SUBMITTED->value => [
-                    RequestStatus::STAFF2_APPROVED->value, // Override Staff1
-                    RequestStatus::RETURNED->value,
-                    RequestStatus::REJECTED->value,
-                ],
+                    RequestStatus::STAFF2_APPROVED->value, // override
+                    RequestStatus::RETURNED->value, 
+                    RequestStatus::REJECTED->value
+                ],  
                 RequestStatus::STAFF1_APPROVED->value => [
-                    RequestStatus::STAFF2_APPROVED->value,
-                    RequestStatus::RETURNED->value,
-                    RequestStatus::REJECTED->value,
-                ],
+                    RequestStatus::STAFF2_APPROVED->value, 
+                    RequestStatus::RETURNED->value, 
+                    RequestStatus::REJECTED->value
+                ]
             ],
             'dean' => [
                 RequestStatus::STAFF2_APPROVED->value => [
-                    RequestStatus::DEAN_APPROVED->value,
-                    RequestStatus::RETURNED->value,
-                    RequestStatus::REJECTED->value,
-                ],
-            ],
-            'admission' => [
-                RequestStatus::RETURNED->value => [
-                    RequestStatus::SUBMITTED->value,
-                ],
-            ],
+                    RequestStatus::DEAN_APPROVED->value, 
+                    RequestStatus::RETURNED->value, 
+                    RequestStatus::REJECTED->value
+                ]
+            ]
         ];
     }
 
@@ -117,35 +117,51 @@ class WorkflowTransitionService
      */
     private static function validateSignatureRequirement(User $user, RequestStatus $newStatus, array $data): void
     {
-        // Only enforce for Staff2 and Dean roles
-        if (!in_array($user->role, ['staff2', 'dean'], true)) {
+        // Staff1 does NOT require signature
+        if ($user->role === 'staff1') {
             return;
         }
 
-        // Require signature for approval and rejection actions
-        $requiresSignature = in_array($newStatus, [
-            RequestStatus::STAFF2_APPROVED,
-            RequestStatus::DEAN_APPROVED,
-            RequestStatus::REJECTED,
-        ], true);
-
-        if (!$requiresSignature) {
+        // Staff2 requires signature for STAFF2_APPROVED and REJECTED
+        if ($user->role === 'staff2') {
+            $requiresSignature = in_array($newStatus, [
+                RequestStatus::STAFF2_APPROVED,
+                RequestStatus::REJECTED,
+            ], true);
+            
+            if (!$requiresSignature) {
+                return;
+            }
+            
+            if (empty($data['staff2_signature_data'])) {
+                throw new AuthorizationException(
+                    "Staff 2 signature is required to " . 
+                    ($newStatus === RequestStatus::REJECTED ? 'reject' : 'approve') . 
+                    " this request."
+                );
+            }
             return;
         }
 
-        // Check if signature data is provided based on role
-        $signatureField = match ($user->role) {
-            'staff2' => 'staff2_signature_data',
-            'dean' => 'dean_signature_data',
-            default => null,
-        };
-
-        if (!$signatureField || empty($data[$signatureField])) {
-            $roleLabel = $user->role === 'staff2' ? 'Staff 2' : 'Dean';
-            $action = $newStatus === RequestStatus::REJECTED ? 'reject' : 'approve';
-            throw new AuthorizationException(
-                "{$roleLabel} signature is required to {$action} this request."
-            );
+        // Dean requires signature for DEAN_APPROVED and REJECTED
+        if ($user->role === 'dean') {
+            $requiresSignature = in_array($newStatus, [
+                RequestStatus::DEAN_APPROVED,
+                RequestStatus::REJECTED,
+            ], true);
+            
+            if (!$requiresSignature) {
+                return;
+            }
+            
+            if (empty($data['dean_signature_data'])) {
+                throw new AuthorizationException(
+                    "Dean signature is required to " . 
+                    ($newStatus === RequestStatus::REJECTED ? 'reject' : 'approve') . 
+                    " this request."
+                );
+            }
+            return;
         }
     }
 
@@ -234,14 +250,16 @@ class WorkflowTransitionService
     private static function saveStageSignatures(GrantRequest $request, User $user, array $data): void
     {
         $signatureField = match ($user->role) {
+            'staff1' => 'staff1_signature_data',
             'staff2' => 'staff2_signature_data',
-            'dean' => 'dean_signature_data',
+            'dean'   => 'dean_signature_data',
             default => null,
         };
 
         $timestampField = match ($user->role) {
+            'staff1' => 'staff1_signed_at',
             'staff2' => 'staff2_signed_at',
-            'dean' => 'dean_signed_at',
+            'dean'   => 'dean_signed_at',
             default => null,
         };
 

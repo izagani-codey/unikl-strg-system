@@ -79,7 +79,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-purple-100 text-sm font-medium">Pending Verification</p>
-                            <p class="text-3xl font-bold mt-2">{{ $pendingVerification }}</p>
+                            <p class="text-3xl font-bold mt-2">{{ $submitted }}</p>
                         </div>
                         <div class="bg-white/20 backdrop-blur-sm rounded-full p-3">
                             <svg class="w-8 h-8 text-purple-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-green-100 text-sm font-medium">Approved</p>
-                            <p class="text-3xl font-bold mt-2">{{ $approved }}</p>
+                            <p class="text-3xl font-bold mt-2">{{ $deanApproved }}</p>
                         </div>
                         <div class="bg-white/20 backdrop-blur-sm rounded-full p-3">
                             <svg class="w-8 h-8 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-red-100 text-sm font-medium">Declined</p>
-                            <p class="text-3xl font-bold mt-2">{{ $declined }}</p>
+                            <p class="text-3xl font-bold mt-2">{{ $rejected }}</p>
                         </div>
                         <div class="bg-white/20 backdrop-blur-sm rounded-full p-3">
                             <svg class="w-8 h-8 text-red-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">

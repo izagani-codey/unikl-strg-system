@@ -262,6 +262,13 @@ class RequestController extends Controller
         return view('requests.show', compact('grantRequest'));
     }
 
+    public function printSummary($id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+        return view('requests.print', compact('grantRequest'));
+    }
+
     // ==========================================
     // STAFF — Status transitions
     // ==========================================

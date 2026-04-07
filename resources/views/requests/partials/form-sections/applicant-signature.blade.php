@@ -4,7 +4,7 @@
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Digital Signature</h3>
     
     <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-        <canvas id="signature-canvas" width="400" height="200" class="border border-gray-400 bg-white rounded cursor-crosshair touch-none select-none"></canvas>
+        <canvas id="signature-canvas" width="400" height="200" class="border border-gray-400 bg-white rounded cursor-crosshair touch-none select-none" style="width: 100%; max-width: 400px; height: 200px;"></canvas>
         
         <div class="mt-4 flex justify-between">
             <button type="button" onclick="clearSignature()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors">
