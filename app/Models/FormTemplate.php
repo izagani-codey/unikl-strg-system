@@ -35,6 +35,19 @@ class FormTemplate extends Model
         return $this->hasMany(TemplateUsage::class, 'template_id');
     }
 
+    public function requestTypeTemplates()
+    {
+        return $this->hasMany(RequestTypeTemplate::class);
+    }
+
+    public function requestTypes()
+    {
+        return $this->belongsToMany(RequestType::class, 'request_type_templates')
+            ->withPivot(['is_default', 'sort_order'])
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
     // ==========================================
     // Helper methods
     // ==========================================

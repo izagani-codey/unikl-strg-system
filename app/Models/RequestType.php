@@ -31,4 +31,33 @@ class RequestType extends Model
     {
         return $this->belongsTo(FormTemplate::class, 'default_template_id');
     }
+
+    public function requestTypeTemplates()
+    {
+        return $this->hasMany(RequestTypeTemplate::class);
+    }
+
+    public function templates()
+    {
+        return $this->belongsToMany(FormTemplate::class, 'request_type_templates')
+            ->withPivot(['is_default', 'sort_order'])
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
+    public function getDefaultTemplate()
+    {
+        // First try the legacy default_template_id
+        if ($this->default_template_id) {
+            return $this->defaultTemplate;
+        }
+
+        // Then try the new system
+        $defaultTemplate = $this->requestTypeTemplates()
+            ->with('formTemplate')
+            ->where('is_default', true)
+            ->first();
+
+        return $defaultTemplate?->formTemplate;
+    }
 }

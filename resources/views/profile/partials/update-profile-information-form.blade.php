@@ -47,6 +47,46 @@
             @endif
         </div>
 
+        {{-- Staff Profile Information --}}
+        <div class="border-t pt-6 mt-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Staff Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <x-input-label for="staff_id" :value="__('Staff ID')" />
+                    <x-text-input id="staff_id" name="staff_id" type="text" class="mt-1 block w-full" :value="old('staff_id', $user->staff_id)" :readonly="$user->staff_id" placeholder="Enter your staff ID" autocomplete="off" />
+                    <x-input-error class="mt-2" :messages="$errors->get('staff_id')" />
+                    @if($user->staff_id)
+                        <p class="text-xs text-gray-500 mt-1">Staff ID cannot be changed once set</p>
+                    @endif
+                </div>
+
+                <div>
+                    <x-input-label for="designation" :value="__('Designation')" />
+                    <x-text-input id="designation" name="designation" type="text" class="mt-1 block w-full" :value="old('designation', $user->designation)" placeholder="e.g., Lecturer, Administrator" autocomplete="organization-title" />
+                    <x-input-error class="mt-2" :messages="$errors->get('designation')" />
+                </div>
+
+                <div>
+                    <x-input-label for="department" :value="__('Department')" />
+                    <x-text-input id="department" name="department" type="text" class="mt-1 block w-full" :value="old('department', $user->department)" placeholder="e.g., Faculty of Engineering" autocomplete="organization" />
+                    <x-input-error class="mt-2" :messages="$errors->get('department')" />
+                </div>
+
+                <div>
+                    <x-input-label for="phone" :value="__('Phone Number')" />
+                    <x-text-input id="phone" name="phone" type="tel" class="mt-1 block w-full" :value="old('phone', $user->phone)" placeholder="+60123456789" autocomplete="tel" />
+                    <x-input-error class="mt-2" :messages="$errors->get('phone')" />
+                </div>
+
+                <div>
+                    <x-input-label for="employee_level" :value="__('Employee Level')" />
+                    <x-text-input id="employee_level" name="employee_level" type="text" class="mt-1 block w-full" :value="old('employee_level', $user->employee_level)" placeholder="e.g., Executive, Senior Executive, Management" autocomplete="off" />
+                    <x-input-error class="mt-2" :messages="$errors->get('employee_level')" />
+                </div>
+            </div>
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

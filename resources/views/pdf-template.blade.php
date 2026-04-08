@@ -124,6 +124,50 @@
         </table>
     </div>
 
+    <!-- Dynamic Request Type Fields -->
+    @if($request->requestType->field_schema && !empty($request->payload['dynamic_fields']))
+        <div class="section">
+            <div class="section-title">{{ strtoupper($request->requestType->name) }} DETAILS</div>
+            <table class="info-table">
+                @foreach($request->requestType->field_schema as $field)
+                    @php
+                        $fieldValue = $request->payload['dynamic_fields'][$field['name']] ?? null;
+                        $displayValue = '';
+                        
+                        if ($fieldValue !== null) {
+                            switch ($field['type']) {
+                                case 'select':
+                                    $displayValue = $fieldValue;
+                                    break;
+                                case 'textarea':
+                                    $displayValue = nl2br(e($fieldValue));
+                                    break;
+                                case 'date':
+                                    $displayValue = \Carbon\Carbon::parse($fieldValue)->format('d F Y');
+                                    break;
+                                case 'number':
+                                    $displayValue = 'RM ' . number_format($fieldValue, 2);
+                                    break;
+                                default:
+                                    $displayValue = e($fieldValue);
+                            }
+                        }
+                    @endphp
+                    <tr>
+                        <td class="label">{{ $field['label'] }}</td>
+                        <td class="value" colspan="3">
+                            @if($fieldValue !== null)
+                                {!! $displayValue !!}
+                            @else
+                                —
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+    @endif
+
     <!-- Description / Justification -->
     <div class="section">
         <div class="section-title">JUSTIFICATION / DESCRIPTION</div>

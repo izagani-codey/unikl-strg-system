@@ -146,27 +146,49 @@
                     </div>
                 </div>
                 
-                @forelse($formTemplates as $template)
-                    <div class="border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="bg-indigo-100 rounded-lg p-3">
-                                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                    </svg>
+                {{-- Request Type Specific Templates --}}
+                @forelse($requestTypeTemplates as $requestType)
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            {{ $requestType->name }}
+                        </h4>
+                        <div class="grid grid-cols-1 gap-3">
+                            @forelse($requestType->templates as $template)
+                                <div class="border border-gray-200 rounded-lg p-3 hover:border-indigo-300 hover:shadow-md transition-all">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="bg-indigo-100 rounded-lg p-2">
+                                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-medium text-gray-900 text-sm">{{ $template->title }}</h5>
+                                                <p class="text-xs text-gray-500">by {{ $template->uploader->name }}</p>
+                                                @if($template->pivot->is_default)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                                        Default
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank"
+                                           class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            Download
+                                        </a>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 class="font-semibold text-gray-900">{{ $template->title }}</h4>
-                                    <p class="text-sm text-gray-500">Uploaded by {{ $template->uploader->name }}</p>
+                            @empty
+                                <div class="text-center py-4 bg-gray-50 rounded-lg">
+                                    <p class="text-sm text-gray-500">No templates available for this request type</p>
                                 </div>
-                            </div>
-                            <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank"
-                               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                Download
-                            </a>
+                            @endforelse
                         </div>
                     </div>
                 @empty
@@ -174,10 +196,48 @@
                         <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">No templates available</h3>
-                        <p class="text-gray-600">Ask Staff 2 to upload blank forms and templates.</p>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No request type templates available</h3>
+                        <p class="text-gray-600">Ask Staff 2 to upload templates for specific request types.</p>
                     </div>
                 @endforelse
+
+                {{-- General Templates --}}
+                @if($formTemplates->count() > 0)
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            General Templates
+                        </h4>
+                        <div class="grid grid-cols-1 gap-3">
+                            @foreach($formTemplates as $template)
+                                <div class="border border-gray-200 rounded-lg p-3 hover:border-indigo-300 hover:shadow-md transition-all">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="bg-gray-100 rounded-lg p-2">
+                                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-medium text-gray-900 text-sm">{{ $template->title }}</h5>
+                                                <p class="text-xs text-gray-500">by {{ $template->uploader->name }}</p>
+                                            </div>
+                                        </div>
+                                        <a href="{{ asset('storage/' . $template->file_path) }}" target="_blank"
+                                           class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors">
+                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- Recent Requests Table --}}

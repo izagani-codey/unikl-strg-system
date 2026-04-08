@@ -32,11 +32,33 @@ class DashboardService
      */
     public function getDashboardData(User $user, array $filters = []): array
     {
+        // Get general templates (not tied to specific request types)
+        $generalTemplates = FormTemplate::with('uploader')
+            ->where('is_active', true)
+            ->whereDoesntHave('requestTypes')
+            ->latest('created_at')
+            ->get();
+
+        // Get request-type-specific templates for admission users
+        $requestTypeTemplates = collect();
+        if ($user->isAdmission()) {
+            $requestTypeTemplates = RequestType::where('is_active', true)
+                ->with(['templates' => function($query) {
+                    $query->where('is_active', true)
+                          ->orderBy('sort_order')
+                          ->orderBy('created_at');
+                }, 'templates.uploader'])
+                ->whereHas('templates')
+                ->orderBy('name')
+                ->get();
+        }
+
         return [
             'displayRequests' => $this->requestRepository->getFilteredRequests($filters, $user),
             'dashboardStats' => $this->statisticsRepository->getDashboardStats($user),
             'requestTypes' => RequestType::where('is_active', true)->orderBy('name')->get(),
-            'formTemplates' => FormTemplate::with('uploader')->where('is_active', true)->latest('created_at')->get(),
+            'formTemplates' => $generalTemplates,
+            'requestTypeTemplates' => $requestTypeTemplates,
             'urgentRequests' => $this->requestRepository->getUrgentRequests($user),
             'user' => $user,
             'filters' => $filters,

@@ -52,17 +52,41 @@
                             </div>
                             
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Request Type (Optional)</label>
+                                <select name="request_type_id" id="request_type_id" 
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">General Template (Available for all request types)</option>
+                                    @foreach(\App\Models\RequestType::where('is_active', true)->orderBy('name')->get() as $requestType)
+                                        <option value="{{ $requestType->id }}" {{ old('request_type_id') == $requestType->id ? 'selected' : '' }}>
+                                            {{ $requestType->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-sm text-gray-500">Select a specific request type to make this template available only for that type</p>
+                            </div>
+                            
+                            <div id="default-template-section" class="hidden">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="is_default" value="1" 
+                                           {{ old('is_default') ? 'checked' : '' }}
+                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700">Set as default template for this request type</span>
+                                </label>
+                                <p class="mt-1 text-sm text-gray-500">This template will be automatically selected when users create this type of request</p>
+                            </div>
+                            
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">PDF File</label>
-                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                                <div id="file-upload-container" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                                     <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                     </svg>
-                                    <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden" id="file-input" required>
-                                    <label for="file-input" class="cursor-pointer">
+                                    <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden" id="file-input">
+                                    <label for="file-input" class="cursor-pointer" id="file-label">
                                         <span class="text-blue-600 font-medium hover:text-blue-700">Choose file</span>
                                         <span class="text-gray-600"> or drag and drop</span>
                                     </label>
-                                    <p class="text-xs text-gray-500 mt-2">PDF, JPG, or PNG (max 5MB)</p>
+                                    <p class="text-xs text-gray-500 mt-2" id="file-help-text">PDF, JPG, or PNG (max 5MB)</p>
                                 </div>
                             </div>
                             
@@ -157,3 +181,86 @@
         </div>
     </div>
 </x-app-layout>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const requestTypeSelect = document.getElementById('request_type_id');
+    const defaultTemplateSection = document.getElementById('default-template-section');
+    const fileInput = document.getElementById('file-input');
+    const fileUploadContainer = document.getElementById('file-upload-container');
+    const fileLabel = document.getElementById('file-label');
+    const fileHelpText = document.getElementById('file-help-text');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    function updateFileRequirement() {
+        const requestTypeId = requestTypeSelect.value;
+        const isDefaultChecked = document.querySelector('input[name="is_default"]').checked;
+        
+        if (requestTypeId) {
+            defaultTemplateSection.classList.remove('hidden');
+        } else {
+            defaultTemplateSection.classList.add('hidden');
+            // Uncheck the default checkbox if no request type is selected
+            const defaultCheckbox = document.querySelector('input[name="is_default"]');
+            if (defaultCheckbox) {
+                defaultCheckbox.checked = false;
+            }
+        }
+        
+        // Update file requirement based on default template selection
+        if (requestTypeId && isDefaultChecked) {
+            // File is optional when setting default template
+            fileInput.removeAttribute('required');
+            fileUploadContainer.classList.remove('border-red-300');
+            fileUploadContainer.classList.add('border-gray-300');
+            fileLabel.innerHTML = '<span class="text-blue-600 font-medium hover:text-blue-700">Choose file (optional)</span><span class="text-gray-600"> or drag and drop</span>';
+            fileHelpText.textContent = 'PDF, JPG, or PNG (max 5MB) - Optional when setting default template';
+            fileHelpText.classList.add('text-blue-600');
+        } else {
+            // File is required for custom templates
+            fileInput.setAttribute('required', 'required');
+            fileUploadContainer.classList.remove('border-gray-300');
+            fileUploadContainer.classList.add('border-gray-300');
+            fileLabel.innerHTML = '<span class="text-blue-600 font-medium hover:text-blue-700">Choose file</span><span class="text-gray-600"> or drag and drop</span>';
+            fileHelpText.textContent = 'PDF, JPG, or PNG (max 5MB)';
+            fileHelpText.classList.remove('text-blue-600');
+        }
+    }
+    
+    function validateForm() {
+        const requestTypeId = requestTypeSelect.value;
+        const isDefaultChecked = document.querySelector('input[name="is_default"]').checked;
+        const hasFile = fileInput.files.length > 0;
+        
+        if (!requestTypeId && !hasFile) {
+            alert('Please select a request type or upload a general template.');
+            return false;
+        }
+        
+        if (requestTypeId && !isDefaultChecked && !hasFile) {
+            alert('Please upload a file for custom templates, or check "Set as default template" to use existing template.');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    requestTypeSelect.addEventListener('change', updateFileRequirement);
+    
+    // Listen for default checkbox changes
+    document.querySelector('input[name="is_default"]').addEventListener('change', updateFileRequirement);
+    
+    // Validate form on submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Initialize on page load
+    updateFileRequirement();
+});
+</script>
+@endpush
