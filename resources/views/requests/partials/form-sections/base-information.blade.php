@@ -7,7 +7,7 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
 <div class="mb-6 border-b border-gray-200 pb-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Request Information</h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 min-w-0">
         <div>
             <label class="block text-sm font-bold text-gray-700">Request Type *</label>
             <select name="request_type_id" id="request-type-select" class="w-full rounded border-gray-300" required onchange="loadTemplatePreview(this.value)">
@@ -28,12 +28,12 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
     </div>
 
     <!-- Template Preview Section -->
-    <div id="template-preview-section" class="hidden mb-6 border-b border-gray-200 pb-6">
+    <div id="template-preview-section" class="hidden mb-6 border-b border-gray-200 pb-6 overflow-x-hidden">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Template Preview</h3>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
             <!-- PDF Preview -->
-            <div>
+            <div class="min-w-0">
                 <h4 class="text-md font-medium text-gray-800 mb-2">Blank Form Preview</h4>
                 <div class="border border-gray-300 rounded-lg bg-gray-50" style="height: 400px;">
                     <iframe id="template-preview-iframe" src="" class="w-full h-full rounded" style="border: none;"></iframe>
@@ -44,48 +44,48 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
             <!-- Auto-fill Preview -->
             <div>
                 <h4 class="text-md font-medium text-gray-800 mb-2">Auto-fill Information</h4>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 min-w-0">
                     <h5 class="font-semibold text-blue-800 mb-3">Information that will be auto-filled:</h5>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-start">
+                    <ul class="space-y-2 text-sm min-w-0">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Name:</strong> <span id="preview-name">{{ $user->name }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Name:</strong> <span id="preview-name">{{ $user->name }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Staff ID:</strong> <span id="preview-staff-id">{{ $user->staff_id ?? 'Not set' }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Staff ID:</strong> <span id="preview-staff-id">{{ $user->staff_id ?? 'Not set' }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Designation:</strong> <span id="preview-designation">{{ $user->designation ?? 'Not set' }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Designation:</strong> <span id="preview-designation">{{ $user->designation ?? 'Not set' }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Department:</strong> <span id="preview-department">{{ $user->department ?? 'Not set' }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Department:</strong> <span id="preview-department">{{ $user->department ?? 'Not set' }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Phone:</strong> <span id="preview-phone">{{ $user->phone ?? 'Not set' }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Phone:</strong> <span id="preview-phone">{{ $user->phone ?? 'Not set' }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Employee Level:</strong> <span id="preview-employee-level">{{ $user->employee_level ?? 'Not set' }}</span></span>
+                            <span class="min-w-0 break-words"><strong>Employee Level:</strong> <span id="preview-employee-level">{{ $user->employee_level ?? 'Not set' }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Email:</strong> <span id="preview-email">{{ $user->email }}</span></span>
+                            <span class="break-all"><strong>Email:</strong> <span id="preview-email">{{ $user->email }}</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Request Type:</strong> <span id="preview-request-type">Will be set based on selection</span></span>
+                            <span class="min-w-0 break-words"><strong>Request Type:</strong> <span id="preview-request-type">Will be set based on selection</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>VOT Items:</strong> <span id="preview-vot">Items you add below</span></span>
+                            <span class="min-w-0 break-words"><strong>VOT Items:</strong> <span id="preview-vot">Items you add below</span></span>
                         </li>
-                        <li class="flex items-start">
+                        <li class="flex items-start min-w-0">
                             <span class="text-blue-600 mr-2">✓</span>
-                            <span><strong>Total Amount:</strong> <span id="preview-total">Calculated from VOT items</span></span>
+                            <span class="min-w-0 break-words"><strong>Total Amount:</strong> <span id="preview-total">Calculated from VOT items</span></span>
                         </li>
                     </ul>
                 </div>
@@ -110,6 +110,7 @@ $selectedTypeId = old('request_type_id', $grantRequest?->request_type_id);
 
     <div class="mt-4">
         <label class="block text-sm font-bold text-gray-700">Justification / Description *</label>
-        <textarea name="description" rows="4" class="w-full rounded border-gray-300 mt-1" placeholder="General description for this STRG request..." required>{{ old('description', $grantRequest?->payload['description'] ?? '') }}</textarea>
+        <textarea name="description" rows="4" class="w-full min-w-0 rounded border-gray-300 mt-1 break-words" placeholder="General description for this STRG request..." required>{{ old('description', $grantRequest?->payload['description'] ?? '') }}</textarea>
     </div>
 </div>
+

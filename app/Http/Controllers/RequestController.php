@@ -7,312 +7,435 @@ use App\Http\Requests\StoreCommentRequest;
 use App\Http\Requests\StoreRequestRequest;
 use App\Http\Requests\UpdateRequestRequest;
 use App\Http\Requests\UpdateStatusRequest;
+use App\Models\AuditLog;
 use App\Models\Comment;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
+use App\Models\Signature;
+use App\Models\User;
+use App\Models\VotCode;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
+use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class RequestController extends Controller
 {
-    // ==========================================
-    // Global Requests Index (if needed)
-    // ==========================================
-
     public function index(Request $request)
     {
-        $this->authorize('viewAny', GrantRequest::class);
+        $query = GrantRequest::query()
+            ->with(['requestType', 'user', 'verifiedBy', 'recommendedBy', 'deanApprovedBy'])
+            ->latest('created_at');
 
-        $user = Auth::user();
-        
-        // Get base query based on user role
-        $query = GrantRequest::with(['user', 'requestType', 'verifiedBy', 'recommendedBy']);
-        
-        // Filter based on role
-        if ($user->isAdmission()) {
-            $query->where('user_id', $user->id);
-        } elseif ($user->isStaff1()) {
-            // Staff 1 can see requests that need verification
-            $query->whereIn('status_id', [
-                RequestStatus::SUBMITTED->value, 
-                RequestStatus::RETURNED->value
-            ]);
-        } elseif ($user->isStaff2()) {
-            // Staff 2 can see all requests
-            // No additional filtering needed
+        if (Auth::user()->role === 'admission') {
+            $query->where('user_id', Auth::id());
         }
-        
-        // Apply filters
-        if ($search = $request->get('search')) {
-            $query->where(function($q) use ($search) {
-                $q->where('ref_number', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQuery) use ($search) {
-                      $userQuery->where('name', 'like', "%{$search}%");
-                  });
+
+        if ($request->filled('status')) {
+            $query->where('status_id', (int) $request->input('status'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('request_type_id', (int) $request->input('type'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('ref_number', 'like', "%{$search}%")
+                    ->orWhere('payload', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
         }
-        
-        if ($status = $request->get('status')) {
-            $query->where('status_id', $status);
-        }
-        
-        if ($type = $request->get('type')) {
-            $query->where('request_type_id', $type);
-        }
-        
-        if ($dateFrom = $request->get('date_from')) {
-            $query->whereDate('created_at', '>=', $dateFrom);
-        }
-        
-        if ($dateTo = $request->get('date_to')) {
-            $query->whereDate('created_at', '<=', $dateTo);
-        }
-        
-        $requests = $query->orderBy('created_at', 'desc')->paginate(10);
-        $statuses = RequestStatus::getAllCases();
-        $requestTypes = RequestType::all();
-        
-        return view('requests.index', compact('requests', 'statuses', 'requestTypes'));
-    }
 
-    // ==========================================
-    // ADMISSION — Create
-    // ==========================================
+        return view('requests.index', [
+            'requests' => $query->paginate(15)->withQueryString(),
+            'requestTypes' => RequestType::where('is_active', true)->orderBy('name')->get(),
+            'statuses' => RequestStatus::getAllCases(),
+        ]);
+    }
 
     public function create()
     {
-        $this->authorize('create', GrantRequest::class);
-        $requestTypes = RequestType::all();
-        $votCodes = \App\Models\VotCode::active()->ordered()->get();
-        $user = Auth::user();
-        return view('requests.create', compact('requestTypes', 'votCodes', 'user'));
+        return view('requests.create', [
+            'requestTypes' => RequestType::where('is_active', true)->orderBy('name')->get(),
+            'votCodes' => VotCode::active()->ordered()->get(),
+            'user' => Auth::user(),
+        ]);
     }
 
     public function store(StoreRequestRequest $request)
     {
-        $this->authorize('create', GrantRequest::class);
-
         $user = Auth::user();
+        $documentPath = $request->hasFile('document')
+            ? $request->file('document')->store('documents', 'public')
+            : null;
 
-        // Normalize and calculate total from VOT items
-        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
-        $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
-
-        // Calculate automatic priority based on deadline (staff only)
-        $isPriority = false; // Admission cannot set priority
-        $deadline = $request->input('deadline');
-        
-        // Only staff can have priority, admission users get normal priority
-        if ($deadline && !$user->isAdmission()) {
-            $daysUntil = now()->diffInDays(\Carbon\Carbon::parse($deadline), false);
-            if ($daysUntil <= 5 && $daysUntil >= 0) {
-                $isPriority = true;
-            }
-        }
-
-        // Optional supplementary file upload
-        $filePath = null;
-        if ($request->hasFile('document')) {
-            $filePath = $request->file('document')->store('requests/attachments', 'public');
-        }
+        $votItems = collect($request->input('vot_items', []))->values()->all();
+        $totalAmount = collect($votItems)->sum(fn ($item) => (float) ($item['amount'] ?? 0));
 
         $grantRequest = GrantRequest::create([
-            'user_id'                 => $user->id,
-            'request_type_id'         => $request->input('request_type_id'),
-            'ref_number'              => $this->generateReferenceNumber(),
-            'status_id'               => RequestStatus::SUBMITTED->value,
-            'payload'                 => [
+            'user_id' => $user->id,
+            'request_type_id' => (int) $request->input('request_type_id'),
+            'ref_number' => $this->generateReferenceNumber(),
+            'status_id' => RequestStatus::SUBMITTED->value,
+            'file_path' => $documentPath,
+            'payload' => [
                 'description' => $request->input('description'),
                 'dynamic_fields' => $request->input('dynamic_fields', []),
+                'email' => $user->email,
             ],
-            'vot_items'               => $votItems,
-            'total_amount'            => $total,
-            // Snapshot submitter profile at submission time
-            'submitter_staff_id'      => $user->staff_id,
-            'submitter_designation'   => $user->designation,
-            'submitter_department'    => $user->department,
-            'submitter_phone'         => $user->phone,
-            'submitter_employee_level'=> $user->employee_level,
-            // Signature
-            'signature_data'          => $request->input('signature_data'),
-            'signed_at'               => now(),
-            'submitted_at'            => now(),
-            'file_path'               => $filePath,
-            'deadline'                => $request->input('deadline'),
-            'is_priority'             => $isPriority,
+            'vot_items' => $votItems,
+            'total_amount' => $totalAmount,
+            'deadline' => $request->input('deadline'),
+            'is_priority' => $this->isHighPriority($request->input('deadline')),
+            'submitter_staff_id' => $user->staff_id,
+            'submitter_designation' => $user->designation,
+            'submitter_department' => $user->department,
+            'submitter_phone' => $user->phone,
+            'submitter_employee_level' => $user->employee_level,
+            'signature_data' => $request->input('signature_data'),
+            'signed_at' => now(),
+            'submitted_at' => now(),
         ]);
 
-        // Generate filled PDF and attach it
-        try {
-            // Get default template for this request type
-            $requestType = RequestType::find($request->input('request_type_id'));
-            $template = $requestType?->defaultTemplate;
-            
-            $pdfPath = RequestPdfService::generate($grantRequest, $template);
-            $grantRequest->update(['file_path' => $filePath ?? $pdfPath]);
-        } catch (\Exception $e) {
-            // PDF generation failure should not block submission
-            \Log::warning('PDF generation failed for ' . $grantRequest->ref_number . ': ' . $e->getMessage());
+        Signature::updateOrCreate(
+            [
+                'request_id' => $grantRequest->id,
+                'role' => 'applicant',
+            ],
+            [
+                'user_id' => $user->id,
+                'signature_path' => $request->input('signature_data'),
+                'signed_at' => now(),
+            ]
+        );
+
+        AuditLog::create([
+            'request_id' => $grantRequest->id,
+            'actor_id' => $user->id,
+            'actor_role' => $user->role,
+            'action' => 'submitted',
+            'from_status' => RequestStatus::DRAFT->value,
+            'to_status' => RequestStatus::SUBMITTED->value,
+            'note' => 'Initial submission by applicant.',
+            'created_at' => now(),
+        ]);
+
+        $this->notifyRole(
+            'staff1',
+            'New Request Submitted',
+            "Request {$grantRequest->ref_number} requires verification.",
+            route('requests.show', $grantRequest->id)
+        );
+
+        $template = $grantRequest->requestType?->getDefaultTemplate();
+        if ($template) {
+            RequestPdfService::generate($grantRequest, $template);
         }
 
         return redirect()->route('dashboard')
-            ->with('success', 'Request submitted successfully! Reference: ' . $grantRequest->ref_number);
+            ->with('success', 'Request submitted successfully.');
     }
 
-    // ==========================================
-    // ADMISSION — Edit (returned requests)
-    // ==========================================
+    public function show($id)
+    {
+        $grantRequest = GrantRequest::with([
+            'user',
+            'requestType',
+            'verifiedBy',
+            'recommendedBy',
+            'deanApprovedBy',
+            'comments.user',
+            'auditLogs.actor',
+            'templateUsages' => fn ($query) => $query->latest('created_at'),
+            'signatures',
+        ])->findOrFail($id);
+
+        $this->authorize('view', $grantRequest);
+
+        return view('requests.show', compact('grantRequest'));
+    }
 
     public function edit($id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('update', $grantRequest);
-        $requestTypes = RequestType::all();
-        $user = Auth::user();
-        return view('requests.edit', compact('grantRequest', 'requestTypes', 'user'));
+        $grantRequest = GrantRequest::with('requestType')->findOrFail($id);
+        $this->authorize('revise', $grantRequest);
+
+        return view('requests.edit', compact('grantRequest'));
     }
 
     public function update(UpdateRequestRequest $request, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('update', $grantRequest);
+        $this->authorize('revise', $grantRequest);
 
-        $user = Auth::user();
-        $votItems = $this->normalizeVotItems($request->input('vot_items', []));
-        $total = collect($votItems)->sum(fn($item) => (float) ($item['amount'] ?? 0));
-
-        $filePath = $grantRequest->file_path;
+        $documentPath = $grantRequest->file_path;
         if ($request->hasFile('document')) {
-            \Storage::disk('public')->delete($filePath);
-            $filePath = $request->file('document')->store('requests/attachments', 'public');
+            $documentPath = $request->file('document')->store('documents', 'public');
         }
 
-        $existingAdditionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
-            ->filter(fn ($path) => is_string($path) && $path !== '')
-            ->values()
-            ->all();
-        $newAdditionalDocuments = [];
+        $additionalDocumentPaths = collect($grantRequest->payload['additional_documents'] ?? []);
         if ($request->hasFile('additional_documents')) {
-            foreach ($request->file('additional_documents') as $document) {
-                $newAdditionalDocuments[] = $document->store('requests/supporting-documents', 'public');
+            foreach ($request->file('additional_documents') as $file) {
+                if ($file->isValid()) {
+                    $additionalDocumentPaths->push($file->store('documents/additional', 'public'));
+                }
             }
         }
-        $allAdditionalDocuments = array_values(array_merge($existingAdditionalDocuments, $newAdditionalDocuments));
 
-        $payload = array_merge($grantRequest->payload ?? [], [
-            'description' => $request->input('description'),
-            'additional_documents' => $allAdditionalDocuments,
-        ]);
+        $votItems = collect($request->input('vot_items', []))->values()->all();
+        $totalAmount = collect($votItems)->sum(fn ($item) => (float) ($item['amount'] ?? 0));
+        $oldStatus = $grantRequest->status_id;
 
         $grantRequest->update([
-            'request_type_id'         => $request->input('request_type_id'),
-            'payload'                 => $payload,
-            'vot_items'               => $votItems,
-            'total_amount'            => $total,
-            'submitter_staff_id'      => $user->staff_id,
-            'submitter_designation'   => $user->designation,
-            'submitter_department'    => $user->department,
-            'submitter_phone'         => $user->phone,
-            'submitter_employee_level'=> $user->employee_level,
-            'signature_data'          => $request->input('signature_data') ?: $grantRequest->signature_data,
-            'signed_at'               => $request->input('signature_data') ? now() : $grantRequest->signed_at,
-            'file_path'               => $filePath,
-            'deadline'                => $request->input('deadline'),
-            'is_priority'             => false, // Admission edits should never set priority
-            'revision_count'          => $grantRequest->revision_count + 1,
+            'status_id' => RequestStatus::SUBMITTED->value,
+            'file_path' => $documentPath,
+            'vot_items' => $votItems,
+            'total_amount' => $totalAmount,
+            'payload' => [
+                'description' => $request->input('description'),
+                'dynamic_fields' => $request->input('dynamic_fields', []),
+                'email' => Auth::user()->email,
+                'additional_documents' => $additionalDocumentPaths->values()->all(),
+            ],
+            'deadline' => $request->input('deadline'),
+            'is_priority' => $this->isHighPriority($request->input('deadline')),
+            'signature_data' => $request->filled('signature_data')
+                ? $request->input('signature_data')
+                : $grantRequest->signature_data,
+            'signed_at' => $request->filled('signature_data') ? now() : $grantRequest->signed_at,
+            'submitted_at' => now(),
+            'rejection_reason' => null,
+            'staff_notes' => null,
+            'revision_count' => (int) $grantRequest->revision_count + 1,
         ]);
 
-        if ($grantRequest->status_id === RequestStatus::RETURNED->value) {
-            WorkflowTransitionService::executeTransition(
-                $grantRequest,
-                RequestStatus::SUBMITTED,
-                ['notes' => 'Resubmitted after revision']
+        if ($request->filled('signature_data')) {
+            Signature::updateOrCreate(
+                [
+                    'request_id' => $grantRequest->id,
+                    'role' => 'applicant',
+                ],
+                [
+                    'user_id' => Auth::id(),
+                    'signature_path' => $request->input('signature_data'),
+                    'signed_at' => now(),
+                ]
             );
         }
 
-        // Re-generate PDF only when no original attachment is being preserved.
-        try {
-            $pdfPath = RequestPdfService::generate($grantRequest->fresh());
-            $keepAttachmentPath = is_string($filePath) && str_starts_with($filePath, 'requests/attachments/');
-            $grantRequest->update(['file_path' => $keepAttachmentPath ? $filePath : $pdfPath]);
-        } catch (\Exception $e) {
-            \Log::warning('PDF re-generation failed: ' . $e->getMessage());
-        }
+        AuditLog::create([
+            'request_id' => $grantRequest->id,
+            'actor_id' => Auth::id(),
+            'actor_role' => Auth::user()->role,
+            'action' => 'resubmitted',
+            'from_status' => $oldStatus,
+            'to_status' => RequestStatus::SUBMITTED->value,
+            'note' => 'Resubmitted after revision.',
+            'created_at' => now(),
+        ]);
 
-        return redirect()->route('dashboard')->with('success', 'Request updated and resubmitted.');
-    }
+        $this->notifyRole(
+            'staff1',
+            'Request Resubmitted',
+            "Request {$grantRequest->ref_number} has been resubmitted and is ready for verification.",
+            route('requests.show', $grantRequest->id)
+        );
 
-    // ==========================================
-    // ALL ROLES — View
-    // ==========================================
-
-    public function show($id)
-    {
-        $grantRequest = GrantRequest::with([
-            'user', 'requestType', 'verifiedBy', 'recommendedBy',
-            'comments.user', 'auditLogs.actor',
-            'templateUsages' => fn ($query) => $query->latest()->with('template'),
-        ])->findOrFail($id);
-        $this->authorize('view', $grantRequest);
-        return view('requests.show', compact('grantRequest'));
+        return redirect()->route('dashboard')
+            ->with('success', 'Request resubmitted successfully.');
     }
 
     public function printSummary($id)
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('view', $grantRequest);
+        $grantRequest = GrantRequest::with([
+            'user',
+            'requestType',
+            'verifiedBy',
+            'recommendedBy',
+            'deanApprovedBy',
+            'auditLogs' => fn ($q) => $q->with('actor')->orderBy('created_at'),
+        ])->findOrFail($id);
+
+        $this->authorize('print', $grantRequest);
+
         return view('requests.print', compact('grantRequest'));
     }
 
-    // ==========================================
-    // STAFF — Status transitions
-    // ==========================================
+    public function downloadPdf($id)
+    {
+        $grantRequest = GrantRequest::with([
+            'user',
+            'requestType',
+            'verifiedBy',
+            'recommendedBy',
+            'deanApprovedBy',
+            'signatures',
+        ])->findOrFail($id);
+
+        $this->authorize('print', $grantRequest);
+
+        $template = $grantRequest->requestType?->getDefaultTemplate();
+        $generatedPath = RequestPdfService::generate($grantRequest, $template);
+
+        return Storage::disk('public')->download($generatedPath, basename($generatedPath));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $query = GrantRequest::query()
+            ->with(['requestType', 'user', 'verifiedBy', 'recommendedBy', 'deanApprovedBy'])
+            ->latest('created_at');
+
+        if ($request->filled('status')) {
+            $query->where('status_id', (int) $request->input('status'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('request_type_id', (int) $request->input('type'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('ref_number', 'like', "%{$search}%")
+                    ->orWhere('payload', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $filename = 'staff2-requests-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($query): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, [
+                'Reference',
+                'Request Type',
+                'Applicant',
+                'Applicant Email',
+                'Amount (RM)',
+                'Status',
+                'Verified By',
+                'Recommended By',
+                'Dean Approved By',
+                'Created At',
+            ]);
+
+            $query->chunk(200, function ($rows) use ($handle): void {
+                foreach ($rows as $row) {
+                    fputcsv($handle, [
+                        $row->ref_number,
+                        $row->requestType?->name,
+                        $row->user?->name,
+                        $row->user?->email,
+                        number_format((float) $row->total_amount, 2, '.', ''),
+                        $row->statusLabel(),
+                        $row->verifiedBy?->name,
+                        $row->recommendedBy?->name,
+                        $row->deanApprovedBy?->name,
+                        $row->created_at?->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
+    }
 
     public function updateStatus(UpdateStatusRequest $request, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('changeStatus', $grantRequest);
 
-        if (auth()->user()?->role === 'staff2' && $request->hasFile('staff2_supporting_documents')) {
-            $existingAdditionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
-                ->filter(fn ($path) => is_string($path) && $path !== '')
-                ->values()
-                ->all();
+        $newStatus = RequestStatus::from((int) $request->input('status_id'));
 
-            $newFiles = [];
-            foreach ($request->file('staff2_supporting_documents') as $document) {
-                $newFiles[] = $document->store('requests/supporting-documents', 'public');
-            }
+        $payload = [
+            'notes' => $request->input('notes'),
+            'rejection_reason' => $request->input('rejection_reason'),
+            'staff2_signature_data' => $request->input('staff2_signature_data'),
+            'dean_signature_data' => $request->input('dean_signature_data'),
+        ];
 
-            $grantRequest->update([
-                'payload' => array_merge($grantRequest->payload ?? [], [
-                    'additional_documents' => array_values(array_merge($existingAdditionalDocuments, $newFiles)),
-                ]),
-            ]);
-            $grantRequest = $grantRequest->fresh();
+        if ($newStatus === RequestStatus::RETURNED && empty($payload['notes']) && !empty($payload['rejection_reason'])) {
+            $payload['notes'] = $payload['rejection_reason'];
         }
 
-        $newStatus = RequestStatus::from($request->input('status_id'));
+        if (Auth::user()->role === 'staff2' && $request->hasFile('staff2_supporting_documents')) {
+            $currentPayload = $grantRequest->payload ?? [];
+            $existingAdditional = collect($currentPayload['additional_documents'] ?? []);
+
+            foreach ($request->file('staff2_supporting_documents') as $document) {
+                if ($document->isValid()) {
+                    $existingAdditional->push($document->store('documents/staff2', 'public'));
+                }
+            }
+
+            $currentPayload['additional_documents'] = $existingAdditional->values()->all();
+            $grantRequest->update(['payload' => $currentPayload]);
+        }
 
         try {
-            WorkflowTransitionService::executeTransition($grantRequest, $newStatus, [
-                'notes'            => $request->input('notes'),
-                'rejection_reason' => $request->input('rejection_reason'),
-                'staff1_signature_data' => $request->input('staff1_signature_data'),
-                'staff2_signature_data' => $request->input('staff2_signature_data'),
-                'dean_signature_data' => $request->input('dean_signature_data'),
-            ]);
-            return redirect()->route('requests.show', $id)->with('success', 'Status updated successfully.');
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return back()->with('error', $e->getMessage());
+            WorkflowTransitionService::executeTransition($grantRequest, $newStatus, $payload);
+
+            return redirect()->route('requests.show', $grantRequest->id)
+                ->with('success', 'Request status updated successfully.');
+        } catch (AuthorizationException $exception) {
+            return redirect()->back()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->back()->with('error', 'Unable to update status. Please try again.');
         }
     }
 
-    // ==========================================
-    // STAFF — Add internal comment
-    // ==========================================
+    public function updatePriority(Request $request, $id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+
+        if (!in_array(Auth::user()->role, ['staff1', 'staff2'], true)) {
+            abort(403, 'Only staff members can update request priority.');
+        }
+
+        if ($grantRequest->isFinal()) {
+            return redirect()->back()->with('error', 'Cannot change priority for finalized requests.');
+        }
+
+        $grantRequest->update([
+            'is_priority' => (bool) $request->boolean('is_priority'),
+        ]);
+
+        return redirect()->route('requests.show', $grantRequest->id)
+            ->with('success', 'Priority updated successfully.');
+    }
 
     public function addComment(StoreCommentRequest $request, $id)
     {
@@ -320,128 +443,93 @@ class RequestController extends Controller
         $this->authorize('addComment', $grantRequest);
 
         Comment::create([
-            'request_id'  => $id,
-            'user_id'     => auth()->id(),
-            'content'     => $request->input('content'),
+            'request_id' => $grantRequest->id,
+            'user_id' => Auth::id(),
+            'content' => $request->input('content'),
             'is_internal' => true,
-            'created_at'  => now(),
+            'created_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Comment added successfully.');
-    }
+        $this->notifyRole(
+            'staff1',
+            'New Internal Comment',
+            'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
+            route('requests.show', $grantRequest->id) . '#comments'
+        );
 
-    // ==========================================
-    // STAFF 2 — Export to Excel
-    // ==========================================
+        $this->notifyRole(
+            'staff2',
+            'New Internal Comment',
+            'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
+            route('requests.show', $grantRequest->id) . '#comments'
+        );
 
-    public function exportExcel(Request $request)
-    {
-        $this->authorize('viewAny', GrantRequest::class);
-
-        $query = GrantRequest::query()->with(['requestType', 'user', 'verifiedBy', 'recommendedBy']);
-
-        if ($request->filled('status'))    $query->where('status_id', $request->integer('status'));
-        if ($request->filled('type'))      $query->where('request_type_id', $request->integer('type'));
-        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
-        if ($request->filled('date_to'))   $query->whereDate('created_at', '<=', $request->input('date_to'));
-
-        $requests = $query->latest()->get();
-
-        return \App\Services\ExcelExportService::exportRequests($requests);
-    }
-
-    // ==========================================
-    // Download generated PDF
-    // ==========================================
-
-    public function downloadPdf($id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('view', $grantRequest);
-
-        $storedPath = $grantRequest->file_path;
-        $isStoredPdf = is_string($storedPath)
-            && strtolower(pathinfo($storedPath, PATHINFO_EXTENSION)) === 'pdf'
-            && \Storage::disk('public')->exists($storedPath);
-
-        if ($isStoredPdf) {
-            return \Storage::disk('public')->download($storedPath, $grantRequest->ref_number . '.pdf');
+        if ($grantRequest->status_id === RequestStatus::STAFF2_APPROVED->value) {
+            $this->notifyRole(
+                'dean',
+                'New Internal Comment',
+                'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
+                route('requests.show', $grantRequest->id) . '#comments'
+            );
         }
 
-        try {
-            $generatedPdfPath = RequestPdfService::generate($grantRequest->fresh());
-            return \Storage::disk('public')->download($generatedPdfPath, $grantRequest->ref_number . '.pdf');
-        } catch (\Exception $e) {
-            \Log::warning('PDF download generation failed for ' . $grantRequest->ref_number . ': ' . $e->getMessage());
-            return back()->with('error', 'PDF not available for this request.');
-        }
+        return redirect()->route('requests.show', $grantRequest->id)
+            ->with('success', 'Comment added successfully.');
     }
 
-    /**
-     * Update request priority
-     */
-    public function updatePriority(Request $request, $id)
+    public function getDynamicFields($id): JsonResponse
     {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('changeStatus', $grantRequest);
+        $requestType = RequestType::findOrFail($id);
+        $fields = $requestType->field_schema ?? [];
 
-        $request->validate([
-            'is_priority' => 'required|boolean',
-        ]);
-
-        $grantRequest->update([
-            'is_priority' => $request->boolean('is_priority'),
-        ]);
-
-        $action = $request->boolean('is_priority') ? 'set to high priority' : 'removed from high priority';
-        return back()->with('success', "Request priority {$action}.");
-    }
-
-    /**
-     * Get dynamic form fields HTML for request type
-     */
-    public function getDynamicFields(Request $request, $typeId)
-    {
-        $requestType = RequestType::findOrFail($typeId);
-        
-        if (!$requestType->field_schema || empty($requestType->field_schema)) {
-            return response()->json(['html' => null, 'fields' => []]);
+        if (empty($fields)) {
+            return response()->json([
+                'html' => '',
+                'fields' => [],
+            ]);
         }
 
         $html = view('components.dynamic-form-fields', [
-            'fields' => $requestType->field_schema,
+            'fields' => $fields,
             'prefix' => 'dynamic_fields',
             'values' => [],
         ])->render();
 
         return response()->json([
             'html' => $html,
-            'fields' => $requestType->field_schema,
+            'fields' => $fields,
         ]);
     }
 
-    // ==========================================
-    // Helpers
-    // ==========================================
-
     private function generateReferenceNumber(): string
     {
-        $prefix   = 'STRG';
-        $year     = date('Y');
-        $sequence = GrantRequest::whereYear('created_at', $year)->count() + 1;
-        return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
+        do {
+            $reference = 'REQ-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+        } while (GrantRequest::where('ref_number', $reference)->exists());
+
+        return $reference;
     }
 
-    private function normalizeVotItems(array $votItems): array
+    private function isHighPriority(?string $deadline): bool
     {
-        return collect($votItems)->map(function ($item) {
-            return [
-                'vot_code' => $item['vot_code'] ?? null, // Keep as vot_code to match form
-                'amount' => (float) ($item['amount'] ?? 0),
-                'description' => $item['description'] ?? '',
-            ];
-        })->filter(function ($item) {
-            return !empty($item['vot_code']) && $item['amount'] > 0;
-        })->values()->all();
+        if (empty($deadline)) {
+            return false;
+        }
+
+        $targetDate = Carbon::parse($deadline);
+        return now()->diffInDays($targetDate, false) <= 14;
+    }
+
+    private function notifyRole(string $role, string $title, string $message, ?string $url = null): void
+    {
+        User::where('role', $role)->each(function (User $user) use ($title, $message, $url): void {
+            \App\Models\Notification::createForUser(
+                $user->id,
+                'request_update',
+                $title,
+                $message,
+                $url
+            );
+        });
     }
 }

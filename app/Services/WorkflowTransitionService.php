@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
+use App\Models\Signature;
 use App\Models\User;
 use App\Services\RequestPdfService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class WorkflowTransitionService
 {
@@ -86,22 +88,24 @@ class WorkflowTransitionService
         
         // 3. Detect Staff2 override (SUBMITTED -> STAFF2_APPROVED)
         $isOverride = $user->role === 'staff2' && $oldStatus === RequestStatus::SUBMITTED && $newStatus === RequestStatus::STAFF2_APPROVED;
-        
-        // 4. Create comprehensive audit log
-        self::createAuditLog($request, $oldStatus, $newStatus, $user, $data, $isOverride);
 
-        // 5. Update request status and metadata
-        $request->update([
-            'status_id' => $newStatus->value,
-            'staff_notes' => $data['notes'] ?? $request->staff_notes,
-            'rejection_reason' => $data['rejection_reason'] ?? $request->rejection_reason,
-        ]);
+        DB::transaction(function () use ($request, $newStatus, $data, $user, $oldStatus, $isOverride): void {
+            // 4. Create comprehensive audit log
+            self::createAuditLog($request, $oldStatus, $newStatus, $user, $data, $isOverride);
 
-        // 6. Update role-specific tracking fields
-        self::updateTrackingFields($request, $newStatus, $user, $isOverride);
+            // 5. Update request status and metadata
+            $request->update([
+                'status_id' => $newStatus->value,
+                'staff_notes' => $data['notes'] ?? $request->staff_notes,
+                'rejection_reason' => $data['rejection_reason'] ?? $request->rejection_reason,
+            ]);
 
-        // 7. Save stage signatures if provided
-        self::saveStageSignatures($request, $user, $data);
+            // 6. Update role-specific tracking fields
+            self::updateTrackingFields($request, $newStatus, $user, $isOverride);
+
+            // 7. Save stage signatures if provided
+            self::saveStageSignatures($request, $user, $data);
+        });
 
         // 8. Dispatch notifications (best-effort; failure doesn't block transition)
         self::dispatchNotifications($request, $oldStatus, $newStatus);
@@ -264,10 +268,31 @@ class WorkflowTransitionService
         };
 
         if ($signatureField && $timestampField && isset($data[$signatureField])) {
+            $signatureValue = is_string($data[$signatureField]) ? trim($data[$signatureField]) : '';
+            if ($signatureValue === '') {
+                return;
+            }
+
+            $signedAt = now();
+
+            // Backward compatibility with legacy request columns.
             $request->update([
-                $signatureField => $data[$signatureField],
-                $timestampField => now(),
+                $signatureField => $signatureValue,
+                $timestampField => $signedAt,
             ]);
+
+            // Normalized signature storage.
+            Signature::updateOrCreate(
+                [
+                    'request_id' => $request->id,
+                    'role' => $user->role,
+                ],
+                [
+                    'user_id' => $user->id,
+                    'signature_path' => $signatureValue,
+                    'signed_at' => $signedAt,
+                ]
+            );
         }
     }
 
@@ -347,7 +372,7 @@ class WorkflowTransitionService
         }
 
         try {
-            $template = $request->requestType?->defaultTemplate;
+            $template = $request->requestType?->getDefaultTemplate();
             if ($template) {
                 RequestPdfService::generate($request, $template);
             }

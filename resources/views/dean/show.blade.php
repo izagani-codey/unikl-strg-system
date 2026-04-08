@@ -5,7 +5,7 @@
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Request Review</h1>
                 <p class="text-gray-600 mt-1">Reference: {{ $request->ref_number }}</p>
             </div>
-            <a href="{{ route('dean.dashboard') }}" 
+            <a href="{{ route('dashboard') }}" 
                class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
                 Back to Dashboard
             </a>
@@ -19,7 +19,7 @@
                 <h1 class="text-3xl font-bold text-gray-900">Request Review</h1>
                 <p class="text-gray-600 mt-1">Reference: {{ $request->ref_number }}</p>
             </div>
-            <a href="{{ route('dean.dashboard') }}" 
+            <a href="{{ route('dashboard') }}" 
                class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
                 Back to Dashboard
             </a>
@@ -146,10 +146,16 @@
                 <!-- Dean Actions -->
                 <div class="border-t pt-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Dean Actions</h3>
+                    @if(empty(auth()->user()->signature_data))
+                        <div class="mb-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                            Your profile signature is missing. Please save your signature in profile settings before approving/rejecting.
+                        </div>
+                    @endif
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Approve Form -->
-                        <form action="{{ route('dean.requests.approve', $request->id) }}" method="POST" class="space-y-4">
+                        <form action="{{ route('dean.requests.approve', $request->id) }}" method="POST" class="space-y-4 dean-action-form" data-requires-signature="true">
                             @csrf
+                            <input type="hidden" name="dean_signature_data" value="{{ auth()->user()->signature_data }}">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Approval Notes (Optional)</label>
                                 <textarea name="notes" rows="3" class="w-full rounded border-gray-300" placeholder="Add any approval notes..."></textarea>
@@ -160,8 +166,9 @@
                         </form>
 
                         <!-- Reject Form -->
-                        <form action="{{ route('dean.requests.reject', $request->id) }}" method="POST" class="space-y-4">
+                        <form action="{{ route('dean.requests.reject', $request->id) }}" method="POST" class="space-y-4 dean-action-form" data-requires-signature="true">
                             @csrf
+                            <input type="hidden" name="dean_signature_data" value="{{ auth()->user()->signature_data }}">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason *</label>
                                 <textarea name="reason" rows="3" class="w-full rounded border-gray-300" placeholder="Provide reason for rejection..." required></textarea>
@@ -174,7 +181,7 @@
 
                     <!-- Return Actions -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <form action="{{ route('dean.requests.return-staff1', $request->id) }}" method="POST" class="space-y-4">
+                        <form action="{{ route('dean.requests.return-staff1', $request->id) }}" method="POST" class="space-y-4 dean-action-form">
                             @csrf
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Return Reason *</label>
@@ -185,7 +192,7 @@
                             </button>
                         </form>
 
-                        <form action="{{ route('dean.requests.return-staff2', $request->id) }}" method="POST" class="space-y-4">
+                        <form action="{{ route('dean.requests.return-staff2', $request->id) }}" method="POST" class="space-y-4 dean-action-form">
                             @csrf
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Return Reason *</label>
@@ -202,3 +209,38 @@
     </div>
 </div>
 </x-app-layout>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const forms = document.querySelectorAll('.dean-action-form');
+    forms.forEach((form) => {
+        form.addEventListener('submit', function (event) {
+            const requiresSignature = form.dataset.requiresSignature === 'true';
+            if (requiresSignature) {
+                const signature = form.querySelector('input[name="dean_signature_data"]')?.value?.trim();
+                if (!signature) {
+                    event.preventDefault();
+                    alert('Dean signature is required. Please save your profile signature first.');
+                    return false;
+                }
+            }
+
+            const reasonField = form.querySelector('textarea[name="reason"]');
+            if (reasonField && reasonField.value.trim() === '') {
+                event.preventDefault();
+                reasonField.focus();
+                alert('Please provide a reason before submitting.');
+                return false;
+            }
+
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+            }
+
+            return true;
+        });
+    });
+});
+</script>
+

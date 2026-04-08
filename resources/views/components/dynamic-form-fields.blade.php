@@ -23,7 +23,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
 };
 @endphp
 
-<div class="dynamic-form-fields space-y-4">
+<div class="dynamic-form-fields space-y-4 min-w-0">
     @foreach($fields as $field)
         @php
             $inputName = $getInputName($field['name']);
@@ -32,7 +32,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
             $required = $field['required'] ?? false;
         @endphp
 
-        <div class="form-field {{ $error ? 'has-error' : '' }}">
+        <div class="form-field min-w-0 {{ $error ? 'has-error' : '' }}">
             <label for="{{ $field['name'] }}" class="block text-sm font-bold text-gray-700 mb-1">
                 {{ $field['label'] }}
                 @if($required)
@@ -49,7 +49,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         value="{{ $value }}"
                         placeholder="{{ $field['placeholder'] ?? '' }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                     >
                     @break
 
@@ -60,7 +60,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         rows="{{ $field['rows'] ?? 3 }}"
                         placeholder="{{ $field['placeholder'] ?? '' }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 break-words {{ $error ? 'border-red-500' : '' }}"
                     >{{ $value }}</textarea>
                     @break
 
@@ -75,7 +75,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         @if(isset($field['step'])) step="{{ $field['step'] }}" @endif
                         placeholder="{{ $field['placeholder'] ?? '' }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                     >
                     @break
 
@@ -84,7 +84,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         id="{{ $field['name'] }}"
                         name="{{ $inputName }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                     >
                         <option value="">-- Select {{ $field['label'] }} --</option>
                         @foreach($field['options'] ?? [] as $option)
@@ -100,12 +100,12 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         name="{{ $inputName }}"
                         value="{{ $value }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                     >
                     @break
 
                 @case('date_range')
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
                         <div>
                             <label class="block text-xs text-gray-500 mb-1">Start Date</label>
                             <input
@@ -114,7 +114,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                                 name="{{ $getInputName($field['fields'][0] ?? 'start_date') }}"
                                 value="{{ $getValue($field['fields'][0] ?? 'start_date') }}"
                                 @if($required) required @endif
-                                class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                                class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                             >
                         </div>
                         <div>
@@ -125,7 +125,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                                 name="{{ $getInputName($field['fields'][1] ?? 'end_date') }}"
                                 value="{{ $getValue($field['fields'][1] ?? 'end_date') }}"
                                 @if($required) required @endif
-                                class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                                class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                             >
                         </div>
                     </div>
@@ -155,7 +155,7 @@ $getError = function($fieldName) use ($prefix, $errorBag) {
                         value="{{ $value }}"
                         placeholder="{{ $field['placeholder'] ?? '' }}"
                         @if($required) required @endif
-                        class="w-full rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
+                        class="w-full min-w-0 rounded border-gray-300 {{ $error ? 'border-red-500' : '' }}"
                     >
             @endswitch
 

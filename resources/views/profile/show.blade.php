@@ -175,7 +175,7 @@
                     </div>
                 </a>
 
-                <a href="{{ route('password.change') }}" 
+                <a href="{{ route('profile.edit') }}#update-password" 
                    class="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200">
                     <div class="flex items-center">
                         <div class="bg-green-100 rounded-lg p-3">

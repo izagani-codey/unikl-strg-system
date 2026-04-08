@@ -150,8 +150,8 @@ class NotificationService
     {
         $overdueRequests = GrantRequest::where('deadline', '<', now())
             ->whereNotIn('status_id', [
-                RequestStatus::APPROVED->value,
-                RequestStatus::DECLINED->value
+                RequestStatus::DEAN_APPROVED->value,
+                RequestStatus::REJECTED->value
             ])
             ->with('user')
             ->get();

@@ -273,8 +273,9 @@
             <div class="sig-col">
                 <strong style="font-size:10px; display:block; margin-bottom:4px;">STAFF 2 SIGNATURE</strong>
                 <div class="sig-box">
-                    @if($request->staff2_signature_data)
-                        <img src="{{ $request->staff2_signature_data }}" class="sig-img" alt="Staff 2 Signature"/>
+                    @php $staff2Signature = $request->getSignatureImageForRole('staff2'); @endphp
+                    @if($staff2Signature)
+                        <img src="{{ $staff2Signature }}" class="sig-img" alt="Staff 2 Signature"/>
                     @else
                         <span style="color:#aaa; font-size:9px; line-height:65px;">Pending signature</span>
                     @endif
@@ -283,7 +284,7 @@
                     @if($request->recommendedBy)
                         {{ $request->recommendedBy->name }}<br>
                         {{ $request->recommendedBy->designation ?? '' }}<br>
-                        Signed: {{ $request->staff2_signed_at?->format('d/m/Y H:i') ?? '—' }}
+                        Signed: {{ $request->getSignedAtForRole('staff2')?->format('d/m/Y H:i') ?? '—' }}
                     @else
                         Pending Staff 2 Review<br>
                         Designation: —<br>
@@ -295,8 +296,9 @@
             <div class="sig-col">
                 <strong style="font-size:10px; display:block; margin-bottom:4px;">DEAN SIGNATURE</strong>
                 <div class="sig-box">
-                    @if($request->dean_signature_data)
-                        <img src="{{ $request->dean_signature_data }}" class="sig-img" alt="Dean Signature"/>
+                    @php $deanSignature = $request->getSignatureImageForRole('dean'); @endphp
+                    @if($deanSignature)
+                        <img src="{{ $deanSignature }}" class="sig-img" alt="Dean Signature"/>
                     @else
                         <span style="color:#aaa; font-size:9px; line-height:65px;">Pending signature</span>
                     @endif
@@ -305,7 +307,7 @@
                     @if($request->dean_approved_by)
                         {{ $request->deanApprovedBy->name }}<br>
                         Dean<br>
-                        Signed: {{ $request->dean_signed_at?->format('d/m/Y H:i') ?? '—' }}
+                        Signed: {{ $request->getSignedAtForRole('dean')?->format('d/m/Y H:i') ?? '—' }}
                     @else
                         Pending Dean Review<br>
                         Designation: Dean<br>
@@ -324,3 +326,4 @@
     </div>
 </body>
 </html>
+

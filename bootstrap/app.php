@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        if (env('APP_ENV') === 'testing') {
+            // Keep feature tests deterministic: disable CSRF checks only in test environment.
+            $middleware->validateCsrfTokens(except: ['*']);
+        }
+
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'auto.priority' => \App\Http\Middleware\AutoPriorityMiddleware::class,

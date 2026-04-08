@@ -9,6 +9,23 @@ use Illuminate\Support\Facades\Gate;
 
 class UpdateStatusRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $user = $this->user();
+        if (!$user) {
+            return;
+        }
+
+        // Fallback to saved profile signature so role signatures persist without redraw on every action.
+        if ($user->role === 'staff2' && empty($this->input('staff2_signature_data')) && !empty($user->signature_data)) {
+            $this->merge(['staff2_signature_data' => $user->signature_data]);
+        }
+
+        if ($user->role === 'dean' && empty($this->input('dean_signature_data')) && !empty($user->signature_data)) {
+            $this->merge(['dean_signature_data' => $user->signature_data]);
+        }
+    }
+
     public function authorize(): bool
     {
         $grantRequest = GrantRequest::find($this->route('id'));

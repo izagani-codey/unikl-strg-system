@@ -1,10 +1,10 @@
 @props(['index', 'votCodes', 'item' => null])
 
-<div class="bg-gray-50 p-4 rounded-lg border border-gray-200 vot-item-row">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="md:col-span-2">
+<div class="bg-gray-50 p-4 rounded-lg border border-gray-200 vot-item-row min-w-0">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 min-w-0">
+        <div class="md:col-span-2 min-w-0">
             <label class="block text-sm font-bold text-gray-700">VOT Code</label>
-            <select class="w-full rounded border-gray-300 mt-1 vot-code-select" onchange="handleVotSelection(this)" required>
+            <select class="w-full min-w-0 rounded border-gray-300 mt-1 vot-code-select" onchange="handleVotSelection(this)" required>
                 <option value="">Select VOT code</option>
                 @foreach($votCodes as $votCode)
                     <option value="{{ $votCode->code }}" data-description="{{ $votCode->description }}" @selected($item['vot_code'] ?? '' === $votCode->code)>
@@ -17,7 +17,7 @@
         </div>
         <div>
             <label class="block text-sm font-bold text-gray-700">Amount (RM)</label>
-            <input type="number" class="w-full rounded border-gray-300 mt-1 vot-amount-input"
+            <input type="number" class="w-full min-w-0 rounded border-gray-300 mt-1 vot-amount-input"
                    name="vot_items[{{ $index }}][amount]"
                    value="{{ $item['amount'] ?? '' }}"
                    placeholder="0.00" step="0.01" min="0"
@@ -29,5 +29,5 @@
             </button>
         </div>
     </div>
-    <p class="text-xs text-gray-500 mt-2 vot-desc-preview">{{ $item['description'] ?? '' }}</p>
+    <p class="text-xs text-gray-500 mt-2 vot-desc-preview break-words">{{ $item['description'] ?? '' }}</p>
 </div>

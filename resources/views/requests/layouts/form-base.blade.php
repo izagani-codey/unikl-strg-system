@@ -20,8 +20,8 @@ $isEdit = $grantRequest !== null;
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 overflow-x-hidden">
                 
                 <form action="{{ $submitRoute }}" method="POST" enctype="multipart/form-data" id="request-form">
                     @csrf

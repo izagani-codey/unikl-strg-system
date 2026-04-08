@@ -17,6 +17,15 @@ class RequestPdfService
      */
     public static function generate(GrantRequest $request, ?FormTemplate $template = null): string
     {
+        $request->loadMissing([
+            'user',
+            'requestType',
+            'verifiedBy',
+            'recommendedBy',
+            'deanApprovedBy',
+            'signatures',
+        ]);
+
         // Prepare template data for view
         $templateData = null;
         $backgroundImage = null;

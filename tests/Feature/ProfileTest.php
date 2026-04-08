@@ -12,7 +12,12 @@ class ProfileTest extends TestCase
 
     public function test_profile_page_is_displayed(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'staff_id' => 'STF0001',
+            'designation' => 'Lecturer',
+            'department' => 'Research',
+            'phone' => '+60111111111',
+        ]);
 
         $response = $this
             ->actingAs($user)
@@ -23,18 +28,24 @@ class ProfileTest extends TestCase
 
     public function test_profile_information_can_be_updated(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'staff_id' => 'STF0002',
+            'designation' => 'Lecturer',
+            'department' => 'Research',
+            'phone' => '+60111111112',
+        ]);
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'staff_id' => 'STF0002',
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect('/profile/edit');
 
         $user->refresh();
 
@@ -45,25 +56,36 @@ class ProfileTest extends TestCase
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'staff_id' => 'STF0003',
+            'designation' => 'Lecturer',
+            'department' => 'Research',
+            'phone' => '+60111111113',
+        ]);
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => $user->email,
+                'staff_id' => 'STF0003',
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect('/profile/edit');
 
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
     public function test_user_can_delete_their_account(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'staff_id' => 'STF0004',
+            'designation' => 'Lecturer',
+            'department' => 'Research',
+            'phone' => '+60111111114',
+        ]);
 
         $response = $this
             ->actingAs($user)
@@ -81,7 +103,12 @@ class ProfileTest extends TestCase
 
     public function test_correct_password_must_be_provided_to_delete_account(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'staff_id' => 'STF0005',
+            'designation' => 'Lecturer',
+            'department' => 'Research',
+            'phone' => '+60111111115',
+        ]);
 
         $response = $this
             ->actingAs($user)

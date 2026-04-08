@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Services\WorkflowTransitionService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -20,19 +21,41 @@ class DeanController extends Controller
         return redirect()->route('dashboard');
     }
 
+    public function show($id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+
+        // Keep legacy dean route, but use the single shared request detail/action screen.
+        return redirect()->route('requests.show', $grantRequest->id);
+    }
+
     public function approve(Request $httpRequest, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
+        $this->authorize('changeStatus', $grantRequest);
 
-        WorkflowTransitionService::executeTransition(
-            $grantRequest,
-            RequestStatus::DEAN_APPROVED,
-            [
-                'notes' => $httpRequest->input('notes'),
-                'dean_signature_data' => $httpRequest->input('dean_signature_data')
-            ]
-        );
+        $signatureData = $httpRequest->input('dean_signature_data') ?: Auth::user()?->signature_data;
+
+        if (empty($signatureData)) {
+            return redirect()->back()->with('error', 'Dean signature is required. Please save your profile signature or sign before approving.');
+        }
+
+        try {
+            WorkflowTransitionService::executeTransition(
+                $grantRequest,
+                RequestStatus::DEAN_APPROVED,
+                [
+                    'notes' => $httpRequest->input('notes'),
+                    'dean_signature_data' => $signatureData,
+                ]
+            );
+        } catch (AuthorizationException $exception) {
+            return redirect()->back()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->back()->with('error', 'Unable to approve request. Please try again.');
+        }
 
         return redirect()->route('dashboard')
             ->with('success', 'Request approved successfully!');
@@ -41,16 +64,29 @@ class DeanController extends Controller
     public function reject(Request $httpRequest, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
+        $this->authorize('changeStatus', $grantRequest);
 
-        WorkflowTransitionService::executeTransition(
-            $grantRequest,
-            RequestStatus::REJECTED,
-            [
-                'rejection_reason' => $httpRequest->input('reason'),
-                'dean_signature_data' => $httpRequest->input('dean_signature_data')
-            ]
-        );
+        $signatureData = $httpRequest->input('dean_signature_data') ?: Auth::user()?->signature_data;
+
+        if (empty($signatureData)) {
+            return redirect()->back()->with('error', 'Dean signature is required. Please save your profile signature or sign before rejecting.');
+        }
+
+        try {
+            WorkflowTransitionService::executeTransition(
+                $grantRequest,
+                RequestStatus::REJECTED,
+                [
+                    'rejection_reason' => $httpRequest->input('reason'),
+                    'dean_signature_data' => $signatureData,
+                ]
+            );
+        } catch (AuthorizationException $exception) {
+            return redirect()->back()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->back()->with('error', 'Unable to reject request. Please try again.');
+        }
 
         return redirect()->route('dashboard')
             ->with('success', 'Request rejected successfully!');
@@ -59,13 +95,20 @@ class DeanController extends Controller
     public function returnToStaff1(Request $httpRequest, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
+        $this->authorize('changeStatus', $grantRequest);
 
-        WorkflowTransitionService::executeTransition(
-            $grantRequest,
-            RequestStatus::RETURNED,
-            ['notes' => $httpRequest->input('reason')]
-        );
+        try {
+            WorkflowTransitionService::executeTransition(
+                $grantRequest,
+                RequestStatus::RETURNED,
+                ['notes' => $httpRequest->input('reason')]
+            );
+        } catch (AuthorizationException $exception) {
+            return redirect()->back()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->back()->with('error', 'Unable to return request. Please try again.');
+        }
 
         return redirect()->route('dashboard')
             ->with('success', 'Request returned successfully!');
@@ -74,13 +117,20 @@ class DeanController extends Controller
     public function returnToStaff2(Request $httpRequest, $id)
     {
         $grantRequest = GrantRequest::findOrFail($id);
-        $dean = Auth::user();
+        $this->authorize('changeStatus', $grantRequest);
 
-        WorkflowTransitionService::executeTransition(
-            $grantRequest,
-            RequestStatus::RETURNED,
-            ['notes' => $httpRequest->input('reason')]
-        );
+        try {
+            WorkflowTransitionService::executeTransition(
+                $grantRequest,
+                RequestStatus::RETURNED,
+                ['notes' => $httpRequest->input('reason')]
+            );
+        } catch (AuthorizationException $exception) {
+            return redirect()->back()->with('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            report($exception);
+            return redirect()->back()->with('error', 'Unable to return request. Please try again.');
+        }
 
         return redirect()->route('dashboard')
             ->with('success', 'Request returned successfully!');

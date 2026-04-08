@@ -13,13 +13,13 @@ class RequestTypeController extends Controller
      */
     public function getTemplate($id)
     {
-        $requestType = RequestType::with('defaultTemplate')->findOrFail($id);
+        $requestType = RequestType::with(['defaultTemplate', 'requestTypeTemplates.formTemplate'])->findOrFail($id);
+        $template = $requestType->getDefaultTemplate();
         
-        if (!$requestType->defaultTemplate) {
+        if (!$template) {
             return response()->json(['error' => 'No default template assigned'], 404);
         }
         
-        $template = $requestType->defaultTemplate;
         $filePath = $template->file_path;
         
         if (!Storage::disk('public')->exists($filePath)) {

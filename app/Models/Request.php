@@ -15,8 +15,9 @@ class Request extends Model
         'submitter_phone', 'submitter_employee_level',
         'signature_data', 'signed_at', 'submitted_at',
         'staff_notes', 'rejection_reason',
-        'verified_by', 'recommended_by',
+        'verified_by', 'verified_at', 'recommended_by', 'recommended_at',
         'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
+        'is_override',
         'revision_count', 'deadline', 'is_priority',
         'staff1_signature_data', 'staff1_signed_at',
         'staff2_signature_data', 'staff2_signed_at',
@@ -31,6 +32,8 @@ class Request extends Model
         'signed_at'   => 'datetime',
         'submitted_at' => 'datetime',
         'dean_approved_at' => 'datetime',
+        'verified_at' => 'datetime',
+        'recommended_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'staff1_signed_at' => 'datetime',
         'staff2_signed_at' => 'datetime',
@@ -50,6 +53,7 @@ class Request extends Model
     public function auditLogs()    { return $this->hasMany(AuditLog::class); }
     public function documents()    { return $this->hasMany(Document::class); }
     public function templateUsages(){ return $this->hasMany(TemplateUsage::class, 'request_id'); }
+    public function signatures()   { return $this->hasMany(Signature::class); }
 
     // ==========================================
     // VOT helpers
@@ -68,6 +72,45 @@ class Request extends Model
     public function hasSignature(): bool
     {
         return !empty($this->signature_data);
+    }
+
+    public function getSignatureForRole(string $role): ?Signature
+    {
+        if ($this->relationLoaded('signatures')) {
+            return $this->signatures->firstWhere('role', $role);
+        }
+
+        return $this->signatures()->where('role', $role)->first();
+    }
+
+    public function getSignatureImageForRole(string $role): ?string
+    {
+        $normalized = $this->getSignatureForRole($role)?->signature_path;
+        if (!empty($normalized)) {
+            return $normalized;
+        }
+
+        return match ($role) {
+            'applicant' => $this->signature_data,
+            'staff2' => $this->staff2_signature_data,
+            'dean' => $this->dean_signature_data,
+            default => null,
+        };
+    }
+
+    public function getSignedAtForRole(string $role): ?\Illuminate\Support\Carbon
+    {
+        $normalized = $this->getSignatureForRole($role)?->signed_at;
+        if ($normalized) {
+            return $normalized;
+        }
+
+        return match ($role) {
+            'applicant' => $this->signed_at,
+            'staff2' => $this->staff2_signed_at,
+            'dean' => $this->dean_signed_at,
+            default => null,
+        };
     }
 
     // ==========================================
@@ -157,7 +200,7 @@ class Request extends Model
     public function scopeUrgent($query)
     {
         return $query->whereBetween('deadline', [now(), now()->addDays(3)])
-            ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+            ->whereNotIn('status_id', [RequestStatus::DEAN_APPROVED->value, RequestStatus::REJECTED->value])
             ->orderBy('deadline', 'asc');
     }
     public function scopeByStatus($query, RequestStatus $status) { return $query->where('status_id', $status->value); }

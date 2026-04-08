@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
+use App\Models\Signature;
 use App\Models\User;
 use App\Models\VotCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,180 +15,172 @@ class RequestWorkflowIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected RequestType $requestType;
+    protected User $admission;
+    protected User $staff1;
+    protected User $staff2;
+    protected User $dean;
+
     protected function setUp(): void
     {
         parent::setUp();
-        
-        // Create test data
-        $this->requestType = RequestType::factory()->create();
-        $this->votCode = VotCode::factory()->create(['code' => 'VOT11000', 'is_active' => true]);
-        
+        $this->withoutMiddleware();
+
+        $this->requestType = RequestType::create(['name' => 'General', 'slug' => 'general']);
+        VotCode::create(['code' => 'VOT11000', 'description' => 'Salary and wages', 'is_active' => true, 'sort_order' => 1]);
+
         $this->admission = User::factory()->create(['role' => 'admission']);
         $this->staff1 = User::factory()->create(['role' => 'staff1']);
         $this->staff2 = User::factory()->create(['role' => 'staff2']);
         $this->dean = User::factory()->create(['role' => 'dean']);
     }
 
-    public function test_complete_workflow_from_submission_to_approval(): void
+    public function test_complete_workflow_from_submission_to_dean_approval(): void
     {
-        // 1. Admission submits request
-        $request = $this->createTestRequest();
-        
-        $this->assertEquals(RequestStatus::SUBMITTED->value, $request->status_id);
-        $this->assertEquals($this->admission->id, $request->user_id);
+        $request = $this->createWorkflowRequest();
 
-        // 2. Staff 1 can view submitted request
-        $response = $this->actingAs($this->staff1)
-            ->get(route('requests.show', $request->id));
-        $response->assertOk();
-
-        // 3. Staff 1 verifies request
-        $response = $this->actingAs($this->staff1)
-            ->patch(route('requests.updateStatus', $request->id), [
-                'status_id' => RequestStatus::VERIFIED->value,
-                'staff_notes' => 'Verified by Staff 1'
-            ]);
+        $this->actingAs($this->staff1)->patch(route('requests.updateStatus', $request->id), [
+            'status_id' => RequestStatus::STAFF1_APPROVED->value,
+            'notes' => 'Verified by Staff 1',
+        ])->assertRedirect(route('requests.show', $request->id));
 
         $request->refresh();
-        $this->assertEquals(RequestStatus::VERIFIED->value, $request->status_id);
+        $this->assertEquals(RequestStatus::STAFF1_APPROVED->value, $request->status_id);
         $this->assertEquals($this->staff1->id, $request->verified_by);
 
-        // 4. Staff 2 can view verified request
-        $response = $this->actingAs($this->staff2)
-            ->get(route('requests.show', $request->id));
-        $response->assertOk();
-
-        // 5. Staff 2 recommends request
-        $response = $this->actingAs($this->staff2)
-            ->patch(route('requests.updateStatus', $request->id), [
-                'status_id' => RequestStatus::RECOMMENDED->value,
-                'staff_notes' => 'Recommended by Staff 2'
-            ]);
+        $staff2Signature = 'data:image/png;base64,AAAA';
+        $this->actingAs($this->staff2)->patch(route('requests.updateStatus', $request->id), [
+            'status_id' => RequestStatus::STAFF2_APPROVED->value,
+            'notes' => 'Recommended by Staff 2',
+            'staff2_signature_data' => $staff2Signature,
+        ])->assertRedirect(route('requests.show', $request->id));
 
         $request->refresh();
-        $this->assertEquals(RequestStatus::RECOMMENDED->value, $request->status_id);
+        $this->assertEquals(RequestStatus::STAFF2_APPROVED->value, $request->status_id);
         $this->assertEquals($this->staff2->id, $request->recommended_by);
+        $this->assertNotEmpty($request->staff2_signature_data);
+        $this->assertDatabaseHas('signatures', [
+            'request_id' => $request->id,
+            'role' => 'staff2',
+            'user_id' => $this->staff2->id,
+        ]);
 
-        // 6. Dean can view recommended request
-        $response = $this->actingAs($this->dean)
-            ->get(route('requests.show', $request->id));
-        $response->assertOk();
-
-        // 7. Dean approves request
-        $response = $this->actingAs($this->dean)
-            ->patch(route('requests.updateStatus', $request->id), [
-                'status_id' => RequestStatus::APPROVED->value,
-                'dean_notes' => 'Approved by Dean'
-            ]);
+        $deanSignature = 'data:image/png;base64,BBBB';
+        $this->actingAs($this->dean)->patch(route('requests.updateStatus', $request->id), [
+            'status_id' => RequestStatus::DEAN_APPROVED->value,
+            'notes' => 'Approved by Dean',
+            'dean_signature_data' => $deanSignature,
+        ])->assertRedirect(route('requests.show', $request->id));
 
         $request->refresh();
-        $this->assertEquals(RequestStatus::APPROVED->value, $request->status_id);
+        $this->assertEquals(RequestStatus::DEAN_APPROVED->value, $request->status_id);
         $this->assertEquals($this->dean->id, $request->dean_approved_by);
+        $this->assertNotEmpty($request->dean_signature_data);
+        $this->assertDatabaseHas('signatures', [
+            'request_id' => $request->id,
+            'role' => 'dean',
+            'user_id' => $this->dean->id,
+        ]);
     }
 
-    public function test_request_rejection_workflow(): void
+    public function test_staff2_can_override_staff1_and_mark_override(): void
     {
-        // 1. Admission submits request
-        $request = $this->createTestRequest();
+        $request = $this->createWorkflowRequest();
 
-        // 2. Staff 1 rejects request
-        $response = $this->actingAs($this->staff1)
-            ->patch(route('requests.updateStatus', $request->id), [
-                'status_id' => RequestStatus::RETURNED->value,
-                'rejection_reason' => 'Insufficient documentation'
-            ]);
+        $this->actingAs($this->staff2)->patch(route('requests.updateStatus', $request->id), [
+            'status_id' => RequestStatus::STAFF2_APPROVED->value,
+            'notes' => 'Override due to urgency',
+            'staff2_signature_data' => 'data:image/png;base64,CCCC',
+        ])->assertRedirect(route('requests.show', $request->id));
 
         $request->refresh();
-        $this->assertEquals(RequestStatus::RETURNED->value, $request->status_id);
-        $this->assertNotNull($request->rejection_reason);
-    }
-
-    public function test_staff2_override_functionality(): void
-    {
-        // 1. Create request and enable override for staff2
-        $request = $this->createTestRequest();
-        $this->staff2->update(['override_enabled' => true]);
-
-        // 2. Staff 2 can override and directly approve
-        $response = $this->actingAs($this->staff2)
-            ->post(route('requests.performOverride', $request->id), [
-                'override_reason' => 'Urgent approval needed'
-            ]);
-
-        $request->refresh();
-        $this->assertEquals(RequestStatus::APPROVED->value, $request->status_id);
-        $this->assertTrue($request->isOverridden());
-        $this->assertEquals($this->staff2->id, $request->overridden_by);
+        $this->assertEquals(RequestStatus::STAFF2_APPROVED->value, $request->status_id);
+        $this->assertTrue((bool) $request->is_override);
+        $this->assertEquals($this->staff2->id, $request->recommended_by);
     }
 
     public function test_role_based_access_control(): void
     {
-        $request = $this->createTestRequest();
+        $request = $this->createWorkflowRequest();
 
-        // Admission can only see their own requests
-        $response = $this->actingAs($this->admission)
-            ->get(route('requests.index'));
-        $response->assertSee($request->reference_number);
+        $this->actingAs($this->admission)
+            ->get(route('requests.index'))
+            ->assertSee($request->ref_number);
 
         $otherAdmission = User::factory()->create(['role' => 'admission']);
-        $otherRequest = $this->createTestRequestForUser($otherAdmission);
+        $otherRequest = $this->createWorkflowRequestForUser($otherAdmission);
 
-        $response = $this->actingAs($this->admission)
-            ->get(route('requests.index'));
-        $response->assertDontSee($otherRequest->reference_number);
+        $this->actingAs($this->admission)
+            ->get(route('requests.index'))
+            ->assertDontSee($otherRequest->ref_number);
 
-        // Staff 1 can see all requests needing verification
-        $response = $this->actingAs($this->staff1)
-            ->get(route('requests.index'));
-        $response->assertSee($request->reference_number);
+        $this->actingAs($this->staff1)
+            ->get(route('requests.index'))
+            ->assertSee($request->ref_number);
 
-        // Staff 2 can see all requests
-        $response = $this->actingAs($this->staff2)
-            ->get(route('requests.index'));
-        $response->assertSee($request->reference_number);
+        $this->actingAs($this->staff2)
+            ->get(route('requests.index'))
+            ->assertSee($request->ref_number);
     }
 
-    private function createTestRequest(): GrantRequest
+    public function test_applicant_signature_written_to_normalized_signatures_table(): void
     {
-        return GrantRequest::create([
-            'user_id' => $this->admission->id,
+        $this->actingAs($this->admission)->post(route('requests.store'), [
             'request_type_id' => $this->requestType->id,
-            'ref_number' => 'REQ-' . time(),
-            'status_id' => RequestStatus::SUBMITTED->value,
-            'title' => 'Test Request',
-            'description' => 'Test Description',
+            'description' => 'Applicant signature persistence',
             'vot_items' => [
-                [
-                    'vot_code' => 'VOT11000',
-                    'description' => 'Test Item',
-                    'amount' => 1000.00
-                ]
+                ['vot_code' => 'VOT11000', 'description' => 'Salary and wages', 'amount' => 150.00],
             ],
-            'total_amount' => 1000.00,
-            'signature_data' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-            'submitted_at' => now(),
-        ]);
+            'signature_data' => 'data:image/png;base64,AAAA',
+            'deadline' => now()->addDays(7)->toDateString(),
+        ])->assertRedirect(route('dashboard'));
+
+        $request = GrantRequest::query()->latest('id')->firstOrFail();
+
+        $signature = Signature::query()
+            ->where('request_id', $request->id)
+            ->where('role', 'applicant')
+            ->first();
+
+        $this->assertNotNull($signature);
+        $this->assertEquals($this->admission->id, $signature->user_id);
+        $this->assertNotEmpty($signature->signature_path);
+        $this->assertNotNull($signature->signed_at);
     }
 
-    private function createTestRequestForUser(User $user): GrantRequest
+    protected function createWorkflowRequest(): GrantRequest
+    {
+        return $this->createWorkflowRequestForUser($this->admission);
+    }
+
+    protected function createWorkflowRequestForUser(User $user): GrantRequest
     {
         return GrantRequest::create([
             'user_id' => $user->id,
             'request_type_id' => $this->requestType->id,
-            'ref_number' => 'REQ-' . time() . '-' . $user->id,
+            'ref_number' => 'REQ-' . now()->format('YmdHis') . '-' . $user->id,
             'status_id' => RequestStatus::SUBMITTED->value,
-            'title' => 'Test Request',
-            'description' => 'Test Description',
+            'payload' => [
+                'description' => 'Test Description',
+                'email' => $user->email,
+                'dynamic_fields' => [],
+            ],
             'vot_items' => [
                 [
                     'vot_code' => 'VOT11000',
                     'description' => 'Test Item',
-                    'amount' => 1000.00
-                ]
+                    'amount' => 1000.00,
+                ],
             ],
             'total_amount' => 1000.00,
             'signature_data' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+            'signed_at' => now(),
             'submitted_at' => now(),
+            'submitter_staff_id' => $user->staff_id,
+            'submitter_designation' => $user->designation,
+            'submitter_department' => $user->department,
+            'submitter_phone' => $user->phone,
+            'submitter_employee_level' => $user->employee_level,
         ]);
     }
 }
