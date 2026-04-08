@@ -84,6 +84,65 @@ All demo users use password: `password`.
   ./vendor/bin/pint
   ```
 
+## System Diagnostics (Required)
+
+Use this sequence when verifying the system before QA/UAT or deployment:
+
+1. Run repository QA checks:
+
+   ```bash
+   bash scripts/qa_check.sh
+   ```
+
+2. Run production readiness diagnostics:
+
+   ```bash
+   php scripts/production-readiness-check.php
+   ```
+
+3. Run application tests (after dependencies are installed):
+
+   ```bash
+   php artisan test
+   ```
+
+### Interpreting Diagnostics
+
+- `vendor/autoload.php missing`  
+  Install dependencies first:
+
+  ```bash
+  composer install
+  ```
+
+- `.env file not found`  
+  Create environment config:
+
+  ```bash
+  cp .env.example .env
+  php artisan key:generate
+  ```
+
+- Database connection/readiness errors  
+  Ensure DB file/connection is configured and run migrations:
+
+  ```bash
+  php artisan migrate --seed
+  ```
+
+## Request Form Health Checklist
+
+If request form features appear broken (signature pad, VOT totals, dynamic request fields, template preview):
+
+1. Confirm layout renders pushed scripts (`@stack('scripts')` in `resources/views/layouts/app.blade.php`).
+2. Hard refresh browser cache (`Ctrl + Shift + R`) after pulling updates.
+3. Verify JavaScript loads without syntax errors in browser console.
+4. Verify request type has configured field schema/template in admin settings.
+5. Re-test submission with:
+   - at least one valid VOT row (code + amount > 0),
+   - a drawn digital signature,
+   - required dynamic fields completed.
+
 ## Improvement Roadmap
 
 If you want to make this project better, prioritize these high-impact changes:
