@@ -1,179 +1,254 @@
 # UniKL STRG Request System
 
-A Laravel 13 web application for managing STRG-related requests across three roles:
+A Laravel-based workflow system for managing STRG-related requests across multiple organizational roles, with structured approvals, audit tracking, and PDF generation.
 
-- **Admission** submits and revises requests.
-- **Staff 1** verifies requests.
-- **Staff 2** recommends/finalizes requests.
+---
 
-The system tracks request status changes, internal comments, and audit history.
+## 🧠 System Overview
 
-## Template-Friendly Customization
+This system implements a **multi-stage approval workflow** designed for internal university use.
 
-This project can be reused as a public skeleton while keeping the same workflow logic:
+### Workflow Lifecycle
 
-- Rename organization/product labels via environment variables:
-  - `SYSTEM_ORGANIZATION`
-  - `SYSTEM_PRODUCT_NAME`
-  - `SYSTEM_REQUEST_LABEL`
-- Toggle dean-facing routes/UI without code edits:
-  - `FEATURE_DEAN_INTERFACE=true|false`
+```
+Admission → Staff 1 → Staff 2 → Dean → Completed
+```
 
-## Core Features
+* **Admission** submits and revises requests
+* **Staff 1** verifies request details
+* **Staff 2** recommends and prepares finalization
+* **Dean** performs final approval (optional via feature toggle)
 
-- Role-based dashboard for admission and staff workflows.
-- Request submission with document upload.
-- Revision flow for returned requests.
-- Status updates with notes and rejection reasons.
-- Internal comments and audit logging.
+Each stage:
 
-## Tech Stack
+* updates request status
+* records internal notes
+* captures signatures
+* contributes to final PDF output
 
-- PHP 8.3+
-- Laravel 13
-- Blade + Vite
-- SQLite/MySQL (configurable via `.env`)
+---
 
-## Quick Start
+## ⚙️ Core Features
 
-1. Install dependencies:
+### 📌 Workflow & Request Management
 
-   ```bash
-   composer install
-   npm install
-   ```
+* Role-based dashboards (Admission, Staff, Dean)
+* Structured request lifecycle with enforced transitions
+* Revision flow for returned requests
+* Status tracking with notes and rejection reasons
 
-2. Configure environment:
+### 📄 Dynamic Request System
 
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
+* Request types with configurable field schemas
+* Dynamic form rendering based on selected request type
+* Template-based document uploads (per request type)
 
-3. Run migrations and seeders:
+### ✍️ Signature & PDF System
 
-   ```bash
-   php artisan migrate --seed
-   ```
+* Digital signature capture (multi-role)
+* Auto-generated PDFs with:
 
-4. Start development servers:
+  * applicant data
+  * dynamic fields
+  * VOT/budget breakdown
+  * stage-based signatures
 
-   ```bash
-   composer run dev
-   ```
+### 🧾 Audit & Tracking
 
-## Demo Accounts (Seeded)
+* Internal comments per request
+* Full audit trail of actions and transitions
+* Timestamped activity logging
 
-All demo users use password: `password`.
+---
 
-- `admissions@unikl.edu.my`
-- `staff1@unikl.edu.my`
-- `staff2@unikl.edu.my`
+## 🧩 Template-Friendly Customization
 
-## Quality Checks
+This project is designed as a reusable internal system template.
 
-- Run test suite:
+### Environment Configuration
 
-  ```bash
-  php artisan test
-  ```
+```env
+SYSTEM_ORGANIZATION="Your Organization"
+SYSTEM_PRODUCT_NAME="Request System"
+SYSTEM_REQUEST_LABEL="Request"
+```
 
-- Format code with Pint:
+### Feature Toggles
 
-  ```bash
-  ./vendor/bin/pint
-  ```
+```env
+FEATURE_DEAN_INTERFACE=true|false
+```
 
-## System Diagnostics (Required)
+* Enable/disable dean workflow without code changes
 
-Use this sequence when verifying the system before QA/UAT or deployment:
+---
 
-1. Run repository QA checks:
+## 🛠 Tech Stack
 
-   ```bash
-   bash scripts/qa_check.sh
-   ```
+* **Backend:** PHP 8.3+, Laravel 13
+* **Frontend:** Blade + Vite
+* **Database:** SQLite / MySQL (configurable)
 
-2. Run production readiness diagnostics:
+---
 
-   ```bash
-   php scripts/production-readiness-check.php
-   ```
+## 🚀 Quick Start
 
-3. Run application tests (after dependencies are installed):
+### 1. Install dependencies
 
-   ```bash
-   php artisan test
-   ```
+```bash
+composer install
+npm install
+```
 
-### Interpreting Diagnostics
+### 2. Configure environment
 
-- `vendor/autoload.php missing`  
-  Install dependencies first:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-  ```bash
-  composer install
-  ```
+### 3. Run migrations and seeders
 
-- `.env file not found`  
-  Create environment config:
+```bash
+php artisan migrate --seed
+```
 
-  ```bash
-  cp .env.example .env
-  php artisan key:generate
-  ```
+### 4. Start development server
 
-- Database connection/readiness errors  
-  Ensure DB file/connection is configured and run migrations:
+```bash
+composer run dev
+```
 
-  ```bash
-  php artisan migrate --seed
-  ```
+---
 
-## Request Form Health Checklist
+## 👤 Demo Accounts
 
-If request form features appear broken (signature pad, VOT totals, dynamic request fields, template preview):
+All accounts use password: `password`
 
-1. Confirm layout renders pushed scripts (`@stack('scripts')` in `resources/views/layouts/app.blade.php`).
-2. Hard refresh browser cache (`Ctrl + Shift + R`) after pulling updates.
-3. Verify JavaScript loads without syntax errors in browser console.
-4. Verify request type has configured field schema/template in admin settings.
-5. Re-test submission with:
-   - at least one valid VOT row (code + amount > 0),
-   - a drawn digital signature,
-   - required dynamic fields completed.
+* [admissions@unikl.edu.my](mailto:admissions@unikl.edu.my)
+* [staff1@unikl.edu.my](mailto:staff1@unikl.edu.my)
+* [staff2@unikl.edu.my](mailto:staff2@unikl.edu.my)
+* [dean@unikl.edu.my](mailto:dean@unikl.edu.my)
 
-## Improvement Roadmap
+---
 
-If you want to make this project better, prioritize these high-impact changes:
+## 🧪 Testing & Quality
 
-1. **Authorization hardening**
-   - Add Laravel Policies so users can only view/update requests they are allowed to access.
-   - Restrict status changes to valid workflow transitions.
+### Run tests
 
-2. **Validation and DTO/FormRequest cleanup**
-   - Move controller validation rules into dedicated `FormRequest` classes for `store`, `update`, `updateStatus`, and comments.
+```bash
+php artisan test
+```
 
-3. **Automated tests**
-   - Add feature tests for role-based access, status transitions, and revision flow.
-   - Add upload validation tests.
+### Format code
 
-4. **Observability**
-   - Add activity/event logging around authentication, status updates, and failed authorization attempts.
+```bash
+./vendor/bin/pint
+```
 
-5. **UX improvements**
-   - Add pagination/filter persistence on dashboard.
-   - Add clearer status badges and workflow timeline in request detail page.
+---
 
+## 🧰 System Diagnostics (Recommended Before Deployment)
 
-## For Your Current Setup (Herd + SQLite)
+### Run QA checks
 
-If you are running this on **Laravel Herd** and focusing on finishing dashboard filters + notifications, see:
+```bash
+bash scripts/qa_check.sh
+```
 
-- [`docs/MAJOR_IMPROVEMENTS.md`](docs/MAJOR_IMPROVEMENTS.md)
+### Run production readiness checks
 
-It contains a prioritized, implementation-focused roadmap tailored to this project state.
+```bash
+php scripts/production-readiness-check.php
+```
 
-## Security Note
+---
 
-A developer quick-switch login route exists for local development convenience. Keep it disabled in non-local environments and do not expose it in production.
+## 🧯 Troubleshooting
+
+### Missing dependencies
+
+```bash
+composer install
+```
+
+### Missing environment file
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+### Database issues
+
+```bash
+php artisan migrate --seed
+```
+
+---
+
+## 📋 Request Form Health Checklist
+
+If form features fail (signature pad, dynamic fields, templates):
+
+* Ensure `@stack('scripts')` is present in layout
+* Hard refresh browser (Ctrl + Shift + R)
+* Check browser console for JS errors
+* Ensure request type has configured schema/template
+* Submit with:
+
+  * valid VOT entries
+  * completed required fields
+  * signature provided
+
+---
+
+## 🏗 Architecture Notes
+
+* Workflow transitions are centralized via a service layer
+* Status changes follow a controlled lifecycle
+* PDF generation is tied to request state and signatures
+* Designed for **internal workflow efficiency over legal compliance**
+
+---
+
+## 🚧 Improvement Roadmap
+
+### 🔴 High Priority
+
+* Atomic reference number generation (prevent collisions)
+* Remove duplicate migrations
+* Queue notifications and PDF generation
+
+### 🟡 Medium Priority
+
+* Introduce workflow state machine abstraction
+* Add database indexing for performance
+* Improve dashboard query optimization
+
+### 🟢 Long-Term
+
+* Parallel approval support
+* Versioned PDF artifacts
+* Enhanced audit visualization (timeline UI)
+
+---
+
+## 🔐 Security Notes
+
+* Developer quick-switch login route exists for local development
+* MUST be disabled in production environments
+
+---
+
+## 📌 Notes
+
+This system is designed for **internal institutional use**, prioritizing:
+
+* workflow clarity
+* maintainability
+* operational efficiency
+
+It is **not intended as a legally binding digital signature system**.
+
+---
