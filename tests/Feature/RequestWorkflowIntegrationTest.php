@@ -9,6 +9,7 @@ use App\Models\Signature;
 use App\Models\User;
 use App\Models\VotCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RequestWorkflowIntegrationTest extends TestCase
@@ -146,6 +147,19 @@ class RequestWorkflowIntegrationTest extends TestCase
         $this->assertEquals($this->admission->id, $signature->user_id);
         $this->assertNotEmpty($signature->signature_path);
         $this->assertNotNull($signature->signed_at);
+    }
+
+    public function test_staff1_can_open_main_uploaded_document(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('documents/test-file.pdf', 'dummy-pdf-content');
+
+        $request = $this->createWorkflowRequest();
+        $request->update(['file_path' => 'documents/test-file.pdf']);
+
+        $this->actingAs($this->staff1)
+            ->get(route('requests.document.main', $request->id))
+            ->assertOk();
     }
 
     protected function createWorkflowRequest(): GrantRequest

@@ -105,7 +105,7 @@
 
                 <div class="mt-4">
                     <p class="text-gray-500 text-sm">Justification / Description</p>
-                    <div class="mt-1 p-3 bg-gray-50 rounded border text-sm break-words">
+                    <div class="mt-1 p-3 bg-gray-50 rounded border text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
                         {{ $grantRequest->payload['description'] ?? 'No description provided.' }}
                     </div>
                 </div>
@@ -268,28 +268,33 @@
             </div>
 
             {{-- Main Uploaded Document --}}
-            @if($grantRequest->file_path)
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Uploaded Document</h3>
-                @php
-                    $ext = pathinfo($grantRequest->file_path, PATHINFO_EXTENSION);
-                @endphp
+                @if($grantRequest->file_path)
+                    @php
+                        $ext = pathinfo($grantRequest->file_path, PATHINFO_EXTENSION);
+                        $mainDocumentUrl = route('requests.document.main', $grantRequest->id);
+                    @endphp
 
-                @if(in_array(strtolower($ext), ['jpg', 'jpeg', 'png']))
-                    <img src="{{ asset('storage/' . $grantRequest->file_path) }}"
-                         class="max-w-full rounded border" alt="Uploaded document">
-                @elseif(strtolower($ext) === 'pdf')
-                    <iframe src="{{ asset('storage/' . $grantRequest->file_path) }}"
-                            class="w-full h-96 border rounded" title="PDF Viewer"></iframe>
+                    @if(in_array(strtolower($ext), ['jpg', 'jpeg', 'png']))
+                        <img src="{{ $mainDocumentUrl }}"
+                             class="max-w-full rounded border" alt="Uploaded document">
+                    @elseif(strtolower($ext) === 'pdf')
+                        <iframe src="{{ $mainDocumentUrl }}"
+                                class="w-full h-96 border rounded" title="PDF Viewer"></iframe>
+                    @else
+                        <p class="text-sm text-gray-600">Preview is not available for this file type.</p>
+                    @endif
+
+                    <a href="{{ $mainDocumentUrl }}"
+                       target="_blank"
+                       class="mt-3 inline-block text-blue-600 hover:underline text-sm font-semibold break-all">
+                        Open in new tab
+                    </a>
+                @else
+                    <p class="text-sm text-gray-500">No supporting document was uploaded for this request.</p>
                 @endif
-
-                <a href="{{ asset('storage/' . $grantRequest->file_path) }}"
-                   target="_blank"
-                   class="mt-3 inline-block text-blue-600 hover:underline text-sm font-semibold">
-                    ↗ Open in new tab
-                </a>
             </div>
-            @endif
 
             @php
                 $additionalDocuments = collect($grantRequest->payload['additional_documents'] ?? [])
@@ -302,7 +307,7 @@
                 <ul class="space-y-2 text-sm">
                     @foreach($additionalDocuments as $documentPath)
                         <li>
-                            <a href="{{ asset('storage/' . $documentPath) }}"
+                            <a href="{{ route('requests.document.additional', ['id' => $grantRequest->id, 'index' => $loop->index]) }}"
                                target="_blank"
                                class="text-blue-600 hover:underline font-semibold break-all">
                                 ↗ {{ basename($documentPath) }}

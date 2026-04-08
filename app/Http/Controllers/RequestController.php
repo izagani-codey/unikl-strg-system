@@ -298,6 +298,45 @@ class RequestController extends Controller
         return Storage::disk('public')->download($generatedPath, basename($generatedPath));
     }
 
+    public function showMainDocument($id)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+
+        if (empty($grantRequest->file_path) || !Storage::disk('public')->exists($grantRequest->file_path)) {
+            abort(404, 'Main document not found.');
+        }
+
+        return Storage::disk('public')->response(
+            $grantRequest->file_path,
+            basename($grantRequest->file_path),
+            [],
+            'inline'
+        );
+    }
+
+    public function showAdditionalDocument($id, int $index)
+    {
+        $grantRequest = GrantRequest::findOrFail($id);
+        $this->authorize('view', $grantRequest);
+
+        $documents = collect($grantRequest->payload['additional_documents'] ?? [])
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->values();
+
+        $documentPath = $documents->get($index);
+        if (!$documentPath || !Storage::disk('public')->exists($documentPath)) {
+            abort(404, 'Additional document not found.');
+        }
+
+        return Storage::disk('public')->response(
+            $documentPath,
+            basename($documentPath),
+            [],
+            'inline'
+        );
+    }
+
     public function exportExcel(Request $request)
     {
         $query = GrantRequest::query()
@@ -388,20 +427,6 @@ class RequestController extends Controller
 
         if ($newStatus === RequestStatus::RETURNED && empty($payload['notes']) && !empty($payload['rejection_reason'])) {
             $payload['notes'] = $payload['rejection_reason'];
-        }
-
-        if (Auth::user()->role === 'staff2' && $request->hasFile('staff2_supporting_documents')) {
-            $currentPayload = $grantRequest->payload ?? [];
-            $existingAdditional = collect($currentPayload['additional_documents'] ?? []);
-
-            foreach ($request->file('staff2_supporting_documents') as $document) {
-                if ($document->isValid()) {
-                    $existingAdditional->push($document->store('documents/staff2', 'public'));
-                }
-            }
-
-            $currentPayload['additional_documents'] = $existingAdditional->values()->all();
-            $grantRequest->update(['payload' => $currentPayload]);
         }
 
         try {
@@ -517,7 +542,9 @@ class RequestController extends Controller
         }
 
         $targetDate = Carbon::parse($deadline);
-        return now()->diffInDays($targetDate, false) <= 14;
+        $daysUntilDeadline = now()->diffInDays($targetDate, false);
+
+        return $daysUntilDeadline >= 0 && $daysUntilDeadline <= 5;
     }
 
     private function notifyRole(string $role, string $title, string $message, ?string $url = null): void
