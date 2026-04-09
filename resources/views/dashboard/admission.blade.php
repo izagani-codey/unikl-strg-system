@@ -20,9 +20,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
             {{-- Dev Quick-Switch (local only) --}}
-            @if(app()->environment('local') && Route::has('dev.login'))
-                @include('dashboard._dev-switcher')
-            @endif
+            @include('dashboard._dev-switcher')
 
             {{-- Success Message --}}
             @if(session('success'))
@@ -47,11 +45,11 @@
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                                 <div class="text-2xl font-bold">{{ $dashboardStats['staff1_approved'] ?? 0 }}</div>
-                                <div class="text-sm text-blue-100">Staff 1 Approved</div>
+                                <div class="text-sm text-yellow-100">Staff 1 Approved</div>
                             </div>
                             <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                                 <div class="text-2xl font-bold">{{ $dashboardStats['dean_approved'] ?? 0 }}</div>
-                                <div class="text-sm text-blue-100">Dean Approved</div>
+                                <div class="text-sm text-green-100">Dean Approved</div>
                             </div>
                         </div>
                     </div>
@@ -69,58 +67,66 @@
 
             {{-- Status Overview Cards --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Submitted</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['submitted'] ?? 0 }}</p>
-                        </div>
-                        <div class="bg-orange-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-blue-600 truncate">Submitted</dt>
+                                <dd class="mt-1 text-3xl font-bold text-blue-900">{{ $dashboardStats['submitted'] ?? 0 }}</dd>
+                            </dl>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Staff 1 Approved</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['staff1_approved'] ?? 0 }}</p>
-                        </div>
-                        <div class="bg-blue-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-yellow-600 truncate">Staff 1 Approved</dt>
+                                <dd class="mt-1 text-3xl font-bold text-yellow-900">{{ $dashboardStats['staff1_approved'] ?? 0 }}</dd>
+                            </dl>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Returned</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['returned'] ?? 0 }}</p>
-                        </div>
-                        <div class="bg-yellow-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-xl p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
                         </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-purple-600 truncate">Returned</dt>
+                                <dd class="mt-1 text-3xl font-bold text-purple-900">{{ $dashboardStats['returned'] ?? 0 }}</dd>
+                            </dl>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Dean Approved</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-2">{{ $dashboardStats['dean_approved'] ?? 0 }}</p>
-                        </div>
-                        <div class="bg-green-100 rounded-full p-3">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-3 shadow-lg">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-green-600 truncate">Dean Approved</dt>
+                                <dd class="mt-1 text-3xl font-bold text-green-900">{{ $dashboardStats['dean_approved'] ?? 0 }}</dd>
+                            </dl>
                         </div>
                     </div>
                 </div>
@@ -185,19 +191,15 @@
                                     </div>
                                 </div>
                             @empty
-                                <div class="text-center py-4 bg-gray-50 rounded-lg">
-                                    <p class="text-sm text-gray-500">No templates available for this request type</p>
+                                <div class="text-center py-4">
+                                    <p class="text-gray-500">No templates available for this request type</p>
                                 </div>
                             @endforelse
                         </div>
                     </div>
                 @empty
-                    <div class="text-center py-12 bg-gray-50 rounded-xl">
-                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">No request type templates available</h3>
-                        <p class="text-gray-600">Ask Staff 2 to upload templates for specific request types.</p>
+                    <div class="text-center py-4">
+                        <p class="text-gray-500">No templates available for this request type</p>
                     </div>
                 @endforelse
 
@@ -259,7 +261,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($displayRequests as $request)
-                                <tr class="hover:bg-gray-50 transition-colors">
+                                <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ $request->ref_number }}
                                     </td>

@@ -14,7 +14,7 @@
                         <h1 class="text-3xl font-bold text-white mb-2">Dean Dashboard</h1>
                         <p class="text-purple-200 text-lg">Review and approve pending requests</p>
                     </div>
-                    <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                    <div class="text-right bg-white/10 backdrop-blur-sm rounded-lg p-6">
                         <div class="text-4xl font-bold text-white">{{ $dashboardStats['staff2_approved'] ?? 0 }}</div>
                         <div class="text-purple-200 text-sm">Pending Dean Approval</div>
                     </div>
@@ -151,7 +151,7 @@
             </div>
 
             <!-- Dev Switcher (Development Only) -->
-            @if(app()->environment('local'))
+            @if(config('app.debug'))
                 <div class="mt-8">
                     @include('dashboard._dev-switcher')
                 </div>
