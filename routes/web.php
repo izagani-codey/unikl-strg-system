@@ -93,8 +93,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
         Route::post('/dean/requests/{id}/approve', [DeanController::class, 'approve'])->name('dean.requests.approve');
         Route::post('/dean/requests/{id}/reject', [DeanController::class, 'reject'])->name('dean.requests.reject');
-        Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnToStaff1'])->name('dean.requests.return-staff1');
-        Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnToStaff2'])->name('dean.requests.return-staff2');
+        Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnRequest']);
+Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnRequest']);
     });
 
     // ── Dean Routes (feature-flagged) ─────────────────────────────────────────

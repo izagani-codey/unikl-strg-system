@@ -6,7 +6,7 @@ use App\Models\AuditLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
-class AuditLogController extends Controller
+class AuditLogController extends BaseController
 {
     public function index(Request $request)
     {

@@ -6,7 +6,7 @@ use App\Models\RequestType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class RequestTypeController extends Controller
+class RequestTypeController extends BaseController
 {
     /**
      * Get the template file for a request type

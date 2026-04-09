@@ -8,7 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class FormTemplateController extends Controller
+class FormTemplateController extends BaseController
 {
     public function index()
     {

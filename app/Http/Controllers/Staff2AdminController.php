@@ -8,7 +8,7 @@ use App\Models\RequestType;
 use App\Models\User;
 use App\Models\FormTemplate;
 
-class Staff2AdminController extends Controller
+class Staff2AdminController extends BaseController
 {
     public function index()
     {

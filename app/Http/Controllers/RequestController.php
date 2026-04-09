@@ -14,6 +14,7 @@ use App\Models\RequestType;
 use App\Models\Signature;
 use App\Models\User;
 use App\Models\VotCode;
+use App\Services\NotificationService;
 use App\Services\RequestPdfService;
 use App\Services\WorkflowTransitionService;
 use Carbon\Carbon;
@@ -24,10 +25,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class RequestController extends Controller
+class RequestController extends BaseController
 {
+public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
+
     public function index(Request $request)
     {
+    
         $query = GrantRequest::query()
             ->with(['requestType', 'user', 'verifiedBy', 'recommendedBy', 'deanApprovedBy'])
             ->latest('created_at');
@@ -138,7 +145,7 @@ class RequestController extends Controller
             'created_at' => now(),
         ]);
 
-        $this->notifyRole(
+        $this->notificationService->sendRoleNotification(
             'staff1',
             'New Request Submitted',
             "Request {$grantRequest->ref_number} requires verification.",
@@ -252,7 +259,7 @@ class RequestController extends Controller
             'created_at' => now(),
         ]);
 
-        $this->notifyRole(
+        $this->notificationService->sendRoleNotification(
             'staff1',
             'Request Resubmitted',
             "Request {$grantRequest->ref_number} has been resubmitted and is ready for verification.",
@@ -475,14 +482,14 @@ class RequestController extends Controller
             'created_at' => now(),
         ]);
 
-        $this->notifyRole(
+        $this->notificationService->sendRoleNotification(
             'staff1',
             'New Internal Comment',
             'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
             route('requests.show', $grantRequest->id) . '#comments'
         );
 
-        $this->notifyRole(
+        $this->notificationService->sendRoleNotification(
             'staff2',
             'New Internal Comment',
             'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
@@ -490,7 +497,7 @@ class RequestController extends Controller
         );
 
         if ($grantRequest->status_id === RequestStatus::STAFF2_APPROVED->value) {
-            $this->notifyRole(
+            $this->notificationService->sendRoleNotification(
                 'dean',
                 'New Internal Comment',
                 'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
@@ -546,17 +553,9 @@ class RequestController extends Controller
 
         return $daysUntilDeadline >= 0 && $daysUntilDeadline <= 5;
     }
-
-    private function notifyRole(string $role, string $title, string $message, ?string $url = null): void
-    {
-        User::where('role', $role)->each(function (User $user) use ($title, $message, $url): void {
-            \App\Models\Notification::createForUser(
-                $user->id,
-                'request_update',
-                $title,
-                $message,
-                $url
-            );
-        });
+   
+ 
+        
     }
-}
+
+

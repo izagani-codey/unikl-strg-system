@@ -9,7 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class DeanController extends Controller
+class DeanController extends BaseController
 {
     public function dashboard()
     {
@@ -91,48 +91,25 @@ class DeanController extends Controller
         return redirect()->route('dashboard')
             ->with('success', 'Request rejected successfully!');
     }
+public function returnRequest(Request $httpRequest, $id): RedirectResponse
+{
+    $grantRequest = GrantRequest::findOrFail($id);
+    $this->authorize('changeStatus', $grantRequest);
 
-    public function returnToStaff1(Request $httpRequest, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('changeStatus', $grantRequest);
-
-        try {
-            WorkflowTransitionService::executeTransition(
-                $grantRequest,
-                RequestStatus::RETURNED,
-                ['notes' => $httpRequest->input('reason')]
-            );
-        } catch (AuthorizationException $exception) {
-            return redirect()->back()->with('error', $exception->getMessage());
-        } catch (\Throwable $exception) {
-            report($exception);
-            return redirect()->back()->with('error', 'Unable to return request. Please try again.');
-        }
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Request returned successfully!');
+    try {
+        WorkflowTransitionService::executeTransition(
+            $grantRequest,
+            RequestStatus::RETURNED,
+            ['notes' => $httpRequest->input('reason')]
+        );
+    } catch (AuthorizationException $e) {
+        return $this->errorResponse($e->getMessage());
+    } catch (\Throwable $e) {
+        report($e);
+        return $this->errorResponse('Unable to return request. Please try again.');
     }
 
-    public function returnToStaff2(Request $httpRequest, $id)
-    {
-        $grantRequest = GrantRequest::findOrFail($id);
-        $this->authorize('changeStatus', $grantRequest);
-
-        try {
-            WorkflowTransitionService::executeTransition(
-                $grantRequest,
-                RequestStatus::RETURNED,
-                ['notes' => $httpRequest->input('reason')]
-            );
-        } catch (AuthorizationException $exception) {
-            return redirect()->back()->with('error', $exception->getMessage());
-        } catch (\Throwable $exception) {
-            report($exception);
-            return redirect()->back()->with('error', 'Unable to return request. Please try again.');
-        }
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Request returned successfully!');
-    }
+    return $this->successResponse('Request returned successfully!', 'dashboard');
+}
+    
 }

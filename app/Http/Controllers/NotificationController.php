@@ -6,7 +6,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class NotificationController extends Controller
+class NotificationController extends BaseController
 {
     public function index(Request $request)
     {
