@@ -7,6 +7,7 @@ use App\Models\Request as GrantRequest;
 use App\Models\RequestType;
 use App\Models\User;
 use App\Models\FormTemplate;
+use App\Models\AuditLog;
 
 class Staff2AdminController extends BaseController
 {
@@ -44,6 +45,7 @@ class Staff2AdminController extends BaseController
         $admissionUsers = User::where('role', 'admission')->count();
         $staff1Users = User::where('role', 'staff1')->count();
         $staff2Users = User::where('role', 'staff2')->count();
+        $deanUsers = User::where('role', 'dean')->count();
 
         // Form Templates
         $totalTemplates = FormTemplate::count();
@@ -52,7 +54,9 @@ class Staff2AdminController extends BaseController
             ->take(5)
             ->get();
 
-        return view('staff2.admin-panel', compact(
+        $view = auth()->user()->isAdmin() ? 'admin.dashboard' : 'staff2.admin-panel';
+        
+        return view($view, compact(
             'totalRequests',
             'submitted',
             'staff1Approved',
@@ -64,6 +68,7 @@ class Staff2AdminController extends BaseController
             'admissionUsers',
             'staff1Users',
             'staff2Users',
+            'deanUsers',
             'totalTemplates',
             'recentTemplates'
         ));
@@ -103,7 +108,16 @@ class Staff2AdminController extends BaseController
             // Create slug from name
             $validated['slug'] = \Str::slug($validated['name']);
 
-            RequestType::create($validated);
+            $requestType = RequestType::create($validated);
+
+            // Log the action
+            AuditLog::create([
+                'actor_id' => auth()->id(),
+                'actor_role' => auth()->user()->role,
+                'action' => 'request_type_created',
+                'request_type_id' => $requestType->id,
+                'note' => 'Created request type: ' . $requestType->name,
+            ]);
 
             return back()->with('success', 'Request type created successfully.');
         } catch (\Exception $e) {

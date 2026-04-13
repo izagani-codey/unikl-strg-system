@@ -72,6 +72,49 @@
                 </div>
             @endif
 
+            {{-- Override Mode Banner --}}
+            @if(auth()->user()->override_enabled)
+                <div class="bg-gradient-to-r from-orange-500 to-red-500 border border-orange-200 rounded-2xl p-6 shadow-lg">
+                    <div class="flex items-start">
+                        <div class="bg-orange-100 rounded-full p-3 mr-4">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-orange-900 mb-2">Override Mode Active</h3>
+                            <p class="text-orange-700 text-sm mb-4">You can bypass normal workflow restrictions and take immediate actions on requests.</p>
+                            <form action="{{ route('requests.toggleOverrideMode') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold hover:bg-orange-50 transition-colors">
+                                    Disable Override Mode
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-lg">
+                    <div class="flex items-start">
+                        <div class="bg-gray-200 rounded-full p-3 mr-4">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-gray-900 mb-2">Override Mode Available</h3>
+                            <p class="text-gray-700 text-sm mb-4">Enable override mode to bypass normal workflow restrictions for urgent requests.</p>
+                            <form action="{{ route('requests.toggleOverrideMode') }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to enable Override Mode? This will allow you to bypass normal workflow restrictions.')">
+                                @csrf
+                                <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-900 transition-colors">
+                                    Enable Override Mode
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             {{-- Welcome Section with Stats --}}
             <div class="bg-gradient-to-br from-green-600 via-teal-600 to-cyan-600 rounded-2xl p-8 text-white shadow-2xl">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between">

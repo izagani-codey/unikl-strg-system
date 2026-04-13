@@ -18,6 +18,22 @@ class NotificationController extends BaseController
         return view('notifications.index', compact('notifications'));
     }
 
+    public function markAsRead(Request $request, int $id): RedirectResponse
+    {
+        $notification = $request->user()->notifications()->findOrFail($id);
+        $notification->update(['is_read' => true]);
+
+        return back()->with('success', 'Notification marked as read.');
+    }
+
+    public function markAsUnread(Request $request, int $id): RedirectResponse
+    {
+        $notification = $request->user()->notifications()->findOrFail($id);
+        $notification->update(['is_read' => false]);
+
+        return back()->with('success', 'Notification marked as unread.');
+    }
+
     public function markAllRead(Request $request): RedirectResponse
     {
         $request->user()
@@ -26,6 +42,18 @@ class NotificationController extends BaseController
             ->update(['is_read' => true]);
 
         return back()->with('success', 'All notifications marked as read.');
+    }
+
+    public function cleanup(Request $request): RedirectResponse
+    {
+        // Delete old read notifications (older than 30 days)
+        $request->user()
+            ->notifications()
+            ->where('is_read', true)
+            ->where('created_at', '<', now()->subDays(30))
+            ->delete();
+
+        return back()->with('success', 'Old notifications cleaned up successfully.');
     }
 
     public function open(Request $request, int $id): RedirectResponse

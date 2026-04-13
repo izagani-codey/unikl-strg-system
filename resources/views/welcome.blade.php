@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>UniKL STRG - Student Travel Request Grant System</title>
+    <title>UniKL STRG - Grant Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,13 +11,13 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         .hero-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
         }
         .card-hover {
             transition: all 0.3s ease;
@@ -27,10 +27,15 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         .feature-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+        /* iPad optimizations */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .hero-title { font-size: 2.5rem; }
+            .touch-target { min-height: 44px; min-width: 44px; }
         }
     </style>
 </head>
@@ -68,24 +73,24 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-gradient text-white py-20">
+    <section class="hero-gradient text-white py-16 md:py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                    Request Management<br>
-                    <span class="text-yellow-300">Grant System</span>
+                <h1 class="hero-title text-4xl md:text-6xl font-bold mb-6">
+                    Efficient Grant<br>
+                    <span class="text-yellow-300">Management</span>
                 </h1>
-                <p class="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-                    Streamlined request management for the UniKL community. Submit, review, and manage requests with comprehensive workflow automation.
+                <p class="text-lg md:text-xl lg:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
+                    Complete workflow automation for grant requests. From submission to approval, manage every step with transparency and efficiency.
                 </p>
-                <div class="space-x-4">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
                     @guest
                         <a href="{{ route('register') }}" 
-                           class="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block">
+                           class="touch-target bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block">
                             Get Started
                         </a>
                         <a href="{{ route('login') }}" 
-                           class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition-colors inline-block">
+                           class="touch-target border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors inline-block">
                             Sign In
                         </a>
                     @endguest
@@ -99,28 +104,28 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                    Powerful Features for <span class="gradient-text">Everyone</span>
+                    Complete <span class="gradient-text">Workflow Solution</span>
                 </h2>
                 <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                    Designed to simplify the grant application process for students and staff
+                    Streamlined processes for every stage of grant management
                 </p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <!-- For Users -->
+                <!-- Request Submission -->
                 <div class="card-hover bg-white p-8 rounded-xl shadow-lg border border-gray-100">
                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">For Users</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Submit Requests</h3>
                     <ul class="space-y-3 text-gray-600">
                         <li class="flex items-start">
                             <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
-                            Easy online request submission
+                            Easy online submission forms
                         </li>
                         <li class="flex items-start">
                             <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -143,14 +148,14 @@
                     </ul>
                 </div>
 
-                <!-- For Staff -->
+                <!-- Review Process -->
                 <div class="card-hover bg-white p-8 rounded-xl shadow-lg border border-gray-100">
                     <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-4">For Staff</h3>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">Review & Approve</h3>
                     <ul class="space-y-3 text-gray-600">
                         <li class="flex items-start">
                             <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">

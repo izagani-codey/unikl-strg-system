@@ -605,4 +605,28 @@ public function __construct(
     );
 }
 
+    /**
+     * Toggle override mode for Staff 2 users
+     */
+    public function toggleOverrideMode(Request $request)
+    {
+        // Authorization check - only Staff 2 can toggle override mode
+        if (!auth()->user()->isStaff2()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user = auth()->user();
+        
+        // Toggle override mode
+        if ($user->override_enabled) {
+            $user->disableOverride();
+            $message = 'Override mode disabled.';
+        } else {
+            $user->enableOverride();
+            $message = 'Override mode enabled.';
+        }
+        
+        return redirect()->back()->with('success', $message);
+    }
+
 }

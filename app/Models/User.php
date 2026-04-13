@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'staff_id', 'designation', 'department', 'phone', 'employee_level', 'signature_data'])]
+#[Fillable(['name', 'email', 'password', 'role', 'staff_id', 'designation', 'department', 'phone', 'employee_level', 'signature_data', 'override_enabled', 'override_enabled_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -65,6 +65,35 @@ class User extends Authenticatable
     public function canOverrideRequests(): bool
     {
         return $this->isStaff2(); // Staff 2 keeps override capabilities
+    }
+
+    // ==========================================
+    // Override system methods
+    // ==========================================
+
+    public function enableOverride(): void
+    {
+        $this->update([
+            'override_enabled' => true,
+            'override_enabled_at' => now(),
+        ]);
+    }
+
+    public function disableOverride(): void
+    {
+        $this->update([
+            'override_enabled' => false,
+            'override_enabled_at' => null,
+        ]);
+    }
+
+    public function toggleOverride(): void
+    {
+        if ($this->override_enabled) {
+            $this->disableOverride();
+        } else {
+            $this->enableOverride();
+        }
     }
 
     // ==========================================

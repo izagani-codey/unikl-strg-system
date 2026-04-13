@@ -12,6 +12,7 @@ use App\Http\Controllers\Staff2AdminController;
 use App\Http\Controllers\FormTemplateController;
 use App\Http\Controllers\RequestTypeController;
 use App\Http\Controllers\DeanController;
+use App\Http\Controllers\OverrideController;
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
 Route::get('/', fn() => view('welcome'));
@@ -88,7 +89,10 @@ Route::middleware('auth')->group(function () {
 
     // ── Notifications ─────────────────────────────────────────────────────────
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::patch('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::patch('/notifications/{id}/unread', [NotificationController::class, 'markAsUnread'])->name('notifications.unread');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::delete('/notifications/cleanup', [NotificationController::class, 'cleanup'])->name('notifications.cleanup');
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
 
     // ── Dean Routes ──────────────────────────────────────────────────────────────────
@@ -124,7 +128,9 @@ Route::middleware('auth')->group(function () {
 
     // Staff 2 Routes (workflow only)
     Route::middleware('role:staff2')->group(function () {
-        // Staff 2 specific routes only
+        // Override functionality
+        Route::post('/requests/toggle-override-mode', [RequestController::class, 'toggleOverrideMode'])
+            ->name('requests.toggleOverrideMode');
     });
 
     // Admin & Staff 2 shared routes

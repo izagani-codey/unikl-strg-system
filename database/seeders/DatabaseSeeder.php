@@ -90,15 +90,34 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Admin User
+        User::updateOrCreate(
+            ['email' => 'admin@unikl.edu.my'],
+            [
+                'name' => 'System Administrator', 
+                'password' => Hash::make('password'), 
+                'role' => 'admin', 
+                'email_verified_at' => now(),
+                'staff_id' => 'ADM001',
+                'designation' => 'System Administrator',
+                'department' => 'IT Department',
+                'phone' => '+60123456783',
+                'employee_level' => 'Management',
+                'override_enabled' => false,
+                'override_enabled_at' => null,
+            ]
+        );
+
         // Create templates after users and request types are created
         $this->call([
             TemplateSeeder::class,
         ]);
 
-        $this->command->info('✅ Seeded updated development accounts:');
-        $this->command->info('   📧 admissions@unikl.edu.my (password) - Admissions Dev User');
-        $this->command->info('   📧 staff1@unikl.edu.my (password) - Staff One');
-        $this->command->info('   📧 staff2@unikl.edu.my (password) - Staff Two (Override Enabled)');
-        $this->command->info('   📧 dean@unikl.edu.my (password) - Department Dean');
+        $this->command->info('Seeded updated development accounts:');
+        $this->command->info('   admissions@unikl.edu.my (password) - Admissions Dev User');
+        $this->command->info('   staff1@unikl.edu.my (password) - Staff One');
+        $this->command->info('   staff2@unikl.edu.my (password) - Staff Two (Override Enabled)');
+        $this->command->info('   dean@unikl.edu.my (password) - Department Dean');
+        $this->command->info('   admin@unikl.edu.my (password) - System Administrator');
     }
 }
