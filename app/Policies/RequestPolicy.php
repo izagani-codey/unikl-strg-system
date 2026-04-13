@@ -74,20 +74,13 @@ class RequestPolicy
             return Response::deny('Only staff members and dean can update request status.');
         }
 
-        $currentStatus = RequestStatus::from($request->status_id);
-        
-        // Check if user can action the current status
-        if ($user->role === 'staff1' && !$currentStatus->canBeActionedByStaff1()) {
-            return Response::deny('This request cannot be actioned by Staff 1 at this stage.');
-        }
+        // Check if user can action the current request status
+        $transitions = WorkflowTransitionService::getAllowedTransitions();
+        $roleTransitions = $transitions[$user->role] ?? [];
 
-        if ($user->role === 'staff2' && !$currentStatus->canBeActionedByStaff2()) {
-            return Response::deny('This request cannot be actioned by Staff 2 at this stage.');
-        }
-
-        // Dean can approve/reject requests that need dean approval
-        if ($user->role === 'dean' && !$currentStatus->canBeActionedByDean()) {
-            return Response::deny('This request cannot be actioned by Dean at this stage.');
+        // Check if user has any allowed transitions from current status
+        if (!isset($roleTransitions[$request->status_id]) || empty($roleTransitions[$request->status_id])) {
+            return Response::deny('You cannot action this request at its current stage.');
         }
 
         return true;

@@ -15,13 +15,16 @@ class Request extends Model
         'submitter_phone', 'submitter_employee_level',
         'signature_data', 'signed_at', 'submitted_at',
         'staff_notes', 'rejection_reason',
-        'verified_by', 'verified_at', 'recommended_by', 'recommended_at',
-        'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
-        'is_override',
         'revision_count', 'deadline', 'is_priority',
         'staff1_signature_data', 'staff1_signed_at',
         'staff2_signature_data', 'staff2_signed_at',
         'dean_signature_data', 'dean_signed_at',
+    ];
+
+    protected $guarded = [
+        'verified_by', 'verified_at', 'recommended_by', 'recommended_at',
+        'dean_approved_by', 'dean_approved_at', 'dean_notes', 'dean_rejection_reason',
+        'is_override',
     ];
 
     protected $casts = [

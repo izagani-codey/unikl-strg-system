@@ -23,7 +23,7 @@ class UpdateRequestRequest extends FormRequest
     {
         return [
             'request_type_id' => 'required|exists:request_types,id',
-            'description' => 'required|string',
+            'description' => 'required|string|max:500',
             'vot_items' => 'required|array|min:1',
             'vot_items.*.vot_code' => 'required|string|exists:vot_codes,code',
             'vot_items.*.description' => 'required|string|max:255',
@@ -32,18 +32,36 @@ class UpdateRequestRequest extends FormRequest
                 'nullable',
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
-                'mimetypes:application/pdf,image/jpeg,image/png',
                 'max:5120',
             ],
-            'additional_documents' => 'nullable|array',
+            'additional_documents' => 'nullable|array|max:10',
             'additional_documents.*' => [
                 'file',
                 'mimes:pdf,jpg,jpeg,png',
-                'mimetypes:application/pdf,image/jpeg,image/png',
                 'max:5120',
             ],
-            'deadline'    => 'nullable|date',
+            'deadline'    => 'required|date|after:today',
             'signature_data' => 'nullable|string',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'request_type_id.required'        => 'Please select a request type.',
+            'request_type_id.exists'         => 'Selected request type is invalid.',
+            'description.required'            => 'Description is required.',
+            'description.max'                => 'Description must not exceed 500 characters.',
+            'vot_items.required'            => 'At least one VOT item is required.',
+            'vot_items.*.vot_code.required' => 'Each VOT item must have a VOT code.',
+            'vot_items.*.vot_code.exists'  => 'Invalid VOT code selected.',
+            'vot_items.*.description.required' => 'Each VOT item must have a description.',
+            'vot_items.*.description.max'    => 'VOT description must not exceed 255 characters.',
+            'vot_items.*.amount.required'    => 'Each VOT item must have an amount.',
+            'vot_items.*.amount.min'         => 'VOT amount must be zero or greater.',
+            'additional_documents.max'         => 'Maximum 10 additional documents allowed.',
+            'deadline.required'                => 'Deadline is required.',
+            'deadline.after'                  => 'Deadline must be after today.',
         ];
     }
 }

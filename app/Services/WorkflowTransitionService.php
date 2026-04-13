@@ -68,6 +68,7 @@ class WorkflowTransitionService
         return in_array($newStatus->value, $roleTransitions[$request->status_id]);
     }
 
+    
     /**
      * SINGLE ENTRY POINT for ALL workflow transitions
      * Handles: validation, signatures, override, audit, notifications, PDF

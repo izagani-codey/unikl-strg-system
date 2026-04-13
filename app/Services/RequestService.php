@@ -5,9 +5,12 @@ namespace App\Services;
 use App\Enums\RequestStatus;
 use App\Models\AuditLog;
 use App\Models\Comment;
+use App\Models\Document;
 use App\Models\Request as GrantRequest;
+use App\Models\Signature;
 use App\Models\User;
 use App\Repositories\RequestRepository;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -21,37 +24,65 @@ class RequestService
     ) {}
 
     /**
-     * Create a new request.
+     * Create a new request with comprehensive business logic
      */
     public function createRequest(array $data, User $user): GrantRequest
     {
-        $payload = [
-            'amount' => $data['amount'],
-            'description' => $data['description'],
-        ];
+        return DB::transaction(function () use ($data, $user) {
+            // Calculate total amount from VOT items
+            $totalAmount = collect($data['vot_items'])->sum(fn($item) => (float) ($item['amount'] ?? 0));
 
-        $filePath = $this->handleFileUpload($data['document'] ?? null);
+            $payload = [
+                'amount' => $data['amount'] ?? $totalAmount,
+                'description' => $data['description'],
+                'dynamic_fields' => $data['dynamic_fields'] ?? [],
+            ];
 
-        $requestData = [
-            'user_id' => $user->id,
-            'request_type_id' => $data['request_type_id'],
-            'ref_number' => $this->requestRepository->generateReferenceNumber(),
-            'status_id' => RequestStatus::SUBMITTED->value,
-            'payload' => $payload,
-            'file_path' => $filePath,
-            'deadline' => $data['deadline'] ?? null,
-            'is_priority' => $data['priority'] ?? false,
-        ];
+            $filePath = $this->handleFileUpload($data['document'] ?? null);
 
-        $request = $this->requestRepository->create($requestData);
+            $requestData = [
+                'user_id' => $user->id,
+                'request_type_id' => $data['request_type_id'],
+                'ref_number' => $this->requestRepository->generateReferenceNumber(),
+                'status_id' => RequestStatus::SUBMITTED->value,
+                'payload' => $payload,
+                'vot_items' => $data['vot_items'],
+                'total_amount' => $totalAmount,
+                'file_path' => $filePath,
+                'submitter_staff_id' => $user->staff_id,
+                'submitter_designation' => $user->designation,
+                'submitter_department' => $user->department,
+                'submitter_phone' => $user->phone,
+                'submitter_employee_level' => $user->employee_level,
+                'signature_data' => $data['signature_data'],
+                'signed_at' => now(),
+                'submitted_at' => now(),
+                'deadline' => $data['deadline'],
+                'is_priority' => $data['priority'] ?? false,
+            ];
 
-        // Create audit log - WorkflowService handles this now
-        // $this->createAuditLog($request, null, RequestStatus::SUBMITTED, 'Request submitted');
+            $request = $this->requestRepository->create($requestData);
 
-        // Send notification to staff1
-        $this->notificationService->notifyNewRequest($request);
+            // Store additional documents if provided
+            if (isset($data['additional_documents']) && is_array($data['additional_documents'])) {
+                foreach ($data['additional_documents'] as $index => $document) {
+                    if ($document instanceof UploadedFile) {
+                        $this->storeAdditionalDocument($request, $document, $index);
+                    }
+                }
+            }
 
-        return $request;
+            // Store signature in normalized table
+            $this->storeSignature($request, $user, 'applicant', $data['signature_data']);
+
+            // Create audit log - WorkflowService handles this now
+            // $this->createAuditLog($request, null, RequestStatus::SUBMITTED, 'Request submitted');
+
+            // Send notification to staff1
+            $this->notificationService->notifyNewRequest($request);
+
+            return $request;
+        });
     }
 
     /**
@@ -130,6 +161,48 @@ class RequestService
         }
 
         return $file->store('requests', 'public');
+    }
+
+    /**
+     * Store additional document for request
+     */
+    private function storeAdditionalDocument(GrantRequest $request, UploadedFile $document, int $index): void
+    {
+        $filename = "additional_{$index}_" . time() . '.' . $document->getClientOriginalExtension();
+        $path = $document->storeAs('documents', $filename, 'public');
+
+        Document::create([
+            'request_id' => $request->id,
+            'filename' => $document->getClientOriginalName(),
+            'file_path' => $path,
+            'file_type' => "additional_{$index}",
+            'file_size' => $document->getSize(),
+            'mime_type' => $document->getMimeType(),
+        ]);
+    }
+
+    /**
+     * Store signature for request
+     */
+    private function storeSignature(GrantRequest $request, User $user, string $role, string $signatureData): void
+    {
+        // Update legacy field for backward compatibility
+        if ($role === 'applicant') {
+            $request->update(['signature_data' => $signatureData]);
+        }
+
+        // Store in normalized signatures table
+        Signature::updateOrCreate(
+            [
+                'request_id' => $request->id,
+                'role' => $role,
+            ],
+            [
+                'user_id' => $user->id,
+                'signature_path' => $signatureData,
+                'signed_at' => now(),
+            ]
+        );
     }
 
 
