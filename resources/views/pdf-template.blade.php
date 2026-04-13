@@ -6,44 +6,198 @@
     <title>{{ $request->ref_number }} — STRG Request</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 20px; }
+        body { 
+            font-family: 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif; 
+            font-size: 11px; 
+            color: #1a1a1a; 
+            padding: 20px;
+            line-height: 1.4;
+        }
+        
+        @page {
+            margin: 20mm;
+            size: A4;
+        }
 
-        .header { text-align: center; border-bottom: 3px solid #1F3864; padding-bottom: 12px; margin-bottom: 16px; }
-        .header .logo-text { font-size: 18px; font-weight: bold; color: #1F3864; letter-spacing: 1px; }
-        .header .sub { font-size: 10px; color: #555; margin-top: 3px; }
-        .header h1 { font-size: 14px; margin-top: 8px; color: #1F3864; font-weight: bold; }
+        .header { 
+            text-align: center; 
+            border-bottom: 3px solid #1F3864; 
+            padding-bottom: 12px; 
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+        .header .logo-text { 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #1F3864; 
+            letter-spacing: 1px; 
+            font-family: 'Georgia', serif;
+        }
+        .header .sub { 
+            font-size: 10px; 
+            color: #555; 
+            margin-top: 3px;
+            font-style: italic;
+        }
+        .header h1 { 
+            font-size: 14px; 
+            margin-top: 8px; 
+            color: #1F3864; 
+            font-weight: bold;
+        }
 
-        .ref-badge { display: inline-block; background: #1F3864; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; margin: 8px 0; }
+        .ref-badge { 
+            display: inline-block; 
+            background: #1F3864; 
+            color: white; 
+            padding: 4px 12px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+        }
 
-        .section { margin-bottom: 14px; }
-        .section-title { background: #1F3864; color: white; padding: 5px 10px; font-weight: bold; font-size: 11px; margin-bottom: 6px; }
+        .section { 
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+        .section-title { 
+            background: #1F3864; 
+            color: white; 
+            padding: 6px 12px; 
+            font-weight: bold; 
+            font-size: 11px; 
+            margin-bottom: 6px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-        table.info-table { width: 100%; border-collapse: collapse; }
-        table.info-table td { padding: 5px 8px; border: 1px solid #ccc; vertical-align: top; }
-        table.info-table td.label { background: #EEF2FF; font-weight: bold; width: 28%; white-space: nowrap; }
-        table.info-table td.value { width: 22%; }
+        table.info-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 8px;
+        }
+        table.info-table td { 
+            padding: 6px 10px; 
+            border: 1px solid #ccc; 
+            vertical-align: top;
+            font-size: 10px;
+        }
+        table.info-table td.label { 
+            background: #EEF2FF; 
+            font-weight: bold; 
+            width: 28%; 
+            white-space: nowrap;
+            color: #1F3864;
+        }
+        table.info-table td.value { 
+            width: 22%; 
+            word-wrap: break-word;
+        }
 
-        table.vot-table { width: 100%; border-collapse: collapse; }
-        table.vot-table th { background: #1F3864; color: white; padding: 6px 8px; text-align: left; font-size: 10px; }
-        table.vot-table td { padding: 5px 8px; border: 1px solid #ccc; }
+        table.vot-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 8px;
+        }
+        table.vot-table th { 
+            background: #1F3864; 
+            color: white; 
+            padding: 6px 10px; 
+            text-align: left; 
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        table.vot-table td { 
+            padding: 6px 10px; 
+            border: 1px solid #ccc; 
+            font-size: 10px;
+        }
         table.vot-table tr:nth-child(even) td { background: #F0F4FF; }
-        table.vot-table td.amount { text-align: right; }
-        table.vot-table tfoot td { font-weight: bold; background: #DCE6F1; }
+        table.vot-table td.amount { 
+            text-align: right; 
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        table.vot-table tfoot td { 
+            font-weight: bold; 
+            background: #DCE6F1; 
+            font-size: 11px;
+        }
 
-        .description-box { border: 1px solid #ccc; padding: 8px; min-height: 50px; background: #FAFAFA; }
+        .description-box { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            min-height: 60px; 
+            background: #FAFAFA;
+            font-size: 10px;
+            line-height: 1.5;
+            page-break-inside: avoid;
+        }
 
-        .signature-section { margin-top: 16px; border-top: 2px solid #1F3864; padding-top: 12px; }
-        .signature-grid { display: table; width: 100%; }
-        .sig-col { display: table-cell; width: 50%; padding: 0 10px; vertical-align: top; }
-        .sig-box { border: 1px solid #999; min-height: 70px; background: #FAFAFA; text-align: center; padding: 4px; }
-        .sig-img { max-width: 100%; max-height: 65px; }
-        .sig-label { font-size: 9px; color: #666; margin-top: 4px; border-top: 1px solid #999; padding-top: 3px; }
+        .signature-section { 
+            margin-top: 20px; 
+            border-top: 2px solid #1F3864; 
+            padding-top: 16px;
+            page-break-inside: avoid;
+        }
+        .signature-grid { 
+            display: table; 
+            width: 100%; 
+        }
+        .sig-col { 
+            display: table-cell; 
+            width: 50%; 
+            padding: 0 10px; 
+            vertical-align: top;
+        }
+        .sig-box { 
+            border: 1px solid #999; 
+            min-height: 80px; 
+            background: #FAFAFA; 
+            text-align: center; 
+            padding: 6px;
+            border-radius: 2px;
+        }
+        .sig-img { 
+            max-width: 100%; 
+            max-height: 70px;
+            border-radius: 1px;
+        }
+        .sig-label { 
+            font-size: 9px; 
+            color: #666; 
+            margin-top: 6px; 
+            border-top: 1px solid #999; 
+            padding-top: 4px;
+            line-height: 1.3;
+        }
 
-        .footer { margin-top: 20px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #ccc; padding-top: 8px; }
-        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+        .footer { 
+            margin-top: 24px; 
+            text-align: center; 
+            font-size: 9px; 
+            color: #888; 
+            border-top: 1px solid #ccc; 
+            padding-top: 10px;
+            page-break-inside: avoid;
+        }
+        .status-badge { 
+            display: inline-block; 
+            padding: 3px 10px; 
+            border-radius: 3px; 
+            font-size: 10px; 
+            font-weight: bold;
+            text-transform: uppercase;
+        }
         .status-pending { background: #FEF3C7; color: #92400E; }
         .status-approved { background: #D1FAE5; color: #065F46; }
         .status-declined { background: #FEE2E2; color: #991B1B; }
+        .status-returned { background: #E0E7FF; color: #3730A3; }
         
         .template-background {
             position: fixed;
@@ -55,6 +209,14 @@
             opacity: 1;
             object-fit: cover;
             pointer-events: none;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            body { padding: 0; }
+            .section { page-break-inside: avoid; }
+            .signature-section { page-break-inside: avoid; }
+            .footer { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -214,7 +376,7 @@
         <div class="section-title">VERIFICATION TRAIL</div>
         <table class="info-table">
             <tr>
-                <td class="label">Verified By (Staff 1)</td>
+                <td class="label">Verified by Staff 1</td>
                 <td class="value">{{ $request->verifiedBy?->name ?? 'Pending' }}</td>
                 <td class="label">Recommended By (Staff 2)</td>
                 <td class="value">{{ $request->recommendedBy?->name ?? 'Pending' }}</td>
@@ -251,19 +413,7 @@
                 <div class="sig-label">
                     {{ $request->user->name }}<br>
                     {{ $request->submitter_designation ?? $request->user->designation ?? '' }}<br>
-                    Signed: {{ $request->signed_at?->format('d/m/Y H:i') ?? '—' }}
-                </div>
-            </div>
-
-            <div class="sig-col">
-                <strong style="font-size:10px; display:block; margin-bottom:4px;">AUTHORISED OFFICER</strong>
-                <div class="sig-box" style="min-height:70px;">
-                    <span style="color:#aaa; font-size:9px; line-height:65px;">For official use</span>
-                </div>
-                <div class="sig-label">
-                    Name: ____________________________<br>
-                    Designation: ____________________________<br>
-                    Date: ____________________________
+                    Signed: {{ $request->signed_at?->format('d/m/Y H:i') ?? '&mdash;' }}
                 </div>
             </div>
         </div>

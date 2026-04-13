@@ -197,6 +197,17 @@ class Request extends Model
         return (int) now()->diffInDays($this->deadline, false);
     }
 
+    public function shouldLockVotItems(): bool
+    {
+        // Lock VOT items if request has been verified by staff or is further in workflow
+        return in_array($this->status_id, [
+            RequestStatus::STAFF1_APPROVED->value,
+            RequestStatus::STAFF2_APPROVED->value,
+            RequestStatus::DEAN_APPROVED->value,
+            RequestStatus::REJECTED->value,
+        ]);
+    }
+
     // ==========================================
     // Scopes
     // ==========================================

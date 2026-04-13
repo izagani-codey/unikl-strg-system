@@ -474,33 +474,65 @@ public function __construct(
         $grantRequest = GrantRequest::findOrFail($id);
         $this->authorize('addComment', $grantRequest);
 
+        // Determine comment type based on user role
+        $commentType = 'internal';
+        if (Auth::user()->role === 'staff1') {
+            $commentType = 'staff1';
+        } elseif (Auth::user()->role === 'staff2') {
+            $commentType = 'staff2';
+        } elseif (Auth::user()->role === 'dean') {
+            $commentType = 'dean';
+        }
+
         Comment::create([
             'request_id' => $grantRequest->id,
             'user_id' => Auth::id(),
             'content' => $request->input('content'),
             'is_internal' => true,
+            'comment_type' => $commentType,
             'created_at' => now(),
         ]);
 
-        $this->notificationService->sendRoleNotification(
-            'staff1',
-            'New Internal Comment',
-            'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
-            route('requests.show', $grantRequest->id) . '#comments'
-        );
+        // Send notifications based on request stage and commenter role
+        $currentStatus = RequestStatus::from($grantRequest->status_id);
+        $commenter = Auth::user();
 
-        $this->notificationService->sendRoleNotification(
-            'staff2',
-            'New Internal Comment',
-            'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
-            route('requests.show', $grantRequest->id) . '#comments'
-        );
+        // If Staff 1 commented, notify Staff 2 if request is at Staff 2 stage or beyond
+        if ($commenter->role === 'staff1' && $currentStatus->canBeActionedByStaff2()) {
+            $this->notificationService->sendRoleNotification(
+                'staff2',
+                'New Internal Comment',
+                'Staff 1 added a comment to request ' . $grantRequest->ref_number . '.',
+                route('requests.show', $grantRequest->id) . '#comments'
+            );
+        }
 
-        if ($grantRequest->status_id === RequestStatus::STAFF2_APPROVED->value) {
+        // If Staff 2 commented, notify Staff 1 if request is at Staff 1 stage
+        if ($commenter->role === 'staff2' && $currentStatus->canBeActionedByStaff1()) {
+            $this->notificationService->sendRoleNotification(
+                'staff1',
+                'New Internal Comment',
+                'Staff 2 added a comment to request ' . $grantRequest->ref_number . '.',
+                route('requests.show', $grantRequest->id) . '#comments'
+            );
+        }
+
+        // If Staff 2 commented and request is at Dean stage, notify Dean
+        if ($commenter->role === 'staff2' && $currentStatus->canBeActionedByDean()) {
             $this->notificationService->sendRoleNotification(
                 'dean',
                 'New Internal Comment',
-                'A new internal comment was added to request ' . $grantRequest->ref_number . '.',
+                'Staff 2 added a comment to request ' . $grantRequest->ref_number . '.',
+                route('requests.show', $grantRequest->id) . '#comments'
+            );
+        }
+
+        // If Dean commented, notify Staff 2 if request is still active
+        if ($commenter->role === 'dean' && !$currentStatus->isFinal()) {
+            $this->notificationService->sendRoleNotification(
+                'staff2',
+                'New Internal Comment',
+                'Dean added a comment to request ' . $grantRequest->ref_number . '.',
                 route('requests.show', $grantRequest->id) . '#comments'
             );
         }
@@ -551,7 +583,7 @@ public function __construct(
         $targetDate = Carbon::parse($deadline);
         $daysUntilDeadline = now()->diffInDays($targetDate, false);
 
-        return $daysUntilDeadline >= 0 && $daysUntilDeadline <= 5;
+        return $daysUntilDeadline >= 0 && $daysUntilDeadline <= 3;
     }
    
  public function viewGeneratedPdf($id)
@@ -573,4 +605,4 @@ public function __construct(
     );
 }
 
-
+}

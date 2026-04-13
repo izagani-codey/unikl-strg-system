@@ -12,6 +12,11 @@ class Staff2AdminController extends BaseController
 {
     public function index()
     {
+        // Authorization check - allow both admin and staff2 for backward compatibility
+        if (!auth()->user()->canAccessAdminPanel() && !auth()->user()->isStaff2()) {
+            abort(403, 'Unauthorized access to admin panel');
+        }
+
         // System Stats
         $totalRequests = GrantRequest::count();
         $submitted = GrantRequest::where('status_id', RequestStatus::SUBMITTED->value)->count();

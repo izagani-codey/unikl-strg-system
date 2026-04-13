@@ -50,31 +50,107 @@
 
                     {{-- VOT Items --}}
                     <div class="mb-4">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">VOT Breakdown</label>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            VOT Breakdown
+                            @if($grantRequest->shouldLockVotItems())
+                                <span class="text-xs text-orange-600 ml-2">Locked - VOT items cannot be modified after verification</span>
+                            @endif
+                        </label>
                         @php
                             $votCodes = \App\Models\VotCode::active()->ordered()->get();
                             $existingItems = collect($grantRequest->vot_items ?? [])->values();
                             if ($existingItems->isEmpty()) {
                                 $existingItems = collect([['vot_code' => '', 'description' => '', 'amount' => 0]]);
                             }
+                            $lockVotItems = $grantRequest->shouldLockVotItems();
                         @endphp
                         <div id="edit-vot-items" class="space-y-3">
                             @foreach($existingItems as $i => $item)
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 rounded border">
-                                    <select name="vot_items[{{ $i }}][vot_code]" class="rounded border-gray-300" required>
-                                        <option value="">Select VOT code</option>
-                                        @foreach($votCodes as $votCode)
-                                            <option value="{{ $votCode->code }}" @selected(($item['vot_code'] ?? '') === $votCode->code)>
-                                                {{ $votCode->code }} - {{ $votCode->description }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <input type="text" name="vot_items[{{ $i }}][description]" value="{{ $item['description'] ?? '' }}" class="rounded border-gray-300" required>
-                                    <input type="number" step="0.01" min="0" name="vot_items[{{ $i }}][amount]" value="{{ $item['amount'] ?? 0 }}" class="rounded border-gray-300" required>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 {{ $lockVotItems ? 'bg-orange-50 border-orange-200' : 'bg-gray-50' }} rounded border">
+                                    @if($lockVotItems)
+                                        <div class="text-sm font-medium text-gray-700">
+                                            {{ $item['vot_code'] ?? 'N/A' }}
+                                        </div>
+                                        <div class="text-sm text-gray-600">
+                                            {{ $item['description'] ?? 'N/A' }}
+                                        </div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            RM {{ number_format($item['amount'] ?? 0, 2) }}
+                                        </div>
+                                        @if(!empty($item['vot_code']))
+                                            <input type="hidden" name="vot_items[{{ $i }}][vot_code]" value="{{ $item['vot_code'] }}">
+                                            <input type="hidden" name="vot_items[{{ $i }}][description]" value="{{ $item['description'] }}">
+                                            <input type="hidden" name="vot_items[{{ $i }}][amount]" value="{{ $item['amount'] }}">
+                                        @endif
+                                    @else
+                                        <select name="vot_items[{{ $i }}][vot_code]" class="rounded border-gray-300" required>
+                                            <option value="">Select VOT code</option>
+                                            @foreach($votCodes as $votCode)
+                                                <option value="{{ $votCode->code }}" @selected(($item['vot_code'] ?? '') === $votCode->code)>
+                                                    {{ $votCode->code }} - {{ $votCode->description }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <input type="text" name="vot_items[{{ $i }}][description]" value="{{ $item['description'] ?? '' }}" class="rounded border-gray-300" required>
+                                        <input type="number" step="0.01" min="0" name="vot_items[{{ $i }}][amount]" value="{{ $item['amount'] ?? 0 }}" class="rounded border-gray-300" required>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
+                        @if($lockVotItems)
+                            <p class="text-xs text-orange-600 mt-2">
+                                <strong>Note:</strong> VOT items are locked because this request has already been verified. You can only modify other fields like description, deadline, and additional documents.
+                            </p>
+                        @endif
                     </div>
+
+                    {{-- Dynamic Fields --}}
+                    @if($grantRequest->requestType && $grantRequest->requestType->field_schema)
+                        @php
+                            $dynamicFields = $grantRequest->requestType->field_schema;
+                            $dynamicValues = $grantRequest->payload['dynamic_fields'] ?? [];
+                        @endphp
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                Additional Information
+                            </label>
+                            <div class="space-y-3">
+                                @foreach($dynamicFields as $index => $field)
+                                    @php
+                                        $fieldKey = $field['name'] ?? $field['id'] ?? 'field_' . $index;
+                                        $fieldValue = $dynamicValues[$fieldKey] ?? ($field['default'] ?? '');
+                                    @endphp
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">
+                                            {{ $field['label'] ?? $field['name'] }}
+                                            @if($field['required'] ?? false) <span class="text-red-500">*</span> @endif
+                                        </label>
+                                        @if($field['type'] === 'textarea')
+                                            <textarea name="dynamic_fields[{{ $fieldKey }}]"
+                                                      rows="3"
+                                                      class="w-full rounded border-gray-300 text-sm"
+                                                      @if($field['required'] ?? false) required @endif>{{ $fieldValue }}</textarea>
+                                        @elseif($field['type'] === 'select')
+                                            <select name="dynamic_fields[{{ $fieldKey }}]"
+                                                    class="w-full rounded border-gray-300 text-sm"
+                                                    @if($field['required'] ?? false) required @endif>
+                                                <option value="">Select...</option>
+                                                @foreach($field['options'] ?? [] as $option)
+                                                    <option value="{{ $option }}" @selected($fieldValue === $option)>{{ $option }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <input type="text"
+                                                   name="dynamic_fields[{{ $fieldKey }}]"
+                                                   value="{{ $fieldValue }}"
+                                                   class="w-full rounded border-gray-300 text-sm"
+                                                   @if($field['required'] ?? false) required @endif>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Description --}}
                     <div class="mb-4">

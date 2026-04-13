@@ -14,7 +14,24 @@ class DeanController extends BaseController
 {
     public function dashboard()
     {
-        return redirect()->route('dashboard');
+        // Calculate Dean-specific stats
+        $stats = [
+            'pending_dean' => \App\Models\Request::where('status_id', \App\Enums\RequestStatus::STAFF2_APPROVED->value)->count(),
+            'approved_this_month' => \App\Models\Request::where('status_id', \App\Enums\RequestStatus::DEAN_APPROVED->value)
+                ->whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)->count(),
+            'declined_this_month' => \App\Models\Request::where('status_id', \App\Enums\RequestStatus::REJECTED->value)
+                ->whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)->count(),
+            'total_approved' => \App\Models\Request::where('status_id', \App\Enums\RequestStatus::DEAN_APPROVED->value)->count(),
+        ];
+        
+        $pendingRequests = \App\Models\Request::where('status_id', \App\Enums\RequestStatus::STAFF2_APPROVED->value)
+            ->with(['user', 'requestType'])
+            ->latest()
+            ->get();
+        
+        return view('dean.dashboard', compact('stats', 'pendingRequests'));
     }
 
     public function requests()

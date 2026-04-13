@@ -29,8 +29,43 @@ class User extends Authenticatable
     public function isAdmission(): bool { return $this->role === 'admission'; }
     public function isStaff1(): bool    { return $this->role === 'staff1'; }
     public function isStaff2(): bool    { return $this->role === 'staff2'; }
+    public function isAdmin(): bool     { return $this->role === 'admin'; }
     public function isDean(): bool      { return $this->role === 'dean'; }
     public function isAdmissions(): bool { return $this->isAdmission(); }
+
+    // ==========================================
+    // Permission helpers
+    // ==========================================
+
+    public function canAccessAdminPanel(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canManageRequestTypes(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canManageTemplates(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canExportData(): bool
+    {
+        return $this->isAdmin() || $this->isStaff2();
+    }
+
+    public function canOverrideRequests(): bool
+    {
+        return $this->isStaff2(); // Staff 2 keeps override capabilities
+    }
 
     // ==========================================
     // Profile helpers

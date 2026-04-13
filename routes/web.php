@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
     // ── All roles — view requests ─────────────────────────────────────────────
     Route::get('/requests/{id}/print', [RequestController::class, 'printSummary'])->name('requests.print');
     Route::get('/requests/{id}/pdf', [RequestController::class, 'downloadPdf'])->name('requests.pdf');
+    Route::get('/requests/{id}/pdf/view', [RequestController::class, 'viewGeneratedPdf'])->name('requests.pdf.view');
     // Backward-compatible alias for older view references.
     Route::get('/requests/{id}/download-pdf', [RequestController::class, 'downloadPdf'])->name('requests.downloadPdf');
     Route::get('/requests/{id}/document', [RequestController::class, 'showMainDocument'])->name('requests.document.main');
@@ -95,8 +96,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dean/requests/{id}', [DeanController::class, 'show'])->name('dean.requests.show');
         Route::post('/dean/requests/{id}/approve', [DeanController::class, 'approve'])->name('dean.requests.approve');
         Route::post('/dean/requests/{id}/reject', [DeanController::class, 'reject'])->name('dean.requests.reject');
-        Route::post('/dean/requests/{id}/return-staff1', [DeanController::class, 'returnRequest']);
-Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'returnRequest']);
+        Route::post('/dean/requests/{id}/return', [DeanController::class, 'returnRequest'])->name('dean.requests.return');
     });
 
     // ── Dean Routes (feature-flagged) ─────────────────────────────────────────
@@ -106,23 +106,39 @@ Route::post('/dean/requests/{id}/return-staff2', [DeanController::class, 'return
         });
     }
 
-    // ── Staff 2 Admin Panel ──────────────────────────────────────────────────────────
-    Route::middleware('role:staff2')->group(function () {
+    // ── Admin Panel (Admin role only)
+    Route::middleware('role:admin')->group(function () {
         // Admin panel
-        Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
-        Route::get('/staff2/admin/users', [Staff2AdminController::class, 'users'])->name('staff2.admin.users');
-        Route::get('/staff2/admin/request-types', [Staff2AdminController::class, 'requestTypes'])->name('staff2.admin.request-types');
-        Route::get('/staff2/deployment-playbook', [Staff2AdminController::class, 'deploymentPlaybook'])->name('staff2.deployment-playbook');
-        Route::post('/staff2/admin/request-types', [Staff2AdminController::class, 'storeRequestType'])->name('staff2.admin.request-types.store');
-        Route::put('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'updateRequestType'])->name('staff2.admin.request-types.update');
-        Route::delete('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'destroyRequestType'])->name('staff2.admin.request-types.destroy');
-
-        // Excel export (replaces CSV)
-        Route::get('/staff2/requests/export', [RequestController::class, 'exportExcel'])->name('requests.exportExcel');
+        Route::get('/admin/dashboard', [Staff2AdminController::class, 'index'])->name('admin.dashboard');
+        Route::get('/admin/users', [Staff2AdminController::class, 'users'])->name('admin.users');
+        Route::get('/admin/request-types', [Staff2AdminController::class, 'requestTypes'])->name('admin.request-types');
+        Route::get('/admin/deployment-playbook', [Staff2AdminController::class, 'deploymentPlaybook'])->name('admin.deployment-playbook');
+        Route::post('/admin/request-types', [Staff2AdminController::class, 'storeRequestType'])->name('admin.request-types.store');
+        Route::put('/admin/request-types/{id}', [Staff2AdminController::class, 'updateRequestType'])->name('admin.request-types.update');
+        Route::delete('/admin/request-types/{id}', [Staff2AdminController::class, 'destroyRequestType'])->name('admin.request-types.destroy');
 
         // Form templates
         Route::post('/form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
         Route::delete('/form-templates/{id}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
+    });
+
+    // Staff 2 Routes (workflow only)
+    Route::middleware('role:staff2')->group(function () {
+        // Staff 2 specific routes only
+    });
+
+    // Admin & Staff 2 shared routes
+    Route::middleware('role:admin,staff2')->group(function () {
+        // Excel export (shared with admin)
+        Route::get('/staff2/requests/export', [RequestController::class, 'exportExcel'])->name('requests.exportExcel');
+        
+        // Legacy routes for backward compatibility
+        Route::get('/staff2/admin-panel', [Staff2AdminController::class, 'index'])->name('staff2.admin');
+        Route::get('/staff2/admin/users', [Staff2AdminController::class, 'users'])->name('staff2.admin.users');
+        Route::get('/staff2/admin/request-types', [Staff2AdminController::class, 'requestTypes'])->name('staff2.admin.request-types');
+        Route::post('/staff2/admin/request-types', [Staff2AdminController::class, 'storeRequestType'])->name('staff2.admin.request-types.store');
+        Route::put('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'updateRequestType'])->name('staff2.admin.request-types.update');
+        Route::delete('/staff2/admin/request-types/{id}', [Staff2AdminController::class, 'destroyRequestType'])->name('staff2.admin.request-types.destroy');
     });
 });
 

@@ -283,14 +283,16 @@
 
             {{-- Verification Queue Table --}}
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h3 class="text-xl font-bold text-gray-900">Verification Queue</h3>
                     <div class="flex items-center space-x-2 text-sm text-gray-600">
                         <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
                         <span>{{ $myQueue }} pending</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
+                
+                <!-- Desktop Table View -->
+                <div class="hidden lg:block overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -305,7 +307,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($displayRequests as $request)
-                                <tr>
+                                <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {{ $request->ref_number }}
                                     </td>
@@ -358,6 +360,58 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Mobile Card View -->
+                <div class="lg:hidden p-4 space-y-3">
+                    @forelse($displayRequests as $request)
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">{{ $request->ref_number }}</h4>
+                                    <p class="text-sm text-gray-600">{{ $request->user->name }}</p>
+                                    <p class="text-xs text-gray-500">{{ $request->requestType->name }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $request->statusClass() }}">
+                                        {{ $request->statusLabel() }}
+                                    </span>
+                                    @if($request->is_priority)
+                                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                            Priority
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm text-gray-500">
+                                    @if($request->deadline)
+                                        <span class="inline-flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            {{ $request->deadline->format('d M Y') }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">No deadline</span>
+                                    @endif
+                                </div>
+                                <a href="{{ route('requests.show', $request->id) }}" 
+                                   class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors">
+                                    Review
+                                </a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-12">
+                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No requests in queue</h3>
+                            <p class="text-gray-600">All caught up! New requests will appear here.</p>
+                        </div>
+                    @endforelse
                 </div>
                 
                 @if($displayRequests->hasPages())

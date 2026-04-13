@@ -1,66 +1,126 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Dean Dashboard</h1>
-                <p class="text-gray-600 mt-1">Review and approve pending requests</p>
-            </div>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Dean Dashboard
+            </h2>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                </svg>
+                Dean
+            </span>
         </div>
     </x-slot>
-<div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Dean Dashboard</h1>
-            <p class="text-gray-600 mt-2">Review and approve pending requests</p>
-        </div>
 
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+
+            @include('dashboard._dev-switcher')
+
+            @if(session('success'))
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 px-6 py-4 rounded-xl shadow-sm flex items-center">
+                    <svg class="w-5 h-5 mr-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- Urgent Deadlines Alert --}}
+            @if($urgentRequests->count() > 0)
+                <div class="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-2xl p-6 shadow-lg">
+                    <div class="flex items-start">
+                        <div class="bg-red-100 rounded-full p-3 mr-4">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-red-900 mb-2">Urgent: Deadlines within 3 days</h3>
+                            <p class="text-red-700 text-sm mb-4">These requests require immediate attention:</p>
+                            <div class="space-y-2">
+                                @foreach($urgentRequests as $urgent)
+                                    <a href="{{ route('requests.show', $urgent->id) }}"
+                                       class="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200 hover:bg-red-50 transition-colors">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="font-semibold text-gray-900">{{ $urgent->ref_number }}</span>
+                                            <span class="text-sm text-gray-600">{{ $urgent->requestType->name }}</span>
+                                            <span class="text-sm text-gray-500">from {{ $urgent->user->name }}</span>
+                                        </div>
+                                        <span class="text-sm font-bold text-red-600 bg-red-100 px-2 py-1 rounded">
+                                            {{ $urgent->daysUntilDeadline() }} days left
+                                        </span>
+                                    </a>
+                                @endforeach
+                            </div>
+                            @if($urgentRequests->count() > 3)
+                                <div class="mt-4 text-center">
+                                    <a href="{{ route('dashboard') }}?urgent=1" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        View all {{ $urgentRequests->count() }} urgent requests
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-purple-600">Pending Dean</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $stats['pending_dean'] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-purple-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Pending Approval</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['pending_dean'] }}</p>
-                    </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-green-600">Approved</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $stats['approved'] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-green-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Approved This Month</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['approved_this_month'] }}</p>
-                    </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <div class="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-red-600">Rejected</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $stats['rejected'] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-red-100 rounded-full p-3">
                             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Declined This Month</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $stats['declined_this_month'] }}</p>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-blue-600">Total</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $stats['total'] ?? 0 }}</p>
+                        </div>
+                        <div class="bg-blue-100 rounded-full p-3">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>

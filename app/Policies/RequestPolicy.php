@@ -108,8 +108,8 @@ class RequestPolicy
             if ($currentStatus->isFinal()) {
                 return false;
             }
-            // Staff 2 can comment on any active request (override)
-            return true;
+            // Staff 2 can only comment on requests they can action or override
+            return $currentStatus->canBeActionedByStaff2();
         }
 
         // Dean can comment on requests they can action

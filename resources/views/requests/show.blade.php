@@ -698,31 +698,129 @@
             {{-- Comments (Staff only) --}}
             @if(auth()->user()->role !== 'admission')
             <div class="bg-white shadow-sm rounded-lg p-6">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Internal Comments</h3>
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Staff Comments</h3>
 
-                @forelse($grantRequest->comments as $comment)
-                    <div class="mb-3 p-3 bg-gray-50 rounded border">
-                        <p class="text-xs text-gray-500 mb-1">
-                            <span class="font-bold">{{ $comment->user->name }}</span>
-                            · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
-                        </p>
-                        <p class="text-sm">{{ $comment->content }}</p>
+                {{-- Staff Comments by Role --}}
+                @php
+                    $staff1Comments = $grantRequest->comments->filter(fn($c) => $c->isStaff1Comment());
+                    $staff2Comments = $grantRequest->comments->filter(fn($c) => $c->isStaff2Comment());
+                    $deanComments = $grantRequest->comments->filter(fn($c) => $c->isDeanComment());
+                    $internalComments = $grantRequest->comments->filter(fn($c) => $c->isInternalComment());
+                @endphp
+
+                {{-- Staff 1 Comments --}}
+                @if($staff1Comments->count() > 0)
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-blue-700 mb-3 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Staff 1 Notes
+                        </h4>
+                        @foreach($staff1Comments as $comment)
+                            <div class="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
+                                <p class="text-xs text-blue-600 mb-1">
+                                    <span class="font-bold">{{ $comment->user->name }}</span>
+                                    <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">Staff 1</span>
+                                    · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
+                                </p>
+                                <p class="text-sm text-gray-700">{{ $comment->content }}</p>
+                            </div>
+                        @endforeach
                     </div>
-                @empty
-                    <p class="text-gray-400 italic text-sm">No comments yet.</p>
-                @endforelse
+                @endif
+
+                {{-- Staff 2 Comments --}}
+                @if($staff2Comments->count() > 0)
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-purple-700 mb-3 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Staff 2 Notes
+                        </h4>
+                        @foreach($staff2Comments as $comment)
+                            <div class="mb-3 p-3 bg-purple-50 rounded border border-purple-200">
+                                <p class="text-xs text-purple-600 mb-1">
+                                    <span class="font-bold">{{ $comment->user->name }}</span>
+                                    <span class="ml-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">Staff 2</span>
+                                    · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
+                                </p>
+                                <p class="text-sm text-gray-700">{{ $comment->content }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Dean Comments --}}
+                @if($deanComments->count() > 0)
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-green-700 mb-3 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            Dean Notes
+                        </h4>
+                        @foreach($deanComments as $comment)
+                            <div class="mb-3 p-3 bg-green-50 rounded border border-green-200">
+                                <p class="text-xs text-green-600 mb-1">
+                                    <span class="font-bold">{{ $comment->user->name }}</span>
+                                    <span class="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Dean</span>
+                                    · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
+                                </p>
+                                <p class="text-sm text-gray-700">{{ $comment->content }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Internal Comments --}}
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-700 mb-3 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        Internal Comments
+                    </h4>
+                    @forelse($internalComments as $comment)
+                        <div class="mb-3 p-3 bg-gray-50 rounded border">
+                            <p class="text-xs text-gray-500 mb-1">
+                                <span class="font-bold">{{ $comment->user->name }}</span>
+                                <span class="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">{{ $comment->user->role }}</span>
+                                · {{ \Carbon\Carbon::parse($comment->created_at)->format('d M Y, h:i A') }}
+                            </p>
+                            <p class="text-sm">{{ $comment->content }}</p>
+                        </div>
+                    @empty
+                        @if($staff1Comments->count() === 0 && $staff2Comments->count() === 0 && $deanComments->count() === 0)
+                            <p class="text-gray-400 italic text-sm">No comments yet.</p>
+                        @endif
+                    @endforelse
+                </div>
 
                 @can('addComment', $grantRequest)
-                    <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
-                        @csrf
-                        <textarea name="content" rows="2" placeholder="Leave an internal comment for the review team..."
-                            class="w-full border rounded p-2 text-sm"></textarea>
-                        <button type="submit"
-                            class="mt-2 bg-gray-700 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-800">
-                            Post Comment
-                        </button>
-                    </form>
-                @endcan
+                    <div class="border-t pt-4">
+                        @if(auth()->user()->role === 'staff1')
+                            <p class="text-sm text-blue-600 mb-2">You're posting a Staff 1 Note (visible to all staff)</p>
+                        @elseif(auth()->user()->role === 'staff2')
+                            <p class="text-sm text-purple-600 mb-2">You're posting a Staff 2 Note (visible to all staff)</p>
+                        @elseif(auth()->user()->role === 'dean')
+                            <p class="text-sm text-green-600 mb-2">You're posting a Dean Note (visible to all staff)</p>
+                        @else
+                            <p class="text-sm text-gray-600 mb-2">You're posting an Internal Comment (visible to all staff)</p>
+                        @endif
+                        <form action="{{ route('requests.comment', $grantRequest->id) }}" method="POST" class="mt-4" onsubmit="return handleFormSubmit(this, 'Posting comment...')">
+                            @csrf
+                            <textarea name="content" rows="2" 
+                                placeholder="{{ auth()->user()->role === 'staff1' ? 'Leave a Staff 1 note for the review team...' : (auth()->user()->role === 'staff2' ? 'Leave a Staff 2 note for the review team...' : (auth()->user()->role === 'dean' ? 'Leave a Dean note for the review team...' : 'Leave an internal comment for the review team...')) }}"
+                                class="w-full border rounded p-2 text-sm"></textarea>
+                            <button type="submit"
+                                class="mt-2 {{ auth()->user()->role === 'staff1' ? 'bg-blue-600 hover:bg-blue-700' : (auth()->user()->role === 'staff2' ? 'bg-purple-600 hover:bg-purple-700' : (auth()->user()->role === 'dean' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-800')) }} text-white px-4 py-2 rounded text-sm font-bold transition-colors">
+                                {{ auth()->user()->role === 'staff1' ? 'Post Staff 1 Note' : (auth()->user()->role === 'staff2' ? 'Post Staff 2 Note' : (auth()->user()->role === 'dean' ? 'Post Dean Note' : 'Post Comment')) }}
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
             @endif
 

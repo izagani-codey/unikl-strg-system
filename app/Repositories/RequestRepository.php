@@ -97,6 +97,7 @@ class RequestRepository extends BaseRepository
         }
 
         return $this->newQuery()
+            ->where('deadline', '>=', now())
             ->where('deadline', '<=', now()->addDays(3))
             ->whereNotIn('status_id', [
                 RequestStatus::DEAN_APPROVED->value,

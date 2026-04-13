@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\RequestStatus;
 use App\Models\Request as GrantRequest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRequestRequest extends FormRequest
 {
@@ -21,8 +22,22 @@ class UpdateRequestRequest extends FormRequest
 
     public function rules(): array
     {
+        $request = $this->route('id');
+        $grantRequest = \App\Models\Request::find($request);
+        
         return [
-            'request_type_id' => 'required|exists:request_types,id',
+            'request_type_id' => [
+                'required',
+                Rule::exists('request_types', 'id')->where(function ($query) use ($grantRequest) {
+                    // Allow the original request type even if it's been disabled
+                    if ($grantRequest) {
+                        $query->where('id', $grantRequest->request_type_id)
+                              ->orWhere('is_active', true);
+                    } else {
+                        $query->where('is_active', true);
+                    }
+                }),
+            ],
             'description' => 'required|string|max:500',
             'vot_items' => 'required|array|min:1',
             'vot_items.*.vot_code' => 'required|string|exists:vot_codes,code',
