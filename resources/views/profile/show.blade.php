@@ -214,58 +214,43 @@
 <script>
 function saveProfile() {
     const form = document.getElementById('profileForm');
-    const formData = new FormData(form);
-    
-    // Show loading state
     const saveButton = document.querySelector('button[onclick="saveProfile()"]');
-    const originalText = saveButton.innerHTML;
-    saveButton.innerHTML = '<svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Saving...';
+    const originalHTML = saveButton.innerHTML;
+
+    saveButton.innerHTML = 'Saving...';
     saveButton.disabled = true;
-    
+
+    const fd = new FormData(form);
+    fd.append('_method', 'PATCH');
+
+    // pull in the other profile fields from the professional info section
+    const inputs = document.querySelectorAll('[name="designation"],[name="department"],[name="phone"],[name="employee_level"]');
+    inputs.forEach(input => fd.set(input.name, input.value));
+
     fetch('{{ route("profile.update") }}', {
         method: 'POST',
-        body: formData,
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'text/html',
+            'Accept': 'application/json',
         },
+        body: fd,
     })
-    .then(response => response.text())
-    .then(html => {
-        // Create a temporary element to parse the response
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
-        
-        // Check for success message
-        const successMessage = temp.querySelector('.bg-green-50, .text-green-600');
-        if (successMessage) {
-            // Show success notification
+    .then(response => {
+        if (response.ok) {
             showNotification('Profile updated successfully!', 'success');
-            
-            // Reload page after a short delay to show updated data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            setTimeout(() => window.location.reload(), 1500);
         } else {
-            // Check for errors
-            const errorElements = temp.querySelector('.text-red-600, .bg-red-50');
-            if (errorElements) {
-                showNotification('Please fix the errors in the form.', 'error');
-            } else {
-                showNotification('Profile updated successfully!', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            }
+            return response.json().then(data => {
+                const messages = data.errors
+                    ? Object.values(data.errors).flat().join('\n')
+                    : (data.message || 'Something went wrong.');
+                showNotification(messages, 'error');
+            });
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('An error occurred while saving your profile.', 'error');
-    })
+    .catch(() => showNotification('Network error. Please try again.', 'error'))
     .finally(() => {
-        // Restore button state
-        saveButton.innerHTML = originalText;
+        saveButton.innerHTML = originalHTML;
         saveButton.disabled = false;
     });
 }

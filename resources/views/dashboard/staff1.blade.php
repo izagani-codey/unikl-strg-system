@@ -144,7 +144,7 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-orange-600 truncate">Staff 2 Approved</dt>
+                                <dt class="text-sm font-medium text-orange-600 truncate">Sent to Staff 2</dt>
                                 <dd class="mt-1 text-3xl font-bold text-orange-900">{{ $dashboardStats['staff1_approved'] }}</dd>
                             </dl>
                         </div>

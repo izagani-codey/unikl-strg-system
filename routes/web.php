@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/requests/{id}', [RequestController::class, 'show'])->name('requests.show');
     Route::get('/requests/{id}/edit', [RequestController::class, 'edit'])->name('requests.edit');
     Route::patch('/requests/{id}', [RequestController::class, 'update'])->name('requests.update');
+    Route::get('/requests/{id}/pdf/inline', [RequestController::class, 'viewGeneratedPdf'])
+    ->name('requests.pdf.inline');
 
     // ── Staff 1 + 2 + Dean ──────────────────────────────────────────────────────────
     Route::middleware('role:staff1,staff2,dean')->group(function () {

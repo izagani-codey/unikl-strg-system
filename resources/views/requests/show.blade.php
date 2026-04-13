@@ -244,28 +244,33 @@
             </div>
 
             {{-- General Form (Generated PDF) --}}
-            @php
-                $latestTemplateUsage = $grantRequest->templateUsages->first();
-            @endphp
-            <div class="bg-white shadow-sm rounded-lg p-6">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">General Form</h3>
-                <p class="text-sm text-gray-600 mb-3">
-                    This is the generated general form based on the selected template and latest request data.
-                </p>
-                <a href="{{ route('requests.downloadPdf', $grantRequest->id) }}"
-                   class="inline-block text-blue-600 hover:underline text-sm font-semibold break-all">
-                    ↗ Generate & download latest general form
-                </a>
-                @if($latestTemplateUsage && !empty($latestTemplateUsage->generated_file_path))
-                    <div class="mt-2">
-                        <a href="{{ asset('storage/' . $latestTemplateUsage->generated_file_path) }}"
-                           target="_blank"
-                           class="inline-block text-xs text-gray-500 hover:underline break-all">
-                            View previously generated copy
-                        </a>
-                    </div>
-                @endif
-            </div>
+           {{-- General Form (Generated PDF) --}}
+@php
+    $latestTemplateUsage = $grantRequest->templateUsages->first();
+@endphp
+<div class="bg-white shadow-sm rounded-lg p-6">
+    <h3 class="font-bold text-lg mb-4 border-b pb-2">General Form</h3>
+    <p class="text-sm text-gray-600 mb-3">
+        System-generated form based on the selected template and latest request data.
+    </p>
+
+    {{-- Inline PDF viewer --}}
+    <div class="border border-gray-200 rounded-lg overflow-hidden mb-3" style="height: 500px;">
+        <iframe 
+            src="{{ route('requests.pdf.inline', $grantRequest->id) }}"
+            class="w-full h-full"
+            title="Generated form preview">
+        </iframe>
+    </div>
+
+    <a href="{{ route('requests.downloadPdf', $grantRequest->id) }}"
+       class="inline-flex items-center text-blue-600 hover:underline text-sm font-semibold">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Download PDF
+    </a>
+</div>
 
             {{-- Main Uploaded Document --}}
             <div class="bg-white shadow-sm rounded-lg p-6">
@@ -668,7 +673,7 @@
                                 
                                 <button type="submit" 
                                     class="{{ $grantRequest->is_priority ? 'bg-gray-600 hover:bg-gray-700' : 'bg-orange-600 hover:bg-orange-700' }} text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-                                    onclick="return confirm('Are you sure you want to ' . ($grantRequest->is_priority ? 'remove' : 'set') . ' high priority for this request?')">
+                                    onclick="return confirm('Are you sure you want to {{ $grantRequest->is_priority ? 'remove' : 'set' }} high priority for this request?')">
                                     {{ $grantRequest->is_priority ? '🔻 Remove Priority' : '🔺 Set High Priority' }}
                                 </button>
                                 

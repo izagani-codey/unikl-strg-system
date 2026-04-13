@@ -554,8 +554,23 @@ public function __construct(
         return $daysUntilDeadline >= 0 && $daysUntilDeadline <= 5;
     }
    
- 
-        
-    }
+ public function viewGeneratedPdf($id)
+{
+    $grantRequest = GrantRequest::with([
+        'user', 'requestType', 'verifiedBy', 'recommendedBy', 'deanApprovedBy', 'signatures',
+    ])->findOrFail($id);
+
+    $this->authorize('print', $grantRequest);
+
+    $template = $grantRequest->requestType?->getDefaultTemplate();
+    $generatedPath = RequestPdfService::generate($grantRequest, $template);
+
+    return Storage::disk('public')->response(
+        $generatedPath,
+        basename($generatedPath),
+        ['Content-Type' => 'application/pdf'],
+        'inline'
+    );
+}
 
 

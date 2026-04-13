@@ -136,7 +136,8 @@ class Request extends Model
     public function isUrgent(): bool
     {
         if (!$this->deadline) return false;
-        return $this->deadline->diffInDays(now()) <= 3 && $this->deadline->isFuture();
+        $days = now()->diffInDays($this->deadline, false);
+        return $days >= 0 && $days <= 3;
     }
 
     public function priorityLabel(): string
@@ -158,8 +159,8 @@ class Request extends Model
     public function isAutoHighPriority(): bool
     {
         if (!$this->deadline) return false;
-        $daysUntil = $this->daysUntilDeadline();
-        return $daysUntil !== null && $daysUntil <= 5 && $daysUntil > 3;
+        $days = now()->diffInDays($this->deadline,false);
+        return $days > 3 && $days <= 5;
     }
 
     public function calculateAutoPriority(): void
@@ -192,7 +193,8 @@ class Request extends Model
 
     public function daysUntilDeadline(): ?int
     {
-        return $this->deadline?->diffInDays(now());
+        if (!$this->deadline) return null;
+        return (int) now()->diffInDays($this->deadline, false);
     }
 
     // ==========================================

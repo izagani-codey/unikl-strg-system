@@ -378,7 +378,7 @@
                                         {{ $request->requestType->name }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        RM {{ number_format($request->payload['amount'] ?? 0, 2) }}
+                                        RM {{ number_format($request->total_amount ?? 0, 2) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         @if($request->verifiedBy)

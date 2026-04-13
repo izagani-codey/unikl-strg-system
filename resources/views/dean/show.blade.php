@@ -95,13 +95,13 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($request->vot_items as $votCode => $item)
-                                    <tr>
-                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $votCode }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-500">{{ $item['description'] ?? 'N/A' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($item['amount'] ?? 0, 2) }}</td>
-                                    </tr>
-                                @endforeach
+                                @foreach($request->getVotItems() as $item)
+    <tr>
+        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item['vot_code'] ?? '—' }}</td>
+        <td class="px-4 py-3 text-sm text-gray-500">{{ $item['description'] ?? 'N/A' }}</td>
+        <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ number_format($item['amount'] ?? 0, 2) }}</td>
+    </tr>
+@endforeach
                                 <tr class="bg-gray-50 font-semibold">
                                     <td colspan="2" class="px-4 py-3 text-sm text-gray-900">Total Amount</td>
                                     <td class="px-4 py-3 text-sm text-gray-900 text-right">RM{{ number_format($request->total_amount, 2) }}</td>

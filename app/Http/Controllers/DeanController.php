@@ -8,6 +8,7 @@ use App\Services\WorkflowTransitionService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
 
 class DeanController extends BaseController
 {

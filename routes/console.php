@@ -15,7 +15,7 @@ Artisan::command('requests:update-priorities', function () {
     $this->info('Starting priority update process...');
 
     $requests = Request::whereNotNull('deadline')
-        ->whereNotIn('status_id', [RequestStatus::APPROVED->value, RequestStatus::DECLINED->value])
+        ->whereNotIn('status_id', [RequestStatus::DEAN_APPROVED->value, RequestStatus::REJECTED->value])
         ->get();
 
     $updatedCount = 0;
